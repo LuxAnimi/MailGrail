@@ -1,0 +1,203 @@
+@mixin base-text() {
+    color: base-color(e, 0);
+    @include theme-transition(color);
+
+    font-family: "Inter", Tahoma, sans-serif;
+    font-size: 18px;
+
+    @media only screen and (max-width: $transition-large) {
+        font-size: 15px;
+    }
+
+    @media only screen and (max-width: $transition-medium) {
+        font-size: 12px;
+    }
+}
+
+@mixin base-text-selected() {
+    background: var(--select-background);
+    color: var(--select-color);
+}
+
+@mixin heading-text() {
+    display: block;
+    font-weight: bold;
+}
+
+
+// Button Style
+@mixin clickable-button-neutral() {
+    font-size: 1rem;
+    line-height: 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid base-color(3);
+    border-radius: 0.5rem;
+    color: base-color(e);
+    background: base-color(0);
+    @include theme-transition(background, color, border);
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    text-align: left;
+
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+
+    i,
+    &::before,
+    &::after {
+        font-size: 1.5rem;
+    }
+
+    i:first-child,
+    &::before {
+        margin-right: 0.5rem;
+    }
+
+    i:last-child,
+    &::after {
+        margin-right: 0.5rem;
+    }
+}
+
+@mixin clickable-button-hover() {
+    outline: none;
+    animation-name: aberration-box-anim;
+    background: base-color(4, a, c);
+}
+
+@mixin clickable-button-focus() {
+    outline: none;
+    animation-name: aberration-box-anim;
+    background: base-color(0, a, c);
+}
+
+@mixin clickable-button-active() {
+    background: base-color(a, a, c);
+}
+
+// Links Style
+@mixin clickable-text-neutral() {
+    color: base-color(e);
+    display: inline-block;
+    cursor: pointer;
+    @include theme-only-transition(background, color);
+    animation-duration: 1s;
+    animation-fill-mode: forwards;
+}
+
+@mixin clickable-text-hover() {
+    animation-name: aberration-box-anim;
+    background: base-color(f);
+    color: base-color(0);
+}
+
+@mixin clickable-text-focus() {
+    @include clickable-text-hover();
+}
+
+// inputs style
+@mixin input-textarea-common() {
+    color: base-color(f);
+    display: block;
+    width: 100%;
+    line-height: 1.25rem;
+    font-size: 1rem;
+
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+
+    background: transparent;
+    background-color: transparent;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 1000px base-color(0) inset;
+    transition: background-color 99999s ease-in-out;
+
+    &[autocomplete=off] {
+        box-shadow: 0 0 0 0 base-color(0) inset;
+    }
+
+    &:focus {
+        outline: none;
+    }
+
+    ::placeholder {
+        color: base-color(6);
+    }
+}
+
+@mixin input-neutral() {
+    height: 2rem;
+    border-style: none;
+    border-bottom: 1px solid base-color(f);
+}
+
+@mixin textarea-neutral() {
+    min-height: 6.75rem;
+    padding-top: 0.5rem;
+    resize: vertical;
+}
+
+@mixin content-container {
+    box-sizing: border-box;
+    min-height: 100vh;
+    margin: auto;
+    position: relative;
+
+    &::after,
+    &::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        width: 100vw;
+        top: 0;
+        bottom: 0;
+        right: -100vw;
+        left: -100vw;
+        margin: auto;
+    }
+}
+
+@mixin sub-content-container {
+    $shadowcolor: #200a04;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 60% 100%, #303331 0%, #1a1010 100%);
+    border-radius: 12px;
+    box-shadow: inset -1px -1px -0px #422;
+
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        opacity: 0.7;
+    }
+
+    &::before {
+        height: 3rem;
+        width: 100%;
+        left: 0;
+        top: 100%;
+        transform: rotate(-2deg);
+        transform-origin: bottom right;
+        box-shadow: 0 -2rem 20px $shadowcolor;
+    }
+
+    &::after {
+        height: 100%;
+        width: 3rem;
+        top: 0;
+        left: 100%;
+        transform: rotate(6deg);
+        transform-origin: bottom right;
+        box-shadow: -2rem 0 20px $shadowcolor;
+    }
+}
+
+// form style
+@mixin form-neutral() {
+}
+
+@mixin form-item-spacing() {
+    margin-bottom: 1.5rem;
+}

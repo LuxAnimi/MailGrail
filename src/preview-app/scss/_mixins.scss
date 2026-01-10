@@ -1,0 +1,189 @@
+@use 'sass:math';
+@use 'sass:list';
+@use 'sass:string';
+@use 'sass:color';
+
+$accent1: hsla(146deg, 50%, 52%, 0.5);
+$accent2: hsla(0deg, 70%, 58%, 0.5);
+
+$hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
+$shade-register: [];
+$shade-values: [];
+
+@function base-color-varname($shade, $accent, $alpha){
+    @return '--base-' + $shade + $accent + $alpha;
+}
+
+@function base-color($shade: f, $accent: 0, $alpha: f){
+    $varname: base-color-varname($shade, $accent, $alpha);
+
+    @if not list.index($shade-register, $varname){
+        $shade-register: list.append($shade-register, $varname) !global;
+        $shade-values: list.append($shade-values, ($shade, $accent, $alpha)) !global;
+    }
+    @return string.unquote("var(#{$varname})");
+}
+
+@function invert-lum($color, $percent){
+    $h: color.channel($color, "hue", $space: hsl);
+    $s: color.channel($color, "saturation", $space: hsl);
+    $l: 50% + (50% - color.channel($color, "lightness", $space: hsl)) * $percent;
+    $a: alpha($color);
+    @return string.unquote('hsla(#{$h}, #{$s}, #{$l}, #{$a})');
+}
+
+@mixin aberration-text($dist) {
+    text-shadow: $dist * 0.10em $dist * 0.05em 0px $accent2, $dist * -0.15em 0px 0px $accent1;
+}
+
+@mixin aberration-box($dist) {
+    box-shadow: $dist * 0.10em $dist * 0.1em 0px $accent2, $dist * -0.15em 0px 0px $accent1;
+}
+
+@mixin theme-transition($properties...){
+    $ps: ();
+    @each $p in $properties {
+        $ps: list.append($ps, $p var(--themed-transition-speed) ease-in, comma);
+    }
+    transition: $ps;
+}
+@mixin theme-only-transition($properties...){
+    $ps: ();
+    @each $p in $properties {
+        $ps: list.append($ps, $p var(--only-themed-transition-speed) ease-in, comma);
+    }
+    transition: $ps;
+}
+
+
+@mixin boxy-link(){
+    touch-action: manipulation;
+    user-select: none;
+    background-image: none;
+    cursor: pointer;
+    padding: 0.5em;
+    display: block;
+    @include theme-transition(background, color);
+
+    &:focus,
+    &:hover {
+        background: base-color(f, 0, f) !important;
+        color: base-color(6) !important;
+        text-decoration: underline;
+        text-shadow: none !important;
+    }
+
+    &:active {
+        outline: 0;
+        box-shadow: inset 0 3px 5px base-color(0, 1);
+    }
+
+    &::before {
+        content: none !important;
+    }
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+}
+
+@mixin text-link-aberration() {
+    text-decoration : none !important;
+    font-size: 1.25rem;
+
+    color: base-color(a);
+    box-shadow: none;
+    padding: 0.75rem;
+
+    @include theme-transition(color);
+
+    &:focus,
+    &:hover {
+        color: base-color(f) !important;
+        background: base-color(f, 0, 0) !important;
+    }
+
+    &:focus {
+        animation-name: none !important;
+    }
+
+    &:hover {
+        animation-name: aberration-text-small-anim !important;
+    }
+}
+
+@mixin text-link-header(){
+    text-decoration : none !important;
+
+    *,
+    &::before,
+    &::after {
+        vertical-align: middle;
+    }
+
+    &:focus,
+    &:hover {
+        color: base-color(f) !important;
+        box-shadow: none !important;
+        background: none !important;
+        text-shadow: 0px 0px 5px base-color(5) !important;
+
+    }
+}
+
+@mixin addon-button {
+    height: 3rem;
+    max-width: 3rem;
+    width: auto;
+    overflow: hidden;
+    text-align: center;
+    @include text-link-aberration;
+
+    background: transparent;
+    text-shadow: 1px 1px 2px base-color(0);
+
+    @include theme-transition(color, text-shadow);
+
+    cursor: pointer;
+}
+
+@mixin pipe-separated-ul {
+
+    display: flex;
+	flex-direction: row;
+    list-style-type: none;
+
+    li {
+        display: inline-block;
+
+        &::after {
+            font-size: 1.25em;
+            line-height: 1em;
+            margin-left: 0.1rem;
+            color: base-color(a);
+            @include theme-transition(color);
+            text-shadow: none;
+        }
+
+        &:not(:last-child)::after {
+            display: inline-block;
+            content: '|';
+        }
+    }
+}
+
+@mixin frosted {
+    background: base-color(2, 0, b);
+    backdrop-filter: blur(25px);
+}
+
+@mixin media-mobile-small {
+    @media (max-width: #{$transition-small}) { @content }}
+
+@mixin media-mobile {
+    @media (max-width: #{$transition-medium}) { @content }}
+
+@mixin media-desktop {
+    @media (max-width: #{$transition-large}) { @content }}
+
+@mixin media-desktop-large { @content }

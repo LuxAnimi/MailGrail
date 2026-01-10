@@ -1,0 +1,136 @@
+@import './scaffold/constants';
+@import './palette';
+@import './mixins';
+@import './scaffold/reset';
+@import './scaffold/defaults';
+@import './theme.scss';
+@import './scaffold/framework';
+
+.app-root {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    width: 100vw;
+    max-height: 100vh;
+    max-width: 100vw;
+    overflow: hidden;
+    background: base-color(1, 5);
+}
+#root {
+    display: contents;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 0;
+    min-width: 18rem;
+    padding: 1.25rem;
+
+    .header {
+        margin-bottom: 3rem;
+
+        img {
+            display: block;
+            margin: 0 auto;
+            max-width: 225px;
+            height: auto;
+        }
+
+        h1.title {
+            margin-top: 1.25rem;
+            font-size: 24px;
+            font-weight: 800;
+            color: base-color(f, f, f);
+            font-size: 48;
+            line-height: 2rem;
+        }
+
+        .subtitle {
+            margin-top: 0.25rem;
+            font-size: 16px;
+            color: base-color(c, 8);
+            font-size: 18;
+            line-height: 1.5rem;
+        }
+    }
+
+    nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        overflow: auto;
+
+        header {
+            font-weight: 800;
+            font-size: 14px;
+            color: gray;
+            margin-bottom: 0.25rem;
+        }
+    }
+}
+
+.content {
+    background: white;
+    border-radius: 2rem;
+    flex-grow: 1;
+    flex-direction: column;
+    display: flex;
+    margin: 1rem 1rem 1rem 0;
+    color: black;
+    overflow: hidden;
+
+    .header {
+        padding: 2rem 1.5rem 1.5rem;
+        flex-grow: 0;
+        h2 {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .title {
+            margin: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: lowercase;
+            min-width: 4.5rem;
+        }
+
+        .meta-value {
+            font-size: 0.95rem;
+            color: #222;
+        }
+    }
+    .templatePreview {
+        margin: 3px;
+        flex-grow: 1;
+        border-radius: calc(2rem - 2px);
+        overflow: hidden;
+    }
+
+    iframe {
+        height: 100%;
+        width: 100%;
+        border: none;
+    }
+}
+
+:root {
+    @include generate-palette();
+}
