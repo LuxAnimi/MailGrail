@@ -18,7 +18,7 @@ export default defineConfig(async () => {
   );
 
   return {
-    root: "./dist-src",
+    root: "./src",
     plugins: [
       react(),
       MailgrailConfigPlugin(mailgrailConfig),

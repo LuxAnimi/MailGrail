@@ -6,8 +6,12 @@ import mjml2html from "mjml-browser";
 import { PreviewMode } from "@/preview-app/enums";
 
 //------------------------------------------------------------------------------
-import type { TemplateDefinition } from "@/cli/types";
-import type { Schema } from "@/dsl/types";
+import { makeTemplatePreviewContext } from "@/cli/rendering/schema-previewing";
+import { makePlaceholderData } from "@/cli/rendering/schema-placeholder";
+
+//------------------------------------------------------------------------------
+import type { PreviewTemplateContext, TemplateDefinition } from "@/cli/types";
+import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -109,9 +113,10 @@ const TemplatePreviewHTML = ({
   //----------------------------------------------------------------------------
   // Render
   const htmlRender = useMemo(() => {
-    const doc = template.htmlTemplate(
-      (paramName: string): string => `<${paramName}>`,
-    );
+    const placeholder = makePlaceholderData(template.params);
+    const ctx: PreviewTemplateContext<any> =
+      makeTemplatePreviewContext(placeholder);
+    const doc = template.htmlTemplate(ctx);
 
     return (
       <iframe

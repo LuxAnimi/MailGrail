@@ -9,7 +9,7 @@ import { loadTemplates } from "@/preview-app/TemplateLoader";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types.ts";
-import type { Schema } from "@/dsl/types";
+import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -40,17 +40,14 @@ export default function App() {
   //----------------------------------------------------------------------------
   // Effect
   useEffect(() => {
-    loadTemplates().then((templates) => {
-      setTemplates(templates);
+    if (templates.length > 0) return;
+    loadTemplates().then((_templates) => {
+      setTemplates(_templates);
+      if (selectedTemplate === undefined && _templates.length > 0) {
+        setSelectedTemplateId(_templates[0].name);
+      }
     });
   }, []);
-
-  //----------------------------------------------------------------------------
-  useEffect(() => {
-    if (!selectedTemplateId && templates.length > 0) {
-      setSelectedTemplateId(selectedTemplateId);
-    }
-  }, [selectedTemplateId, templates]);
 
   //----------------------------------------------------------------------------
   // Render

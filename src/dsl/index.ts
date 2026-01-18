@@ -1,14 +1,20 @@
-import { string } from "./string.js";
-import { number } from "./number.js";
-import { array } from "./array.js";
-import { object } from "./object.js";
-import { optional } from "./optional.js";
-import { defaulted } from "./defaulted.js";
+import {
+  defaulted,
+  optional,
+  object,
+  array,
+  boolean,
+  number,
+  string,
+} from "./schemas.js";
 
+//------------------------------------------------------------------------------
+// The public api for the DSL
 //------------------------------------------------------------------------------
 export const t = {
   string,
   number,
+  boolean,
   object,
   array,
   optional,

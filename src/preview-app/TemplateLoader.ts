@@ -1,5 +1,5 @@
 import type { TemplateDefinition } from "@/cli/types.ts";
-import type { Schema } from "@/dsl/types";
+import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

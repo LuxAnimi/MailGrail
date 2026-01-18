@@ -1,6 +1,8 @@
-import type { MailgrailUserConfig } from "../config/types.ts";
+import type { MailgrailConfig } from "../config/types.ts";
 
 //------------------------------------------------------------------------------
-export function defineConfig(config: MailgrailUserConfig): MailgrailUserConfig {
+export function defineConfig(
+  config: Partial<MailgrailConfig>,
+): Partial<MailgrailConfig> {
   return config;
 }

@@ -11,9 +11,6 @@ export interface MailgrailConfig {
 }
 
 //------------------------------------------------------------------------------
-export interface MailgrailUserConfig extends Partial<MailgrailConfig> {}
-
-//------------------------------------------------------------------------------
 export interface MailgrailResolvedConfig extends MailgrailConfig {
   baseDir: string;
   configPath: string;

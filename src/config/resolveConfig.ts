@@ -2,14 +2,14 @@ import path from "path";
 
 //------------------------------------------------------------------------------
 import type {
-  MailgrailUserConfig,
+  MailgrailConfig,
   MailgrailResolvedConfig,
 } from "../config/types.ts";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 export function resolveConfig(
-  userConfig: MailgrailUserConfig,
+  userConfig: Partial<MailgrailConfig>,
   configPath: string,
   baseDir: string,
 ): MailgrailResolvedConfig {

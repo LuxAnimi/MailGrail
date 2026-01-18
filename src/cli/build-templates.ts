@@ -9,8 +9,9 @@ import { renderToMjml } from "@faire/mjml-react/utils/renderToMjml.js";
 import mjml2html from "mjml";
 
 //------------------------------------------------------------------------------
-import type { ParamFormatter, TemplateDefinition } from "./types.js";
+import type { TemplateDefinition } from "./types.js";
 import type { AnySchema, ObjectSchema } from "@/dsl/types.js";
+import { makeTemplateRenderContext } from "./rendering/schema-rendering.js";
 
 //------------------------------------------------------------------------------
 globalThis.React = await import("react");
@@ -90,12 +91,12 @@ async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
 // Compile HTML → EJS
 //------------------------------------------------------------------------------
 function compileHtmlEjs(template: TemplateDefinition<any>): string {
-  const ejsParams: ParamFormatter = (key) => `@mg@${String(key)}@mg@`;
-
-  const mjml = renderToMjml(template.htmlTemplate(ejsParams));
-  let { html, errors } = mjml2html(mjml, { minify: false });
-
-  html = html.replace(/@mg@(\w+)@mg@/g, "<%= $1 %>");
+  const ctx = makeTemplateRenderContext<any>({
+    engine: "ejs",
+  });
+  const doc = template.htmlTemplate(ctx);
+  const mjml = renderToMjml(doc);
+  const { html, errors } = mjml2html(mjml, { minify: false });
 
   if (errors?.length) {
     throw new Error(

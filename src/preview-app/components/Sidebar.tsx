@@ -5,7 +5,7 @@ import config from "virtual:mailgrailconfig";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types";
-import type { Schema } from "@/dsl/types";
+import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

@@ -8,7 +8,7 @@ import { resolveConfig } from "./resolveConfig.js";
 
 //------------------------------------------------------------------------------
 import type {
-  MailgrailUserConfig,
+  MailgrailConfig,
   MailgrailResolvedConfig,
 } from "../config/types.ts";
 
@@ -36,7 +36,7 @@ export async function loadMailgrailConfig(
   }
 
   return resolveConfig(
-    result.config as MailgrailUserConfig,
+    result.config as Partial<MailgrailConfig>,
     configFile,
     baseDir,
   );
