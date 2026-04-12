@@ -1,15 +1,21 @@
+@use './palette.scss' as palette;
+@use './mixins' as mixins;
+@use './scaffold/constants.scss' as constants;
+@use './scaffold/defaults' as default;
+@forward "./scaffold/defaults" show clickable-button, input, textarea, textarea-hover, textarea-focus, clickable-text, clickable-text-active;
+
 @mixin base-text() {
-    color: base-color(e, 0);
-    @include theme-transition(color);
+    color: palette.base-color(e, 0);
+    @include mixins.theme-transition(color);
 
     font-family: "Inter", Tahoma, sans-serif;
     font-size: 18px;
 
-    @media only screen and (max-width: $transition-large) {
+    @media only screen and (max-width: constants.$transition-large) {
         font-size: 15px;
     }
 
-    @media only screen and (max-width: $transition-medium) {
+    @media only screen and (max-width: constants.$transition-medium) {
         font-size: 12px;
     }
 }
@@ -24,17 +30,16 @@
     font-weight: bold;
 }
 
-
 // Button Style
 @mixin clickable-button-neutral() {
     font-size: 1rem;
     line-height: 1rem;
     padding: 0.5rem 0.75rem;
-    border: 1px solid base-color(3);
-    border-radius: 0.5rem;
-    color: base-color(e);
-    background: base-color(0);
-    @include theme-transition(background, color, border);
+    border: 1px solid palette.base-color(3);
+    border-radius: 7px;
+    color: palette.base-color(e);
+    background: palette.base-color(0);
+    @include mixins.theme-transition(background, color, border);
     text-decoration: none;
     vertical-align: middle;
     cursor: pointer;
@@ -42,6 +47,7 @@
 
     animation-duration: 1s;
     animation-fill-mode: forwards;
+    transition: background 0.2s ease-in, border-color 0.15s ease-in;
 
     i,
     &::before,
@@ -63,42 +69,42 @@
 @mixin clickable-button-hover() {
     outline: none;
     animation-name: aberration-box-anim;
-    background: base-color(4, a, c);
+    background: palette.base-color(a, f, 3);
 }
 
 @mixin clickable-button-focus() {
     outline: none;
     animation-name: aberration-box-anim;
-    background: base-color(0, a, c);
+    background: palette.base-color(0, 3, c);
 }
 
 @mixin clickable-button-active() {
-    background: base-color(a, a, c);
+    border-color: palette.base-color(a, f);
 }
 
 // Links Style
 @mixin clickable-text-neutral() {
-    color: base-color(e);
+    color: palette.base-color(e);
     display: inline-block;
     cursor: pointer;
-    @include theme-only-transition(background, color);
+    @include mixins.theme-only-transition(background, color);
     animation-duration: 1s;
     animation-fill-mode: forwards;
 }
 
 @mixin clickable-text-hover() {
     animation-name: aberration-box-anim;
-    background: base-color(f);
-    color: base-color(0);
+    background: palette.base-color(f);
+    color: palette.base-color(0, 9);
 }
 
 @mixin clickable-text-focus() {
-    @include clickable-text-hover();
+    @include default.clickable-text-hover();
 }
 
 // inputs style
 @mixin input-textarea-common() {
-    color: base-color(f);
+    color: palette.base-color(0);
     display: block;
     width: 100%;
     line-height: 1.25rem;
@@ -110,26 +116,44 @@
     background: transparent;
     background-color: transparent;
     box-sizing: border-box;
-    box-shadow: 0 0 0 1000px base-color(0) inset;
-    transition: background-color 99999s ease-in-out;
+    //box-shadow: 0 0 0 1000px palette.base-color(0) inset;
+    //transition: background-color 99999s ease-in-out;
 
     &[autocomplete=off] {
-        box-shadow: 0 0 0 0 base-color(0) inset;
-    }
-
-    &:focus {
-        outline: none;
+        box-shadow: 0 0 0 0 palette.base-color(0) inset;
     }
 
     ::placeholder {
-        color: base-color(6);
+        color: palette.base-color(6);
     }
 }
 
 @mixin input-neutral() {
     height: 2rem;
     border-style: none;
-    border-bottom: 1px solid base-color(f);
+    border-radius: 5px;
+    padding: 0.3rem 0.5rem;
+    box-sizing: border-box;
+
+    outline-width: 1px;
+    outline-color: palette.base-color(c, 3);
+    outline-style: solid;
+}
+
+@mixin input-hover() {
+    outline-width: 2px;
+    outline-color: palette.base-color(8, f);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+    background: palette.base-color(a, f, 3);
+    background-color: palette.base-color(a, f, 3);
+}
+
+@mixin input-focus() {
+    outline-width: 2px;
+    outline-color: palette.base-color(8, f);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+    background: transparent;
+    background-color: transparent;
 }
 
 @mixin textarea-neutral() {

@@ -13,12 +13,12 @@ import { loadMailgrailConfig } from "./src/config/loadConfig";
 //------------------------------------------------------------------------------
 
 export default defineConfig(async () => {
-  const mailgrailConfig = await loadMailgrailConfig(
-    "./example/mailgrail.config.ts",
-  );
+  const mailgrailConfigPath = process.env.MAILGRAIL_CONFIG;
+  const mailgrailBasePath = process.env.MAILGRAIL_BASEPATH || "app";
+  const mailgrailConfig = await loadMailgrailConfig(mailgrailConfigPath);
 
   return {
-    root: "./src",
+    root: mailgrailBasePath,
     plugins: [
       react(),
       MailgrailConfigPlugin(mailgrailConfig),
@@ -26,7 +26,7 @@ export default defineConfig(async () => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),
+        "@": path.resolve(__dirname, mailgrailBasePath),
       },
     },
     // Optional: configure asset handling

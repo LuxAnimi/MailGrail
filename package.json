@@ -1,15 +1,20 @@
 {
   "name": "mailgrail",
   "version": "0.1.0",
+  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to EJS and TypeScript.",
+  "author": "Maxime Dupuis",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "rollup -c && tsc -p tsconfig.cli.json && cp -r dist-src lib/app",
+    "dev": "MAILGRAIL_CONFIG=example/mailgrail.config.ts MAILGRAIL_BASEPATH=src vite",
+    "build": "npm run build:app && npm run build:lib",
+    "build:app": "rollup -c",
+    "build:lib": "tsc -p tsconfig.cli.json && cp -r dist-src lib/app && cp vite.config.js lib",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "npm run typecheck:cli && npm run typecheck:vite",
     "typecheck:cli": "tsc -p tsconfig.cli.json",
-    "typecheck:vite": "tsc -p tsconfig.vite.json"
+    "typecheck:vite": "tsc -p tsconfig.vite.json",
+    "prepublishOnly": "npm run build"
   },
   "bin": {
     "mailgrail": "./lib/bin/mailgrail.js"
@@ -18,24 +23,55 @@
     ".": {
       "import": "./lib/src/config/index.js",
       "types": "./lib/src/config/index.d.ts"
+    },
+    "./dsl": {
+      "import": "./lib/src/dsl/index.js",
+      "types": "./lib/src/dsl/index.d.ts"
+    },
+    "./types": {
+      "import": "./lib/src/cli/types.js",
+      "types": "./lib/src/cli/types.d.ts"
     }
   },
   "files": [
-    "lib",
-    "example-emails"
+    "lib"
   ],
   "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxdup/mailgrail.git"
+  },
+  "homepage": "https://github.com/maxdup/mailgrail#readme",
+  "bugs": {
+    "url": "https://github.com/maxdup/mailgrail/issues"
+  },
+  "keywords": [
+    "email",
+    "mjml",
+    "react",
+    "templating",
+    "ejs",
+    "transactional-email",
+    "email-template",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "@faire/mjml-react": "^3.5.3",
-    "ejs": "^3.1.10",
-    "esbuild": "^0.27.2",
+    "ejs": "^4.0.1",
+    "esbuild": "^0.27.3",
     "mjml": "^4.18.0",
     "mjml-browser": "^4.18.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "9.39.3",
     "@rollup/plugin-alias": "^6.0.0",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-html": "^2.0.0",
@@ -44,22 +80,30 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/mjml": "^4.7.4",
     "@types/mjml-browser": "^4.15.0",
-    "@types/node": "^25.0.3",
-    "@types/react": "^19.2.7",
+    "@types/node": "^25.3.2",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
-    "eslint": "^9.39.2",
+    "@vitejs/plugin-react": "^5.1.4",
+    "browserslist": "^4.28.1",
+    "eslint": "^9.39.3",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.26",
-    "globals": "^16.5.0",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.3.0",
     "jiti": "^2.6.1",
-    "rollup": "^4.54.0",
+    "lightningcss": "^1.31.1",
+    "rollup": "^4.59.0",
     "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-lightningcss": "^1.0.0",
     "rollup-plugin-postcss": "^4.0.2",
-    "sass": "^1.97.1",
+    "sass": "^1.97.3",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.50.1",
-    "vite": "^7.3.0"
-  }
+    "typescript-eslint": "^8.56.1",
+    "vite": "^7.3.1"
+  },
+  "browserslist": [
+    ">0.5%",
+    "not dead",
+    "not op_mini all"
+  ]
 }

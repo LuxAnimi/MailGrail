@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 //------------------------------------------------------------------------------
 import { Sidebar } from "@/preview-app/components/Sidebar";
 import { Content } from "@/preview-app/components/Content";
 
 //------------------------------------------------------------------------------
-import { loadTemplates } from "@/preview-app/TemplateLoader";
+import { templates as _templates } from "virtual:mailgrailtemplates";
+
+//------------------------------------------------------------------------------
+import { useTemplates } from "./TemplateLoader";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types.ts";
@@ -14,9 +17,8 @@ import type { Schema } from "@/dsl/schemas";
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 export default function App() {
-  const [templates, setTemplates] = useState<TemplateDefinition<Schema<any>>[]>(
-    [],
-  );
+  //----------------------------------------------------------------------------
+  const templates = useTemplates();
 
   //----------------------------------------------------------------------------
   // State
@@ -25,7 +27,8 @@ export default function App() {
   //----------------------------------------------------------------------------
   // Memos
   const selectedTemplate = useMemo(() => {
-    return templates.find((t) => t.name === selectedTemplateId);
+    const temp = templates.find((t) => t.name === selectedTemplateId);
+    return temp ? { ...temp } : undefined;
   }, [templates, selectedTemplateId]);
 
   //----------------------------------------------------------------------------
@@ -36,18 +39,6 @@ export default function App() {
     },
     [],
   );
-
-  //----------------------------------------------------------------------------
-  // Effect
-  useEffect(() => {
-    if (templates.length > 0) return;
-    loadTemplates().then((_templates) => {
-      setTemplates(_templates);
-      if (selectedTemplate === undefined && _templates.length > 0) {
-        setSelectedTemplateId(_templates[0].name);
-      }
-    });
-  }, []);
 
   //----------------------------------------------------------------------------
   // Render

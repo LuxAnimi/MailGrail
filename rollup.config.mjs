@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 export default  [{
-  input: "src/preview-app/index.tsx",
+  input: {"index": "src/preview-app/index.tsx"},
 
   output: {
     dir: "dist-src",

@@ -1,0 +1,90 @@
+@use "../theme.scss" as theme;
+
+@mixin clickable-text() {
+    @include theme.clickable-text-neutral();
+    &:hover { @include theme.clickable-text-hover(); }
+    &:focus { @include theme.clickable-text-focus(); }
+    &:active { @include theme.clickable-text-active(); }
+    &.active { @include theme.clickable-text-active(); }
+}
+
+@mixin clickable-button() {
+    @include theme.clickable-button-neutral();
+    &:hover { @include theme.clickable-button-hover(); }
+    &:focus { @include theme.clickable-button-focus(); }
+    &:active { @include theme.clickable-button-active(); }
+    &.active { @include theme.clickable-button-active(); }
+}
+
+@mixin input() {
+    &:not([type="checkbox"]){
+        @include theme.input-textarea-common();
+        @include theme.input-neutral();
+        &:hover { @include theme.input-hover(); }
+        &:focus { @include theme.input-focus(); }
+    }
+}
+
+@mixin textarea() {
+    @include theme.input-textarea-common();
+    @include theme.textarea-neutral();
+    &:hover { @include theme.textarea-hover(); }
+    &:focus { @include theme.textarea-focus(); }
+}
+
+
+html,
+body,
+input,
+textarea,
+button {
+    @include theme.base-text();
+}
+
+::selection {
+    @include theme.base-text-selected();
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    @include theme.heading-text();
+}
+
+.button {
+    @include clickable-button();
+}
+
+input {
+    @include input();
+}
+
+textarea {
+    @include textarea();
+}
+
+form {
+    @include theme.sub-content-container();
+
+    >button,
+    >input,
+    >textarea {
+        @include theme.form-item-spacing();
+    }
+}
+
+button:not(.button),
+a:not(.button) {
+    @include clickable-text();
+}
+
+.container {
+    @include theme.content-container();
+}
+
+.sub-container {
+    @include theme.sub-content-container();
+}

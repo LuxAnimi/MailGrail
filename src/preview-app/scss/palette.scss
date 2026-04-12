@@ -1,5 +1,6 @@
 @use 'sass:list';
 @use "sass:math";
+@use "sass:string";
 @use 'sass:color';
 
 $hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
@@ -8,12 +9,32 @@ $hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
     @return (list.index($hex-chars, $n) - 1);
 }
 
+
+$accent1: hsla(146deg, 50%, 52%, 0.5);
+$accent2: hsla(0deg, 70%, 58%, 0.5);
+
 $start-color: #000000;
-$start-accent: #000000;
-//$start-accent: #332614;
+$start-accent: #332614;
 $end-color: #ffffff;
-//$end-accent: #f4da5f;
-$end-accent: #ffffff;
+$end-accent: #ffe348;
+
+$hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
+$shade-register: [];
+$shade-values: [];
+
+@function base-color-varname($shade, $accent, $alpha){
+    @return '--base-' + $shade + $accent + $alpha;
+}
+
+@function base-color($shade: f, $accent: 0, $alpha: f){
+    $varname: base-color-varname($shade, $accent, $alpha);
+
+    @if not list.index($shade-register, $varname){
+        $shade-register: list.append($shade-register, $varname) !global;
+        $shade-values: list.append($shade-values, ($shade, $accent, $alpha)) !global;
+    }
+    @return string.unquote("var(#{$varname})");
+}
 
 @function hex-to-rgb($s) {
     $n: hex-to-dec($s);

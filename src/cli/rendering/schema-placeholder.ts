@@ -1,8 +1,6 @@
 import type {
   Schema,
   Infer,
-  StringSchema,
-  NumberSchema,
   ArraySchema,
   ObjectSchema,
   OptionalSchema,
@@ -29,30 +27,21 @@ export function makePlaceholderData<S extends Schema<any>>(
     arrayLength?: number;
   } = {},
 ): Infer<S> {
-  const optionalAsUndefined = options.optionalAsUndefined ?? false;
-  const arrayLength = options.arrayLength ?? 3;
+  const optionalAsUndefined = options.optionalAsUndefined ?? true;
+  const arrayLength = options.arrayLength ?? 1;
 
   const make = (s: Schema<any>): any => {
     switch (s.kind) {
       case "string": {
-        const ss = s as StringSchema;
-        const min = ss.minLength ?? 0;
-
-        // Produce something readable and long enough.
-        // If minLength is 0, give "text" anyway so previews aren’t empty.
-        const base = "text";
-        if (min <= base.length) return base;
-        return base + "x".repeat(min - base.length);
+        return "";
       }
 
       case "number": {
-        const ns = s as NumberSchema;
-        // If int is requested, return an integer.
-        return ns.int ? 0 : 0.0;
+        return "" as any;
       }
 
       case "boolean": {
-        return true;
+        return false;
       }
 
       case "array": {

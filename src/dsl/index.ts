@@ -1,22 +1,24 @@
 import {
-  defaulted,
-  optional,
-  object,
-  array,
   boolean,
   number,
   string,
+  object,
+  array,
+  optional,
+  defaulted,
 } from "./schemas.js";
 
 //------------------------------------------------------------------------------
 // The public api for the DSL
 //------------------------------------------------------------------------------
 export const t = {
-  string,
-  number,
   boolean,
+  number,
+  string,
   object,
   array,
   optional,
   default: defaulted,
 };
+
+export type { Infer, Schema } from "./schemas.js";

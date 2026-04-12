@@ -1,7 +1,9 @@
 import path from "path";
+import fs from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 //------------------------------------------------------------------------------
-import { loadConfigFromFile } from "vite";
+import { build } from "esbuild";
 
 //------------------------------------------------------------------------------
 import { resolveConfig } from "./resolveConfig.js";
@@ -22,22 +24,37 @@ export async function loadMailgrailConfig(
     configPath || path.resolve(baseDir, "mailgrail.config.ts"),
   );
 
-  const result = await loadConfigFromFile(
-    {
-      command: "serve", // or "build"
-      mode: "development",
-    },
-    configFile,
-    baseDir,
-  );
+  // Transpile the config TypeScript → ESM without bundling deps.
+  // Writing the tmp file into baseDir ensures Node resolves imports
+  // (e.g. "mailgrail") from the user's node_modules, not from /tmp.
+  const tmpFile = path.join(baseDir, `.mailgrail-config-${Date.now()}.mjs`);
 
-  if (!result) {
-    throw new Error("Failed to load mailgrail.config.ts");
+  try {
+    await build({
+      entryPoints: [configFile],
+      outfile: tmpFile,
+      bundle: true,
+      packages: "external",
+      format: "esm",
+      platform: "node",
+    });
+
+    // Cache-bust so Node doesn't serve a stale module on config reload
+    const mod = await import(
+      pathToFileURL(tmpFile).href + "?t=" + Date.now()
+    );
+
+    const config = mod.default as Partial<MailgrailConfig> | undefined;
+
+    if (!config) {
+      throw new Error(
+        `No default export found in ${configFile}. ` +
+          `Make sure you export a defineConfig() call as default.`,
+      );
+    }
+
+    return resolveConfig(config, configFile, baseDir);
+  } finally {
+    await fs.unlink(tmpFile).catch(() => {});
   }
-
-  return resolveConfig(
-    result.config as Partial<MailgrailConfig>,
-    configFile,
-    baseDir,
-  );
 }

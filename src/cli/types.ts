@@ -210,6 +210,11 @@ export type RenderTemplateContext<T, D extends Depth = 4> = TemplateContext<
   D
 >;
 //------------------------------------------------------------------------------
+export type HtmlTemplateContext<T, D extends Depth = 4> = RenderTemplateContext<
+  T,
+  D
+>;
+//------------------------------------------------------------------------------
 export type PreviewTemplateContext<T, D extends Depth = 4> = TemplateContext<
   T,
   ReactNode,

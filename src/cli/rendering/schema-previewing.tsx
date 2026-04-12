@@ -44,6 +44,10 @@ export function makeTemplatePreviewContext<T>(
 
   mg.render = (path: string) => {
     const value = getPath(params as any, path);
+    if (value === "" || value === undefined || value === null) {
+      const key = path.split(".").pop() ?? path;
+      return `<${key}>`;
+    }
     return toRenderableString(value);
   };
 
@@ -73,6 +77,8 @@ export function makeTemplatePreviewContext<T>(
     const value = getPath(params as any, path);
     if (!Array.isArray(value)) return null;
 
+    const itemKey = path.split(".").pop() ?? path;
+
     return value.map((elem, index) => {
       if (Array.isArray(elem)) {
         const arrItemCtx = {
@@ -87,7 +93,12 @@ export function makeTemplatePreviewContext<T>(
         elem == null ||
         ["string", "number", "boolean"].includes(typeof elem)
       ) {
-        const primItemCtx = { render: () => toRenderableString(elem) };
+        const primItemCtx = {
+          render: () =>
+            elem === "" || elem === undefined || elem === null
+              ? `<${itemKey}>`
+              : toRenderableString(elem),
+        };
         return render(primItemCtx, index);
       }
 

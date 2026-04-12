@@ -6,3 +6,11 @@ export function defineConfig(
 ): Partial<MailgrailConfig> {
   return config;
 }
+
+export { t } from "../dsl/index.js";
+export type { Infer, Schema } from "../dsl/schemas.js";
+export type {
+  TemplateDefinition,
+  RenderTemplateContext,
+  HtmlTemplateContext,
+} from "../cli/types.js";
