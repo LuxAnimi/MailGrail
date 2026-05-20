@@ -24,7 +24,7 @@ export async function buildTemplates(config: MailgrailResolvedConfig) {
   const templates = await loadTemplates(config.sourceDir);
 
   for (const template of templates) {
-    const htmlEjs = compileHtmlEjs(template);
+    const htmlEjs = await compileHtmlEjs(template);
     const textEjs = compileTextEjs(template);
     const subjEjs = compileSubjEjs(template);
 
@@ -90,13 +90,13 @@ async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
 //------------------------------------------------------------------------------
 // Compile HTML → EJS
 //------------------------------------------------------------------------------
-function compileHtmlEjs(template: TemplateDefinition<any>): string {
+async function compileHtmlEjs(template: TemplateDefinition<any>): Promise<string> {
   const ctx = makeTemplateRenderContext<any>({
     engine: "ejs",
   });
   const doc = template.htmlTemplate(ctx);
   const mjml = renderToMjml(doc);
-  const { html, errors } = mjml2html(mjml, { minify: false });
+  const { html, errors } = await mjml2html(mjml, { minify: false });
 
   if (errors?.length) {
     throw new Error(

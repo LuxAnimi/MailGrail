@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { renderToMjml } from "@faire/mjml-react/utils/renderToMjml";
 import mjml2html from "mjml-browser";
 
@@ -201,9 +201,15 @@ const TemplatePreviewHTML = ({
   viewport: ViewportPreset;
 }) => {
   //----------------------------------------------------------------------------
-  const html = useMemo(() => {
+  // State
+  const [html, setHtml] = useState<string>();
+
+  //----------------------------------------------------------------------------
+  useEffect(() => {
     const doc = template.htmlTemplate(makeTemplatePreviewContext(params));
-    return mjml2html(renderToMjml(doc)).html;
+    mjml2html(renderToMjml(doc)).then((result) => {
+      setHtml(result.html);
+    });
   }, [template, params]);
 
   //----------------------------------------------------------------------------

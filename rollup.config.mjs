@@ -6,7 +6,6 @@ import typescript from "@rollup/plugin-typescript";
 import postcss from "rollup-plugin-postcss";
 import alias from "@rollup/plugin-alias";
 import json from "@rollup/plugin-json";
-import copy from "rollup-plugin-copy";
 import html from "@rollup/plugin-html";
 
 //------------------------------------------------------------------------------
@@ -83,10 +82,5 @@ export default  [{
 </html>
 `,
     }),
-    copy({
-      targets: [
-        { src: "src/preview-app/assets/**/*", dest: "dist-src/preview-app/assets" }
-      ]
-    })
   ]
 }];
