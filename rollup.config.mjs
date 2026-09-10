@@ -7,6 +7,7 @@ import postcss from "rollup-plugin-postcss";
 import alias from "@rollup/plugin-alias";
 import json from "@rollup/plugin-json";
 import html from "@rollup/plugin-html";
+import terser from "@rollup/plugin-terser";
 
 //------------------------------------------------------------------------------
 const __filename = fileURLToPath(import.meta.url);
@@ -20,7 +21,9 @@ export default  [{
   output: {
     dir: "dist-src",
     format: "esm",
-    sourcemap: true,
+    // The preview app ships inside the npm tarball; sourcemaps for it would
+    // more than triple the package size for no consumer benefit.
+    sourcemap: false,
   },
 
   external: [
@@ -43,7 +46,7 @@ export default  [{
       extensions: [".scss", ".css"],
       extract: "styles.css",
       minimize: true,
-      sourceMap: true,
+      sourceMap: false,
       use: ["sass"],
     }),
     html({
@@ -82,5 +85,6 @@ export default  [{
 </html>
 `,
     }),
+    terser(),
   ]
 }];

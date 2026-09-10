@@ -23,7 +23,6 @@ async function main() {
   }
 
   // opts is guaranteed non-null after the exit above
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const options = opts!;
 
   scaffold(options);

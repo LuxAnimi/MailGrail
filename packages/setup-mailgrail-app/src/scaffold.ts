@@ -20,17 +20,18 @@ function updatePackageJson(projectDir: string, ts: boolean): void {
   pkg.scripts["preview-emails"] ??= "mailgrail preview";
   pkg.scripts["build-emails"] ??= "mailgrail build";
 
+  // mailgrail's peer dependencies: the user's template files import these
+  // directly, and mailgrail resolves them from the project's node_modules.
   pkg.dependencies ??= {};
-  pkg.dependencies["@faire/mjml-react"] ??= "^3.5.3";
-  pkg.dependencies["mjml-browser"] ??= "^4.18.0";
+  pkg.dependencies["@faire/mjml-react"] ??= "^4.0.0";
   pkg.dependencies["react"] ??= "^19.0.0";
-  pkg.dependencies["react-dom"] ??= "^19.0.0";
+  // The compiled output imports its templating engine at runtime.
+  pkg.dependencies["ejs"] ??= "^5.0.2";
 
   pkg.devDependencies ??= {};
   pkg.devDependencies["mailgrail"] ??= "latest";
   if (ts) {
     pkg.devDependencies["@types/react"] ??= "^19.0.0";
-    pkg.devDependencies["@types/react-dom"] ??= "^19.0.0";
   }
 
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");

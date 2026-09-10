@@ -8,16 +8,17 @@
     "setup-mailgrail-app": "./dist/bin/setup-mailgrail-app.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
-  "license": "GPL-3.0",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maxdup/mailgrail.git"
+    "url": "git+https://github.com/LuxAnimi/MailGrail.git"
   },
-  "homepage": "https://github.com/maxdup/mailgrail#readme",
+  "homepage": "https://github.com/LuxAnimi/MailGrail#readme",
   "bugs": {
-    "url": "https://github.com/maxdup/mailgrail/issues"
+    "url": "https://github.com/LuxAnimi/MailGrail/issues"
   },
   "keywords": [
     "email",
@@ -28,7 +29,7 @@
     "create"
   ],
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -2,14 +2,14 @@
 
 Type-safe email templates using React and MJML. Write your templates as React components, preview them live in a browser, and compile them to portable EJS files your backend can render — with full TypeScript types for every parameter.
 
-<!-- TODO: add screenshot / GIF of the preview UI here -->
-
 ## Features
 
 - **Type-safe parameters** — define your template parameters with a compact DSL; TypeScript infers the types end-to-end
 - **React + MJML** — write templates as React components using any MJML component; mailgrail handles the rendering
 - **Live preview** — a Vite-powered dev server shows your templates with placeholder data, hot-reloading on every save
-- **Portable output** — compiles to `.ejs` + `.js` + `.d.ts`; no mailgrail runtime dependency in production
+- **Portable output** — compiles to a template file + `.js` + `.d.ts`; the generated
+  module inlines its template, so it runs under plain Node with no bundler and no
+  mailgrail dependency in production
 - **Multi-engine** — EJS (default), Handlebars, and Mustache output supported
 
 ---
@@ -28,8 +28,28 @@ Run this inside an existing project. It will add mailgrail to your `package.json
 
 ```sh
 npm install --save-dev mailgrail
-npm install @faire/mjml-react mjml-browser react react-dom
+npm install @faire/mjml-react react ejs
 ```
+
+`@faire/mjml-react` and `react` are mailgrail's peer dependencies — your template
+files import them directly, and mailgrail resolves them from your project.
+
+`ejs` is the **templating engine**, imported by the *compiled output* rather than
+by mailgrail itself. Engines are declared as optional peer dependencies, so npm
+installs none of them for you — install the one matching your `templatingEngine`:
+
+| `templatingEngine` | install | supported |
+|---|---|---|
+| `"EJS"` (default) | `npm install ejs` | `^5.0.0 \|\| ^6.0.0` |
+| `"Handlebars"` | `npm install handlebars` | `^4.7.0` |
+| `"Mustache"` | `npm install mustache` | `^4.2.0` |
+
+`mailgrail build` checks the configured engine is installed and fails with an
+actionable message if it is not, so a missing engine surfaces at build time
+rather than when an email is sent.
+
+> **Requirements** — Node `^20.19.0 || >=22.12.0`. mailgrail is ESM-only; import it
+> from an ESM module or a TypeScript project with `module: "NodeNext"`.
 
 Create a `mailgrail.config.ts` in your project root:
 
@@ -206,25 +226,36 @@ matrix: t.array(t.array(t.string()))
 
 ### `t.optional(schema)`
 
-Makes the parameter optional. The TypeScript type becomes `T | undefined` and the caller is responsible for handling the missing case.
+The parameter may be omitted. It renders as an empty string when it is.
 
 ```ts
 nickname: t.optional(t.string())
-// → nickname?: string | undefined
+// → nickname?: string
+// omitted → renders nothing
 ```
 
 Use `mg.when` to conditionally render based on an optional boolean, or guard with a null check in `subjectTemplate` and `textTemplate`.
 
 ### `t.default(schema, value)`
 
-Like `t.optional`, but with a fallback value. If the caller omits the parameter, the default is used. The TypeScript type is non-optional.
+The parameter may be omitted, and renders `value` when it is. Omittable on
+input, never undefined at render time.
 
 ```ts
 role: t.default(t.string(), "user")
-// → role: string  (never undefined at render time)
+// → role?: string
+// omitted → renders "user"
 ```
 
-> **`t.optional` vs `t.default`** — use `t.optional` when the absence of a value is meaningful (you'll handle it explicitly). Use `t.default` when you always want a value but want to allow callers to override it.
+> **`t.optional` vs `t.default`** — both let the caller omit the key; they differ only in what appears when it is absent. Use `t.optional` when there is genuinely nothing to show (and reach for `mg.when` to branch on it), and `t.default` when there is a sensible stand-in value.
+
+`t.default(t.optional(t.string()), "user")` is also valid and means exactly the same as `t.default(t.string(), "user")` — the nesting is never required.
+
+> **Missing values never throw.** The generated module normalizes its input
+> before rendering: every declared key is filled in, `t.default` values are
+> applied, and an absent optional becomes an empty string. Without that, EJS
+> would raise `ReferenceError` on a missing key while Handlebars and Mustache
+> silently rendered nothing.
 
 ---
 
@@ -465,7 +496,7 @@ export default defineConfig({
 | `outputDir` | `string` | `"_generated"` | Path for compiled output, relative to the config file |
 | `previewPort` | `number` | `7777` | Port for the preview server |
 | `typescript` | `boolean` | `true` | Whether to emit `.d.ts` type files |
-| `templatingEngine` | `"EJS" \| "Handlebars" \| "Mustache"` | `"EJS"` | Template engine for compiled output |
+| `templatingEngine` | `"EJS" \| "Handlebars" \| "Mustache"` | `"EJS"` | Template engine for compiled output. Also selects the template file extension (`.ejs` / `.hbs` / `.mustache`) and the module the generated `.js` imports — install that engine in your project. |
 | `hideAppName` | `boolean` | `false` | Hide the project name in the preview UI |
 | `hideAppDescription` | `boolean` | `false` | Hide the description in the preview UI |
 | `hideAppLogo` | `boolean` | `false` | Hide the logo in the preview UI |
@@ -482,6 +513,10 @@ dist/emails/
   confirm-email.js      ← render function (ESM + ejs)
   confirm-email.d.ts    ← TypeScript types
 ```
+
+The template file's extension follows `templatingEngine` (`.ejs`, `.hbs` or
+`.mustache`). It is written for readability and debugging — the generated `.js`
+inlines the same template string, so it has no dependency on that file at runtime.
 
 ### `.d.ts` — type definitions
 
@@ -502,15 +537,19 @@ export declare function renderConfirmEmail(params: ConfirmEmailParams): {
 
 ### `.js` — render function
 
-Imports the `.ejs` template and exposes a typed render function:
+Inlines the compiled template and exposes a typed render function:
 
 ```js
+import ejs from "ejs";
+
+const htmlTemplate = "<!doctype html>...";
+
 export function renderConfirmEmail(params) {
   return {
     name: "confirm-email",
     sender: "hello@example.com",
-    subject: ejs.render("Welcome, <%= username %>!", params),
-    text: ejs.render("Welcome, <%= username %>! ...", params),
+    subject: ejs.render("Welcome, <%- username %>!", params),
+    text: ejs.render("Welcome, <%- username %>! ...", params),
     html: ejs.render(htmlTemplate, params),
   };
 }
@@ -536,7 +575,8 @@ await transporter.sendMail({
 });
 ```
 
-The compiled output only depends on `ejs` at runtime — no mailgrail, no React, no MJML. The heavy lifting happens at build time.
+The compiled output only depends on your templating engine at runtime — no mailgrail,
+no React, no MJML, and no bundler. The heavy lifting happens at build time.
 
 ---
 
@@ -561,7 +601,7 @@ It asks a few questions:
 ```
 
 Then it:
-- Adds `mailgrail`, `@faire/mjml-react`, `mjml-browser`, `react`, and `react-dom` to your `package.json`
+- Adds `mailgrail`, `@faire/mjml-react`, `react` and `ejs` to your `package.json`
 - Adds `preview-emails` and `build-emails` scripts to your `package.json`
 - Creates `mailgrail.config.ts`
 - Scaffolds a starter template in `emails/`:
@@ -579,6 +619,4 @@ emails/
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
-
-Because mailgrail is a devDependency used only at build time, the compiled output (`.ejs`, `.js`, `.d.ts`) is your own work and is not subject to the GPL. Only modifications to mailgrail itself must be released under GPL-3.0.
+[MIT](LICENSE) © Maxime Dupuis

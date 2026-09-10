@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-04-11
+## [0.1.0] - 2026-09-09
 
 ### Added
 
@@ -17,8 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `t.boolean()` — boolean parameter schema
 - `t.object(shape)` — object parameter schema with typed shape
 - `t.array(element)` — array parameter schema; supports arrays of primitives, objects, and nested arrays
-- `t.optional(schema)` — marks a parameter as optional (`T | undefined`)
-- `t.default(schema, value)` — parameter with a fallback value; always non-optional at render time
+- `t.optional(schema)` — the parameter may be omitted; an omitted value renders
+  as an empty string
+- `t.default(schema, value)` — the parameter may be omitted; an omitted value
+  renders `value`. Omittable on input, never undefined at render time.
+  `t.default(t.optional(x), v)` composes to the same thing
 
 **Render context API** (`RenderTemplateContext<T>`)
 - `mg.render(path)` — render a scalar value; path can be dot-separated for nested access
@@ -38,7 +41,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `outputDir` — configure the compiled output directory
 - `previewPort` — configure the preview server port (default `7777`)
 - `typescript` — toggle `.d.ts` type file emission
-- `templatingEngine` — select EJS (default), Handlebars, or Mustache output
+- `templatingEngine` — select EJS (default), Handlebars, or Mustache output; also
+  selects the emitted template extension (`.ejs`/`.hbs`/`.mustache`) and the engine
+  the generated `.js` imports
+- `hideAppName` — hide the project name in the preview UI
+- `hideAppDescription` — hide the description in the preview UI
+- `hideAppLogo` — hide the logo in the preview UI
+
+**Dependencies**
+- Templating engines (`ejs`, `handlebars`, `mustache`) are optional peer
+  dependencies: none are installed by default, and only the one matching
+  `templatingEngine` is needed. `mailgrail build` fails with an actionable
+  message when it is missing.
+
+**Output**
+- Compiled `.js` inlines its template string, so the generated module runs under
+  plain Node with no bundler or text loader
+- Compiled `.js` normalizes its params before rendering, so `t.default` values are
+  applied and a missing value never throws
+- MJML 5 / `@faire/mjml-react` 4
 
 **Type exports** (importable from `"mailgrail"`)
 - `t` — the DSL builder object
@@ -49,5 +70,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/maxdup/mailgrail/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/maxdup/mailgrail/releases/tag/v0.1.0
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/LuxAnimi/MailGrail/releases/tag/v0.1.0
