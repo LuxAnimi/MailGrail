@@ -1,0 +1,93 @@
+---
+import engines from "../../generated/engines.json";
+
+//----------------------------------------------------------------------------
+// The engine support matrix, from the package's own peerDependencies.
+// Bumping a supported range in package.json updates this page.
+//----------------------------------------------------------------------------
+---
+
+<table class="eng not-content">
+  <thead>
+    <tr>
+      <th scope="col">templatingEngine</th>
+      <th scope="col">Install</th>
+      <th scope="col">Supported</th>
+      <th scope="col">Emits</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      engines.engines.map((engine) => (
+        <tr>
+          <th scope="row">
+            <code>"{engine.id}"</code>
+            {engine.isDefault && <span class="eng__default">default</span>}
+          </th>
+          <td>
+            <code>npm install {engine.module}</code>
+          </td>
+          <td class="mg-tabular">
+            <code>{engine.range}</code>
+          </td>
+          <td>
+            <code>.{engine.ext}</code>
+          </td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>
+
+<style>
+  .eng {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin-block: 1.25rem 2rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .eng thead th {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    text-align: left;
+    padding: 0.55rem 1.5rem 0.55rem 0;
+    border-bottom: 1px solid var(--mg-rule);
+    white-space: nowrap;
+  }
+
+  .eng td,
+  .eng tbody th {
+    text-align: left;
+    padding: 0.65rem 1.5rem 0.65rem 0;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+
+  .eng code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-dim);
+  }
+
+  .eng tbody th code {
+    color: var(--mg-envelope);
+  }
+
+  .eng__default {
+    margin-left: 0.5rem;
+    font-family: var(--mg-body);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mg-gold);
+  }
+</style>

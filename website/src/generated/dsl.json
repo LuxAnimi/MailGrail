@@ -32,7 +32,7 @@
     },
     {
       "call": "t.number",
-      "description": "Rendered with the engine's default number formatting. Format it yourself -- currency, thousands separators -- before passing it in, since the compiled template has no access to your locale.",
+      "description": "Rendered with the engine's default number formatting. Format it yourself — currency, thousands separators — before passing it in, since the compiled template has no access to your locale.",
       "examples": [
         {
           "compiled": {
@@ -184,7 +184,7 @@
     },
     {
       "call": "t.default",
-      "description": "Omittable on input, never undefined at render time -- so a template can use it unguarded.",
+      "description": "Omittable on input, never undefined at render time — so a template can use it unguarded.",
       "examples": [
         {
           "compiled": {

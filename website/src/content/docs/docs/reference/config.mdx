@@ -1,0 +1,59 @@
+---
+title: Configuration
+description: Every mailgrail.config.ts option, with its real default.
+sidebar:
+  order: 3
+---
+
+import ConfigTable from "../../../../components/docs/ConfigTable.astro";
+import Snippet from "../../../../components/docs/Snippet.astro";
+
+mailgrail reads a `mailgrail.config.ts` from your project root. Every field is
+optional; the defaults below are the ones the resolver actually applies.
+
+```ts title="mailgrail.config.ts"
+import { defineConfig } from "mailgrail";
+
+export default defineConfig({
+  sourceDir: "emails",
+  outputDir: "dist/emails",
+  typescript: true,
+  previewPort: 7777,
+  templatingEngine: "EJS",
+});
+```
+
+`defineConfig` is an identity function that exists purely for the types — it
+gives you completion and checking in the config file without any runtime cost.
+
+## Options
+
+<ConfigTable />
+
+:::note[Read from the resolver]
+The defaults above are produced by calling mailgrail's own `resolveConfig` when
+this page is built, rather than copied into a table by hand. The README's
+hand-maintained version of this table had already drifted — it claimed
+`sourceDir` defaults to `"emails"` when the resolver says `"./emails"`.
+:::
+
+## Paths
+
+`sourceDir` and `outputDir` are both resolved **relative to the config file**,
+not to the working directory. That means `mailgrail build` behaves the same
+whether you run it from the project root or from a workspace package.
+
+## A real config
+
+<Snippet id="config-file" title="example/mailgrail.config.ts" />
+
+## Choosing a different location
+
+Both commands take `--configPath` if your config is not at the default
+location:
+
+```sh
+mailgrail build --configPath ./config/mailgrail.config.ts
+```
+
+See the [CLI reference](/MailGrail/docs/reference/cli).

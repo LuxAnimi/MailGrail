@@ -1,0 +1,256 @@
+---
+import { Code } from "astro:components";
+import context from "../../generated/context.json";
+import { inlineMarkdown } from "../../lib/inline";
+
+//----------------------------------------------------------------------------
+// One `mg.*` method, proved.
+//
+// The template, the three compiled outputs and the rendered HTML all come from
+// running mailgrail's compiler at generate time. The badge is not decoration:
+// generation fails unless the preview context and all three engines produce
+// byte-identical output for this fixture.
+//----------------------------------------------------------------------------
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+
+const fixture = context.fixtures.find((f) => f.id === id);
+if (!fixture) {
+  throw new Error(
+    `<LiveProof id="${id}"> does not exist. Available: ` +
+      context.fixtures.map((f) => f.id).join(", "),
+  );
+}
+
+const engines = [
+  { id: "ejs", label: "EJS" },
+  { id: "handlebars", label: "Handlebars" },
+  { id: "mustache", label: "Mustache" },
+] as const;
+
+const pretty = (html: string) =>
+  html
+    .replace(/></g, ">\n<")
+    .replace(/(<%|\{\{)/g, "\n$1")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+
+const uid = `lp-${id}`;
+---
+
+<div class="proof not-content">
+  {fixture.summary && <p class="proof__sum" set:html={inlineMarkdown(fixture.summary)} />}
+
+  <div class="proof__box">
+    <div class="proof__cap">
+      <span class="proof__label">Template</span>
+      <span class="proof__file">{`${id}.tsx`}</span>
+    </div>
+    <Code code={fixture.tsx} lang="tsx" theme="github-dark" />
+  </div>
+
+  <div class="proof__box">
+    <div class="proof__cap">
+      <span class="proof__label">Compiles to</span>
+      <div class="etabs">
+        {
+          engines.map((engine, i) => (
+            <>
+              <input
+                class="etabs__radio"
+                type="radio"
+                name={uid}
+                id={`${uid}-${engine.id}`}
+                checked={i === 0}
+              />
+              <label class="etabs__tab" for={`${uid}-${engine.id}`}>
+                {engine.label}
+              </label>
+            </>
+          ))
+        }
+      </div>
+    </div>
+
+    {
+      engines.map((engine) => (
+        <div class={`epanel epanel--${engine.id}`}>
+          <Code
+            code={pretty(fixture.compiled[engine.id])}
+            lang="html"
+            theme="github-dark"
+          />
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="proof__box">
+    <div class="proof__cap">
+      <span class="proof__label">Renders as</span>
+      {
+        fixture.parity ? (
+          <span class="proof__badge" title="Asserted when this page was generated">
+            preview and all three engines agree
+          </span>
+        ) : (
+          <span class="proof__badge proof__badge--warn">
+            {fixture.parityNote ?? "preview and build differ"}
+          </span>
+        )
+      }
+    </div>
+    <Code code={pretty(fixture.preview)} lang="html" theme="github-dark" />
+
+    <details class="proof__data">
+      <summary>Sample data used</summary>
+      <Code
+        code={JSON.stringify(fixture.sample, null, 2)}
+        lang="json"
+        theme="github-dark"
+      />
+    </details>
+  </div>
+</div>
+
+<style>
+  .proof {
+    margin-block: 1.25rem 2.5rem;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .proof__sum {
+    margin: 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 64ch;
+  }
+
+  .proof__sum :global(code) {
+    font-family: var(--mg-mono);
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+  .proof__box {
+    border: 1px solid var(--mg-rule);
+    min-width: 0;
+  }
+
+  .proof__cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+
+  .proof__label {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+  }
+
+  .proof__file {
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dimmer);
+  }
+
+  .proof__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6875rem;
+    color: var(--mg-gold);
+  }
+
+  .proof__badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .proof__badge--warn {
+    color: #e0a34a;
+  }
+
+  .etabs {
+    display: flex;
+    gap: 0.15rem;
+  }
+
+  .etabs__radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .etabs__tab {
+    padding: 0.2rem 0.5rem;
+    border: 1px solid transparent;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    cursor: pointer;
+  }
+
+  .etabs__tab:hover {
+    color: var(--mg-envelope);
+  }
+
+  .etabs__radio:checked + .etabs__tab {
+    color: var(--mg-gold);
+    border-color: var(--mg-rule);
+  }
+
+  .etabs__radio:focus-visible + .etabs__tab {
+    outline: 2px solid var(--mg-gold);
+    outline-offset: 2px;
+  }
+
+  .epanel {
+    display: none;
+  }
+
+  .proof__box:has(.etabs__radio[id$="-ejs"]:checked) .epanel--ejs,
+  .proof__box:has(.etabs__radio[id$="-handlebars"]:checked) .epanel--handlebars,
+  .proof__box:has(.etabs__radio[id$="-mustache"]:checked) .epanel--mustache {
+    display: block;
+  }
+
+  .proof__data {
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .proof__data summary {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.75rem;
+    color: var(--mg-dim);
+    cursor: pointer;
+  }
+
+  .proof__data summary:hover {
+    color: var(--mg-gold);
+  }
+
+  .proof :global(pre.astro-code) {
+    margin: 0;
+    padding: 0.9rem 0.85rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    overflow-x: auto;
+  }
+</style>

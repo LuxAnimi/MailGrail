@@ -134,13 +134,13 @@ header.header {
 
 /*--- Tables -----------------------------------------------------------*/
 
-.sl-markdown-content table {
+.sl-markdown-content table:not(:where(.not-content *)) {
   font-size: 0.9375rem;
   border-collapse: collapse;
   width: 100%;
 }
 
-.sl-markdown-content th {
+.sl-markdown-content th:not(:where(.not-content *)) {
   font-family: var(--mg-body);
   font-size: 0.6875rem;
   font-weight: 500;
@@ -152,13 +152,13 @@ header.header {
   padding: 0.5rem 0.9rem 0.5rem 0;
 }
 
-.sl-markdown-content td {
+.sl-markdown-content td:not(:where(.not-content *)) {
   border-bottom: 1px solid var(--mg-rule-soft);
   padding: 0.6rem 0.9rem 0.6rem 0;
   vertical-align: baseline;
 }
 
-.sl-markdown-content td:has(code) {
+.sl-markdown-content td:has(code):not(:where(.not-content *)) {
   font-variant-numeric: tabular-nums;
 }
 
@@ -173,6 +173,74 @@ header.header {
 
 .sl-markdown-content a:not(:where(.not-content *)):hover {
   text-decoration-color: var(--mg-gold);
+}
+
+/* An API name in a heading is a code span, which otherwise inherits the full
+   heading size and swamps the page. Keep it monospace but proportionate. */
+.sl-markdown-content :is(h2, h3, h4) > code {
+  font-size: 0.82em;
+  border: 0;
+  padding-inline: 0;
+  background: transparent;
+  color: var(--mg-envelope);
+}
+
+/*--- Site title -------------------------------------------------------*/
+
+/* Starlight paints the title with the accent, which here is the gold. The
+   wordmark should read as the brand's ink, leaving gold for emphasis. */
+.site-title,
+a.site-title {
+  color: var(--mg-envelope);
+}
+
+/*--- Asides -----------------------------------------------------------*/
+
+/* Starlight's defaults are blue, purple and red. Recoloured onto the palette:
+   the accent carries tip, while caution and danger keep a separate semantic
+   hue -- status is not the same signal as brand. */
+.starlight-aside {
+  border-inline-start-width: 2px;
+  border-radius: 0;
+  background: var(--mg-raised);
+  padding: 0.9rem 1.1rem;
+}
+
+.starlight-aside--note {
+  border-color: var(--mg-rule);
+  --sl-color-asides-text-accent: var(--mg-dim);
+}
+
+.starlight-aside--tip {
+  border-color: var(--mg-gold);
+  --sl-color-asides-text-accent: var(--mg-gold);
+}
+
+.starlight-aside--caution {
+  border-color: #e0a34a;
+  --sl-color-asides-text-accent: #e0a34a;
+}
+
+.starlight-aside--danger {
+  border-color: #d4674f;
+  --sl-color-asides-text-accent: #d4674f;
+}
+
+.starlight-aside__title {
+  font-family: var(--mg-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.starlight-aside__content {
+  color: var(--mg-dim);
+  font-size: 0.9375rem;
+}
+
+.starlight-aside__content a {
+  color: var(--mg-gold);
 }
 
 @media (prefers-reduced-motion: reduce) {

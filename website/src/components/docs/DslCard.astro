@@ -1,0 +1,255 @@
+---
+import { Code } from "astro:components";
+import dsl from "../../generated/dsl.json";
+import { inlineMarkdown } from "../../lib/inline";
+
+//----------------------------------------------------------------------------
+// One `t.*` constructor.
+//
+// Everything below the prose is generated: the inferred type comes from
+// mailgrail's own emitObjectType, and the placeholders from its compiler. The
+// "-> username: string" line cannot be wrong, because nobody typed it.
+//----------------------------------------------------------------------------
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+
+const entry = dsl.constructors.find((c) => c.id === id);
+if (!entry) {
+  throw new Error(
+    `<DslCard id="${id}"> does not exist. Available: ` +
+      dsl.constructors.map((c) => c.id).join(", "),
+  );
+}
+
+const engines = [
+  { id: "ejs", label: "EJS" },
+  { id: "handlebars", label: "Handlebars" },
+  { id: "mustache", label: "Mustache" },
+] as const;
+---
+
+<div class="dslcard not-content">
+  <div class="dslcard__head">
+    <code class="dslcard__sig">{entry.signature}</code>
+  </div>
+
+  <p class="dslcard__summary" set:html={inlineMarkdown(entry.summary)} />
+
+  {
+    entry.description && (
+      <p class="dslcard__desc" set:html={inlineMarkdown(entry.description)} />
+    )
+  }
+
+  {
+    entry.examples.map((example) => (
+      <div class="ex">
+        {example.label && <p class="ex__label">{example.label}</p>}
+
+        <div class="ex__grid">
+          <div class="ex__col">
+            <p class="ex__cap">Schema</p>
+            <Code code={example.source} lang="ts" theme="github-dark" />
+          </div>
+
+          <div class="ex__col">
+            <p class="ex__cap">Inferred type</p>
+            <Code code={example.tsType} lang="ts" theme="github-dark" />
+          </div>
+        </div>
+
+        {example.compiled && (
+          <div class="ex__compiled">
+            <p class="ex__cap">Rendered by each engine</p>
+            <table class="ex__table">
+              <thead>
+                <tr>
+                  <th scope="col">Template</th>
+                  {engines.map((engine) => (
+                    <th scope="col">{engine.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(example.compiled.ejs).map((key) => (
+                  <tr>
+                    <th scope="row">
+                      <code>{`mg.render("${key}")`}</code>
+                    </th>
+                    {engines.map((engine) => (
+                      <td>
+                        <code>{example.compiled[engine.id][key]}</code>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    ))
+  }
+
+  {
+    entry.notes.length > 0 && (
+      <div class="dslcard__notes">
+        {entry.notes.map((note) => (
+          <p class="note" set:html={inlineMarkdown(note)} />
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .dslcard {
+    margin-block: 2rem 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .dslcard__head {
+    margin-bottom: 0.9rem;
+  }
+
+  .dslcard__sig {
+    font-family: var(--mg-mono);
+    font-size: 0.9375rem;
+    color: var(--mg-gold);
+  }
+
+  .dslcard__summary {
+    margin: 0;
+    color: var(--mg-envelope);
+    font-size: 1rem;
+  }
+
+  .dslcard__desc {
+    margin: 0.75rem 0 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 62ch;
+  }
+
+  .ex {
+    margin-top: 1.5rem;
+  }
+
+  .ex__label {
+    margin: 0 0 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+  }
+
+  .ex__grid {
+    display: grid;
+    gap: 1px;
+    background: var(--mg-rule);
+    border: 1px solid var(--mg-rule);
+  }
+
+  @media (min-width: 50rem) {
+    .ex__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .ex__col {
+    background: var(--mg-black);
+    min-width: 0;
+  }
+
+  .ex__cap {
+    margin: 0;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+  }
+
+  .ex__compiled {
+    margin-top: 1rem;
+    border: 1px solid var(--mg-rule);
+  }
+
+  .ex__table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+
+  .ex__table th,
+  .ex__table td {
+    text-align: left;
+    padding: 0.5rem 1.1rem 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    white-space: nowrap;
+  }
+
+  .ex__table thead th {
+    font-family: var(--mg-body);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    border-bottom-color: var(--mg-rule);
+  }
+
+  .ex__table tbody th code {
+    color: var(--mg-envelope);
+  }
+
+  .ex__table code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-dim);
+  }
+
+  .dslcard__notes {
+    margin-top: 1.25rem;
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .note {
+    margin: 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--mg-gold);
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 66ch;
+  }
+
+  .note :global(code) {
+    font-family: var(--mg-mono);
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+  .note :global(strong) {
+    color: var(--mg-envelope);
+    font-weight: 500;
+  }
+
+  .dslcard :global(pre.astro-code) {
+    margin: 0;
+    padding: 0.9rem 0.85rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    overflow-x: auto;
+  }
+</style>

@@ -16,7 +16,7 @@ export type DslExample = {
 };
 
 export type DslDoc = {
-  /** Must match a key of the `t` export -- coverage is asserted both ways. */
+  /** Must match a key of the `t` export — coverage is asserted both ways. */
   id: string;
   /** Signature as a reader should think of it, not as TypeScript spells it. */
   signature: string;
@@ -45,7 +45,7 @@ export const dslDocs: DslDoc[] = [
     summary: "A numeric parameter.",
     description:
       "Rendered with the engine's default number formatting. Format it yourself " +
-      "-- currency, thousands separators -- before passing it in, since the " +
+      "— currency, thousands separators — before passing it in, since the " +
       "compiled template has no access to your locale.",
     examples: [{ source: `t.object({ invoiceTotal: t.number() })` }],
   },
@@ -124,7 +124,7 @@ export const dslDocs: DslDoc[] = [
     summary:
       "The parameter may be omitted, and renders `value` when it is.",
     description:
-      "Omittable on input, never undefined at render time -- so a template can " +
+      "Omittable on input, never undefined at render time — so a template can " +
       "use it unguarded.",
     examples: [{ source: `t.object({ role: t.default(t.string(), "user") })` }],
     notes: [

@@ -1,0 +1,80 @@
+---
+title: Defining templates
+description: The anatomy of a template definition, and how the pieces fit.
+sidebar:
+  order: 1
+---
+
+import Snippet from "../../../../components/docs/Snippet.astro";
+
+A template is a plain exported object. There is no registry, no decorator and
+no base class — mailgrail finds templates because your entry point exports them.
+
+## The shape
+
+```ts
+interface TemplateDefinition<S extends Schema<any>> {
+  name: string;
+  params: S;
+  htmlTemplate: (mg: RenderTemplateContext<Infer<S>>) => ReactElement;
+  subjectTemplate: (params: Infer<S>) => string;
+  textTemplate: (params: Infer<S>) => string;
+  sender?: string;
+}
+```
+
+| Field | Purpose |
+|---|---|
+| `name` | Output filenames and the exported function name. `confirm-email` gives `confirm-email.js` exporting `renderConfirmEmail`. |
+| `params` | The schema. Types the other three fields, generates preview data, emits the `.d.ts`. |
+| `htmlTemplate` | Receives the render context. Returns MJML as React elements. |
+| `subjectTemplate` | Receives plain parameters. Returns a string. |
+| `textTemplate` | Receives plain parameters. Returns the plain-text part. |
+| `sender` | Optional default `from` address, passed through to the output. |
+
+## Why two different argument types
+
+`htmlTemplate` gets a render context; `subjectTemplate` and `textTemplate` get
+plain parameters. That asymmetry is deliberate.
+
+The HTML is compiled to a *template* — mailgrail needs to know which parameters
+you touched so it can emit placeholders, and the context is how it finds out.
+The subject and text are short strings where the engine's own interpolation is
+enough, so they take the values directly and let you use ordinary template
+literals, conditionals and formatting.
+
+The practical consequence: in `subjectTemplate` and `textTemplate` you handle
+optional values yourself.
+
+```ts
+const subjectTemplate = (params: Params): string =>
+  params.nickname
+    ? `Welcome back, ${params.nickname}!`
+    : `Welcome, ${params.username}!`;
+```
+
+## A real one
+
+<Snippet id="welcome-schema" title="example/emails/WelcomeEmail.tsx" />
+
+Note the three kinds of parameter in one schema: a required `t.boolean` to
+branch on, a `t.optional` that renders as nothing when absent, and a
+`t.default` that falls back to a value. See
+[the DSL reference](/MailGrail/docs/reference/dsl) for the distinction.
+
+## Registering templates
+
+The source directory needs an entry point — `index.ts`, `index.tsx`,
+`index.js` or `index.jsx` — exporting a `templates` array:
+
+<Snippet id="templates-index" title="example/emails/index.ts" />
+
+mailgrail bundles that entry point with esbuild and reads the array. A template
+file that nothing imports is simply never compiled, which is a convenient way
+to keep a draft around without shipping it.
+
+## Naming
+
+`name` becomes a filename and part of an identifier, so keep it lowercase and
+hyphenated. `order-confirmation` gives `order-confirmation.js` exporting
+`renderOrderConfirmation`; `Order Confirmation` would not.

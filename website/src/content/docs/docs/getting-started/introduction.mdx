@@ -1,27 +1,65 @@
 ---
 title: Introduction
-description: What mailgrail is, and the problem it solves.
+description: What mailgrail is, what it produces, and who it is for.
+sidebar:
+  order: 1
 ---
 
-mailgrail turns React components into email templates your backend can render on
+mailgrail turns React components into email templates your backend renders on
 its own. You write MJML with full TypeScript types, preview it live in a
-browser, and compile it to a portable template plus a render function and its
-type declarations.
+browser, and compile it to a portable template, a render function, and its type
+declarations.
 
 The compiled output depends on your templating engine and nothing else. No
 React, no MJML, no bundler, and no mailgrail in production — all of that work
 happens at build time.
 
-## The shape of it
+## One schema, three jobs
 
-```tsx
-const paramsSchema = t.object({
-  username: t.string(),
-  confirmationUrl: t.string(),
-});
+A template declares its parameters once, with a compact DSL:
+
+import Snippet from "../../../../components/docs/Snippet.astro";
+
+<Snippet id="welcome-schema" title="emails/WelcomeEmail.tsx" />
+
+That single declaration does three separate jobs:
+
+- it **types the template** you write, so `mg.render("usrname")` is a compile
+  error rather than a blank space in a sent email;
+- it **generates placeholder data** for the preview server, so you see a
+  realistic email without wiring up a database;
+- it **emits the `.d.ts`** your backend imports, so the call site knows exactly
+  which parameters are required and which may be left out.
+
+Rename a parameter and all three move with it. That is the whole idea.
+
+## What you get out
+
+`mailgrail build` writes three files per template:
+
+```
+dist/emails/
+  confirm-email.ejs     full HTML with placeholders, for reading and debugging
+  confirm-email.js      the render function — inlines the template, imports only your engine
+  confirm-email.d.ts    the parameter types
 ```
 
-That schema does three jobs. It types the `htmlTemplate` you write, it generates
-placeholder data for the preview server, and it emits the `.d.ts` your backend
-imports — so a parameter you rename in one place cannot silently go stale in the
-other two.
+Your backend imports the `.js`, calls it with typed parameters, and hands the
+result to whatever sends your mail.
+
+## When this is a good fit
+
+mailgrail suits transactional email that ships from a backend — confirmations,
+receipts, invitations, password resets — where you want the authoring
+experience of components and the deployment profile of a plain string template.
+
+It is not a campaign tool and has no sending infrastructure. It produces the
+`subject`, `text` and `html`; delivery is yours, through nodemailer, Resend,
+SES or anything else.
+
+## Where to go next
+
+- [Installation](/MailGrail/docs/getting-started/installation) — add it to a project
+- [Your first template](/MailGrail/docs/getting-started/first-template) — end to end in a few minutes
+- [Parameter DSL](/MailGrail/docs/reference/dsl) — every `t.*` constructor
+- [Render context](/MailGrail/docs/reference/render-context) — every `mg.*` method

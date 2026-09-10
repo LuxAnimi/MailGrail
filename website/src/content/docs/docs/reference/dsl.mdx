@@ -1,0 +1,57 @@
+---
+title: Parameter DSL
+description: Every t.* constructor, with the type it infers and what it compiles to.
+sidebar:
+  order: 1
+---
+
+import DslCard from "../../../../components/docs/DslCard.astro";
+
+Use `t.*` to describe the shape of a template's parameters. mailgrail reads
+that schema at build time to generate TypeScript types, and at preview time to
+generate placeholder data.
+
+```ts
+import { t } from "mailgrail";
+import type { Infer } from "mailgrail/dsl";
+
+const paramsSchema = t.object({
+  username: t.string(),
+});
+
+type Params = Infer<typeof paramsSchema>;
+```
+
+:::note[Generated, not transcribed]
+The inferred types below come from `emitObjectType` — the same function that
+writes the `.d.ts` your backend imports — and the placeholders from the same
+compiler that produces your templates. They are generated when this page is
+built, so they cannot drift from what mailgrail actually emits.
+:::
+
+## Scalars
+
+<DslCard id="string" />
+<DslCard id="number" />
+<DslCard id="boolean" />
+
+## Structures
+
+<DslCard id="object" />
+<DslCard id="array" />
+
+## Omittable parameters
+
+<DslCard id="optional" />
+<DslCard id="default" />
+
+## Missing values never throw
+
+The generated module normalizes its input before rendering: every declared key
+is filled in, `t.default` values are applied, and an absent optional becomes an
+empty string.
+
+That normalization is not a nicety. Without it the three engines disagree:
+EJS raises a `ReferenceError` on a missing key, while Handlebars and Mustache
+silently render nothing. Normalizing first means the same parameters produce
+the same email whichever engine you compile to.

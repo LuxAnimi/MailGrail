@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 
 export type ConfigDoc = {
-  /** Must match a key of MailgrailConfig -- coverage is asserted both ways. */
+  /** Must match a key of MailgrailConfig — coverage is asserted both ways. */
   id: string;
   type: string;
   summary: string;
@@ -21,8 +21,8 @@ export const configDocs: ConfigDoc[] = [
     type: "string",
     summary: "Where your templates live, relative to the config file.",
     description:
-      "Must contain an entry point -- `index.ts`, `index.tsx`, `index.js` or " +
-      "`index.jsx` -- exporting a `templates` array.",
+      "Must contain an entry point — `index.ts`, `index.tsx`, `index.js` or " +
+      "`index.jsx` — exporting a `templates` array.",
   },
   {
     id: "outputDir",
@@ -31,7 +31,7 @@ export const configDocs: ConfigDoc[] = [
     description:
       "Three files per template land here: the readable template, the render " +
       "function, and its type declarations. Commit them or generate them in CI, " +
-      "whichever suits -- they are the artifact your backend imports.",
+      "whichever suits — they are the artifact your backend imports.",
   },
   {
     id: "previewPort",

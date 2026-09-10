@@ -1,0 +1,82 @@
+---
+title: The preview server
+description: Iterating on a template with placeholder data, without sending anything.
+sidebar:
+  order: 3
+---
+
+```sh
+npx mailgrail preview
+# → http://localhost:7777
+```
+
+The preview server renders every template in your source directory with data
+generated from its own schema, and reloads when you save.
+
+## What you see
+
+A sidebar lists your templates. Selecting one renders it as a real email —
+compiled through MJML, exactly as `mailgrail build` would — on a light surround
+rather than the app's dark chrome, because that is how it will arrive in an
+inbox.
+
+The header shows the resolved `subject` and `sender`, a desktop/mobile toggle
+that reframes the preview at 375px, and a **Populate** control for switching
+between placeholder data and values you type yourself.
+
+## Placeholder data
+
+You do not have to supply anything to see a realistic email. The schema is
+enough: mailgrail walks it and generates a value for every declared parameter,
+including nested objects and a couple of entries for each array, so lists and
+tables have something to lay out.
+
+That is the practical payoff of declaring parameters up front — a new template
+renders immediately, with no fixture to write.
+
+## Editing values
+
+The parameters panel on the right is generated from the same schema. Edit a
+field and the preview re-renders, which is the fastest way to check the cases
+that are easy to forget:
+
+- a name long enough to wrap a heading
+- an empty array, so an order table renders with no rows
+- an optional left blank
+- a boolean flipped, to see both `mg.when` branches
+
+## Reload behaviour
+
+Template files hot-reload on save. Changes to `mailgrail.config.ts` are picked
+up too, though changing `previewPort` naturally needs a restart.
+
+Adding a **new** template file requires exporting it from your entry point
+before it appears — the entry point is what mailgrail reads, so a file nothing
+imports is invisible to both the preview and the build.
+
+## Configuring the chrome
+
+The preview header shows your project's name, description and logo, read from
+your `package.json`. Any of them can be hidden:
+
+```ts title="mailgrail.config.ts"
+export default defineConfig({
+  hideAppName: true,
+  hideAppDescription: true,
+  hideAppLogo: true,
+});
+```
+
+Useful when you are screen-sharing a client's templates and would rather not
+show the surrounding project.
+
+## What the preview does not do
+
+It does not send anything, and it is not a rendering-compatibility test. Email
+clients differ in ways no browser preview can reproduce — Outlook's Word
+rendering engine in particular. MJML exists to absorb most of that, but before
+a template goes live it is worth putting the compiled HTML through a real
+client-testing service.
+
+The preview is for iterating on content and layout quickly. Treat it as the
+first check, not the last.

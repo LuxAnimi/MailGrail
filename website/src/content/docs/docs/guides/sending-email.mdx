@@ -1,0 +1,157 @@
+---
+title: Sending email
+description: Wiring the compiled output into a backend.
+sidebar:
+  order: 5
+---
+
+mailgrail stops at the boundary: it gives you a `subject`, a `text` and an
+`html`, and delivery is yours. That is deliberate — sending is where providers,
+credentials and retry policy live, and none of that belongs in a template
+compiler.
+
+## The call
+
+```ts
+import { renderConfirmEmail } from "./dist/emails/confirm-email.js";
+
+const email = renderConfirmEmail({
+  username: "Alice",
+  confirmationUrl: "https://example.com/confirm?token=abc123",
+});
+```
+
+`email` is:
+
+```ts
+{
+  name: "confirm-email",
+  sender: "hello@example.com",
+  subject: "Welcome, Alice!",
+  text: "Welcome, Alice! Confirm your account: …",
+  html: "<!doctype html>…",
+}
+```
+
+TypeScript checks the argument against the generated `.d.ts`, so a renamed
+parameter is a compile error at every call site.
+
+## nodemailer
+
+```ts
+import nodemailer from "nodemailer";
+import { renderConfirmEmail } from "./dist/emails/confirm-email.js";
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: 587,
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+});
+
+const email = renderConfirmEmail({ username, confirmationUrl });
+
+await transporter.sendMail({
+  from: email.sender,
+  to: recipient,
+  subject: email.subject,
+  text: email.text,
+  html: email.html,
+});
+```
+
+## Resend
+
+```ts
+import { Resend } from "resend";
+import { renderConfirmEmail } from "./dist/emails/confirm-email.js";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const email = renderConfirmEmail({ username, confirmationUrl });
+
+await resend.emails.send({
+  from: email.sender,
+  to: recipient,
+  subject: email.subject,
+  text: email.text,
+  html: email.html,
+});
+```
+
+## SES
+
+```ts
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { renderConfirmEmail } from "./dist/emails/confirm-email.js";
+
+const ses = new SESv2Client({});
+const email = renderConfirmEmail({ username, confirmationUrl });
+
+await ses.send(
+  new SendEmailCommand({
+    FromEmailAddress: email.sender,
+    Destination: { ToAddresses: [recipient] },
+    Content: {
+      Simple: {
+        Subject: { Data: email.subject },
+        Body: {
+          Text: { Data: email.text },
+          Html: { Data: email.html },
+        },
+      },
+    },
+  }),
+);
+```
+
+## A small wrapper helps
+
+Rather than repeating the provider call, give yourself one function that takes
+a rendered email and a recipient:
+
+```ts
+type Rendered = {
+  sender: string;
+  subject: string;
+  text: string;
+  html: string;
+};
+
+export async function send(email: Rendered, to: string) {
+  await transporter.sendMail({ from: email.sender, to, ...email });
+}
+
+// then
+await send(renderConfirmEmail({ username, confirmationUrl }), user.email);
+```
+
+Every render function returns that shape, so one wrapper covers all of them,
+and swapping provider later touches a single file.
+
+## Overriding the sender
+
+`sender` is a default baked in at compile time. Nothing stops you ignoring it
+per send — useful for a support address, a per-tenant domain, or a reply-to
+that differs from the from:
+
+```ts
+await transporter.sendMail({
+  from: "support@example.com",
+  replyTo: email.sender,
+  to: recipient,
+  subject: email.subject,
+  text: email.text,
+  html: email.html,
+});
+```
+
+## Always send both parts
+
+Send `text` alongside `html`. Some clients prefer it, some spam filters expect
+it, and it is what appears in a lock-screen notification. mailgrail makes you
+write it precisely so it does not get skipped.
+
+## What to deploy
+
+The compiled output imports only your engine, so a production install needs
+`ejs` (or Handlebars, or Mustache) as a real dependency — not a dev one.
+mailgrail, React and MJML can all stay in `devDependencies`.
