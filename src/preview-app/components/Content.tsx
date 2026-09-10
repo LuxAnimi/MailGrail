@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { renderToMjml } from "@faire/mjml-react/utils/renderToMjml";
 import mjml2html from "mjml-browser";
+import { DeviceDesktopIcon, DeviceMobileIcon, NoteIcon, type Icon } from "@primer/octicons-react";
 
 //------------------------------------------------------------------------------
 import { PreviewMode } from "@/preview-app/enums";
@@ -15,11 +16,16 @@ import type { TemplateDefinition } from "@/cli/types";
 import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
-type ViewportPreset = { id: string; label: string; width: number | null };
+type ViewportPreset = {
+  id: string;
+  label: string;
+  width: number | null;
+  icon: Icon;
+};
 
 const VIEWPORTS: ViewportPreset[] = [
-  { id: "desktop", label: "Desktop", width: null },
-  { id: "mobile", label: "Mobile", width: 375 },
+  { id: "desktop", label: "Desktop", width: null, icon: DeviceDesktopIcon },
+  { id: "mobile", label: "Mobile", width: 375, icon: DeviceMobileIcon },
 ];
 
 //------------------------------------------------------------------------------
@@ -113,28 +119,31 @@ export const Content = ({
                   </div>
                 </div>
 
-                <div className="viewport-picker">
-                  {VIEWPORTS.map((vp) => (
-                    <button
-                      key={vp.id}
-                      type="button"
-                      className={`viewport-btn${viewport.id === vp.id ? " active" : ""}`}
-                      onClick={() => setViewport(vp)}
-                    >
-                      {vp.label}
-                      {vp.width !== null && (
-                        <span className="viewport-width">{vp.width}px</span>
-                      )}
-                    </button>
-                  ))}
-                  <div className="viewport-picker-separator" />
+                <div className="header-controls">
+                  <div className="viewport-picker">
+                    {VIEWPORTS.map((vp) => (
+                      <button
+                        key={vp.id}
+                        type="button"
+                        className={`viewport-btn${viewport.id === vp.id ? " active" : ""}`}
+                        onClick={() => setViewport(vp)}
+                      >
+                        <vp.icon size={14} />
+                        {vp.label}
+                        {vp.width !== null && (
+                          <span className="viewport-width">{vp.width}px</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
-                    className={`viewport-btn${paramsCollapsed ? "" : " active"}`}
+                    className={`populate-btn${paramsCollapsed ? "" : " active"}`}
                     onClick={() => setParamsCollapsed((c) => !c)}
                     title={paramsCollapsed ? "Show parameters" : "Hide parameters"}
                   >
-                    Params
+                    <NoteIcon size={14} />
+                    Populate
                   </button>
                 </div>
               </div>

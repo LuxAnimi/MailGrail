@@ -152,6 +152,41 @@
             color: #222;
         }
 
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .populate-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: transparent;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #888;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            white-space: nowrap;
+
+            &:hover {
+                color: #444;
+                border-color: #bbb;
+            }
+
+            &.active {
+                background: white;
+                color: #222;
+                border-color: #bbb;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+        }
+
         .viewport-picker {
             display: flex;
             align-items: center;
@@ -160,13 +195,6 @@
             background: #f0f0f0;
             border-radius: 8px;
             padding: 0.2rem;
-
-            .viewport-picker-separator {
-                width: 1px;
-                height: 1rem;
-                background: #d8d8d8;
-                margin: 0 0.1rem;
-            }
 
             .viewport-btn {
                 display: flex;
