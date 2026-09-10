@@ -78,6 +78,10 @@ export const object = <Shape extends Record<string, Schema<any>>>(
 
 //------------------------------------------------------------------------------
 // Optional
+/**
+ * The parameter may be omitted, and renders as an empty string when it is.
+ * Use `default` instead when an absent value should render as something.
+ */
 export interface OptionalSchema<S extends Schema<any>>
   extends Schema<Infer<S> | undefined> {
   kind: "optional";
@@ -94,6 +98,13 @@ export const optional = <S extends Schema<any>>(
 
 //------------------------------------------------------------------------------
 // Default
+/**
+ * The parameter may be omitted, and renders as `value` when it is -- so the
+ * emitted type is optional on input but never undefined at render time.
+ *
+ * `Exclude<..., undefined>` keeps `default(optional(x), v)` composing to the
+ * same thing, so the nested spelling stays valid without being necessary.
+ */
 export interface DefaultedSchema<S extends Schema<any>>
   extends Schema<Exclude<Infer<S>, undefined>> {
   kind: "default";

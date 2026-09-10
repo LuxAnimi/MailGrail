@@ -1,5 +1,4 @@
-// vite-env.d.ts
-/// <reference types="./vite-plugin-env.d.ts" />
+// Ambient declarations for the virtual modules served by src/plugins/*.
 /// <reference types="vite/client" />
 
 declare module "virtual:mailgrailconfig" {
@@ -9,6 +8,7 @@ declare module "virtual:mailgrailconfig" {
 }
 
 declare module "virtual:mailgrailtemplates" {
-  import type { TemplateDefinition } from "@/config/types";
-  export const templates: TemplateDefinition[];
+  import type { TemplateDefinition } from "@/cli/types";
+  import type { Schema } from "@/dsl/schemas";
+  export const templates: TemplateDefinition<Schema<any>>[];
 }

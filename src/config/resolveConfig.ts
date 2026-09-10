@@ -4,7 +4,7 @@ import path from "path";
 import type {
   MailgrailConfig,
   MailgrailResolvedConfig,
-} from "../config/types.ts";
+} from "./types.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

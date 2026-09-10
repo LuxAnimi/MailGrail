@@ -57,10 +57,11 @@ export function makeTemplatePreviewContext<T>(
     otherwise?: () => ReactNode,
   ) => {
     const value = getPath(params as any, path);
-    // "Boolish": true/false/null/undefined
-    // Treat null/undefined as false by default.
-    const ok = value === true;
-    return ok ? render() : (otherwise?.() ?? null);
+    // Truthiness, to match what the compiled template will do: EJS emits a
+    // plain `if`, Handlebars `#if` and Mustache a section, all of which are
+    // truthiness tests. A strict `=== true` here made the preview disagree
+    // with the built output for any non-boolean value.
+    return value ? render() : (otherwise?.() ?? null);
   };
 
   mg.unless = (
@@ -69,8 +70,7 @@ export function makeTemplatePreviewContext<T>(
     otherwise?: () => ReactNode,
   ) => {
     const value = getPath(params as any, path);
-    const ok = value !== true;
-    return ok ? render() : (otherwise?.() ?? null);
+    return !value ? render() : (otherwise?.() ?? null);
   };
 
   mg.each = (path: string, render: (item: any, index: number) => ReactNode) => {
@@ -141,8 +141,10 @@ export function makeTemplatePreviewContext<T>(
 
   mg.with = (path: string, render: (scoped: any) => ReactNode) => {
     const value = getPath(params as any, path);
-    if (!isPlainObject(value)) return null;
-    return render(makeTemplatePreviewContext(value));
+    // The compiled template normalizes a missing object to `{}` and still
+    // renders the block, so scope to an empty object rather than hiding it --
+    // otherwise the preview omits markup that will ship.
+    return render(makeTemplatePreviewContext(isPlainObject(value) ? value : {}));
   };
 
   return mg as PreviewTemplateContext<T>;

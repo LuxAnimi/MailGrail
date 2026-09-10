@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 //------------------------------------------------------------------------------
 import { makePlaceholderData } from "@/cli/rendering/schema-placeholder";
@@ -240,7 +240,7 @@ const ArrayField = ({
   label: string | null;
   depth: number;
 }) => {
-  const arr = value ?? [];
+  const arr = useMemo(() => value ?? [], [value]);
 
   const addItem = useCallback(() => {
     onChange([...arr, makePlaceholderData(schema.element)]);
