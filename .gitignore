@@ -27,3 +27,6 @@ dist-src/
 dist-lib/
 lib/
 packages/*/dist/
+# website
+website/.astro/
+website/dist/
