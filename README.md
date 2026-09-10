@@ -2,6 +2,12 @@
 
 Type-safe email templates using React and MJML. Write your templates as React components, preview them live in a browser, and compile them to portable EJS files your backend can render — with full TypeScript types for every parameter.
 
+**[Documentation →](https://luxanimi.github.io/MailGrail/)**
+
+The site's reference pages are generated from this repository's own compiler,
+so the inferred types and compiled output shown there are what mailgrail
+actually emits. This README is the short version.
+
 ## Features
 
 - **Type-safe parameters** — define your template parameters with a compact DSL; TypeScript infers the types end-to-end
@@ -492,8 +498,8 @@ export default defineConfig({
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `sourceDir` | `string` | `"emails"` | Path to your templates directory, relative to the config file |
-| `outputDir` | `string` | `"_generated"` | Path for compiled output, relative to the config file |
+| `sourceDir` | `string` | `"./emails"` | Path to your templates directory, relative to the config file |
+| `outputDir` | `string` | `"./_generated"` | Path for compiled output, relative to the config file |
 | `previewPort` | `number` | `7777` | Port for the preview server |
 | `typescript` | `boolean` | `true` | Whether to emit `.d.ts` type files |
 | `templatingEngine` | `"EJS" \| "Handlebars" \| "Mustache"` | `"EJS"` | Template engine for compiled output. Also selects the template file extension (`.ejs` / `.hbs` / `.mustache`) and the module the generated `.js` imports — install that engine in your project. |

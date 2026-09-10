@@ -1,0 +1,95 @@
+name: Deploy website
+
+# The site is rebuilt when the site changes, and also when the *source* it
+# documents changes -- the generated reference is derived from src/ and
+# example/, so a change there can make the committed docs data stale.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "src/**"
+      - "example/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a superseded run is not worth finishing.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # The heavy job. Owns lib/, mjml and the three engines, and proves the
+  # committed docs data still matches the source.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+      # Coverage: every t.*, every mg.* and every config key must be
+      # documented. Byte equality alone would only prove the JSON matches
+      # itself.
+      - name: Check the docs still cover the source
+        run: node website/docgen/index.mjs --check
+
+      # Belt and braces: nothing regenerated differently from what is committed.
+      - name: Check the generated data is current
+        run: |
+          node website/docgen/index.mjs
+          git diff --exit-code website/src/generated \
+            || (echo "::error::Generated docs data is stale. Run: npm run docs:generate" && exit 1)
+
+  # The light job. Reads only the committed JSON, so it needs neither lib/,
+  # nor mjml, nor any templating engine -- a broken generator cannot take the
+  # deploy down with it.
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - run: npm ci
+        working-directory: website
+
+      - run: npm run build
+        working-directory: website
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

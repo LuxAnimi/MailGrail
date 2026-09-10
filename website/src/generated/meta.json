@@ -1,6 +1,6 @@
 {
   "author": "Maxime Dupuis",
-  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to EJS and TypeScript.",
+  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
   "install": {
     "dev": "npm install --save-dev mailgrail",
     "peers": "npm install @faire/mjml-react react ejs"

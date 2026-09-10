@@ -1,7 +1,7 @@
 {
   "name": "mailgrail",
   "version": "0.1.0",
-  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to EJS and TypeScript.",
+  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
   "author": "Maxime Dupuis",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,7 @@
     "email-template",
     "typescript"
   ],
-  "homepage": "https://github.com/LuxAnimi/MailGrail#readme",
+  "homepage": "https://luxanimi.github.io/MailGrail/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LuxAnimi/MailGrail.git"

@@ -9,7 +9,13 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
   globalIgnores(["dist"]),
   {
-    ignores: ["./lib/**/*"],
+    ignores: [
+      "./lib/**/*",
+      // Astro's generated types and build output. Not ours to lint, and the
+      // triple-slash reference it emits trips the recommended ruleset.
+      "website/.astro/**",
+      "website/dist/**",
+    ],
   },
   {
     files: ["**/*.{ts,tsx}"],

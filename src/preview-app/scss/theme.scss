@@ -8,7 +8,7 @@
     color: palette.base-color(e, 0);
     @include mixins.theme-transition(color);
 
-    font-family: "Inter", Tahoma, sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, Tahoma, sans-serif;
     font-size: 18px;
 
     @media only screen and (max-width: constants.$transition-large) {
@@ -36,7 +36,7 @@
     line-height: 1rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid palette.base-color(3);
-    border-radius: 7px;
+    border-radius: 4px;
     color: palette.base-color(e);
     background: palette.base-color(0);
     @include mixins.theme-transition(background, color, border);
@@ -68,13 +68,13 @@
 
 @mixin clickable-button-hover() {
     outline: none;
-    animation-name: aberration-box-anim;
+    border-color: palette.base-color(a, f);
     background: palette.base-color(a, f, 3);
 }
 
 @mixin clickable-button-focus() {
-    outline: none;
-    animation-name: aberration-box-anim;
+    outline: 2px solid palette.base-color(a, f);
+    outline-offset: 2px;
     background: palette.base-color(0, 3, c);
 }
 
@@ -93,9 +93,7 @@
 }
 
 @mixin clickable-text-hover() {
-    animation-name: aberration-box-anim;
-    background: palette.base-color(f);
-    color: palette.base-color(0, 9);
+    color: palette.base-color(a, f);
 }
 
 @mixin clickable-text-focus() {
@@ -131,7 +129,7 @@
 @mixin input-neutral() {
     height: 2rem;
     border-style: none;
-    border-radius: 5px;
+    border-radius: 3px;
     padding: 0.3rem 0.5rem;
     box-sizing: border-box;
 
@@ -186,8 +184,8 @@
     $shadowcolor: #200a04;
     position: relative;
     overflow: hidden;
-    background: radial-gradient(circle at 60% 100%, #303331 0%, #1a1010 100%);
-    border-radius: 12px;
+    background: palette.base-color(1, 2);
+    border-radius: 4px;
     box-shadow: inset -1px -1px -0px #422;
 
     &::before,
