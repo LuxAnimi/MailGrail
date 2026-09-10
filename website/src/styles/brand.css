@@ -1,0 +1,88 @@
+/*----------------------------------------------------------------------------
+  mailgrail brand tokens
+
+  Every colour here is measured from src/preview-app/assets/mailgrail.ai, not
+  chosen: #231F20 is the artwork's ground, #414142 its construction geometry,
+  #D7DADD the envelope, #FFC840 the grail. The gold matches the #FFC800 already
+  in example/emails/theme.ts.
+
+  The site commits to a single dark world -- white on black with a gold accent
+  -- so there is no light/dark switch. Every colour is still painted explicitly.
+----------------------------------------------------------------------------*/
+
+@layer mg.tokens {
+  :root {
+    /* -- ground ------------------------------------------------------ */
+    --mg-black: #231f20;
+    --mg-raised: #2a2526;
+    --mg-raised-2: #322c2d;
+
+    /* -- line -------------------------------------------------------- */
+    --mg-rule: #414142;
+    --mg-rule-soft: #33302f;
+
+    /* -- ink --------------------------------------------------------- */
+    --mg-envelope: #d7dadd;
+    --mg-dim: #9a938c;
+    --mg-dimmer: #6b6560;
+
+    /* -- accent ------------------------------------------------------ */
+    --mg-gold: #ffc840;
+    --mg-gold-deep: #c98b04;
+    --mg-gold-wash: rgb(255 200 64 / 0.12);
+
+    /* -- logo layers (consumed by mailgrail.svg) --------------------- */
+    --logo-construction: var(--mg-rule);
+    --logo-envelope: var(--mg-envelope);
+    --logo-grail: var(--mg-gold);
+
+    /* -- type -------------------------------------------------------- */
+    --mg-display: Archivo, "Archivo Fallback", ui-sans-serif, system-ui,
+      -apple-system, "Segoe UI", sans-serif;
+    --mg-body: Inter, "Inter Fallback", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", sans-serif;
+    --mg-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+      monospace;
+
+    /* -- scale ------------------------------------------------------- */
+    --mg-step--1: 0.8125rem;
+    --mg-step-0: 1rem;
+    --mg-step-1: 1.0625rem;
+    --mg-step-2: clamp(1.4rem, 2.8vw, 1.75rem);
+    --mg-step-3: clamp(1.75rem, 4vw, 2.5rem);
+    --mg-step-4: clamp(2.25rem, 6.2vw, 3.75rem);
+
+    /* -- rhythm ------------------------------------------------------ */
+    --mg-gutter: clamp(1rem, 5vw, 4.5rem);
+    --mg-measure: 62ch;
+    --mg-maxw: 76rem;
+
+    /* -- motion ------------------------------------------------------ */
+    --mg-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+}
+
+/*----------------------------------------------------------------------------
+  Shared primitives
+----------------------------------------------------------------------------*/
+@layer mg.base {
+  .mg-eyebrow {
+    margin: 0;
+    font-family: var(--mg-body);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+  }
+
+  /* Numerals that line up in a column read as data, not decoration. */
+  .mg-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mg-rule {
+    border: 0;
+    border-top: 1px solid var(--mg-rule);
+  }
+}

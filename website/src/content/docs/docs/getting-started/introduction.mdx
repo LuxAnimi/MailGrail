@@ -1,0 +1,27 @@
+---
+title: Introduction
+description: What mailgrail is, and the problem it solves.
+---
+
+mailgrail turns React components into email templates your backend can render on
+its own. You write MJML with full TypeScript types, preview it live in a
+browser, and compile it to a portable template plus a render function and its
+type declarations.
+
+The compiled output depends on your templating engine and nothing else. No
+React, no MJML, no bundler, and no mailgrail in production — all of that work
+happens at build time.
+
+## The shape of it
+
+```tsx
+const paramsSchema = t.object({
+  username: t.string(),
+  confirmationUrl: t.string(),
+});
+```
+
+That schema does three jobs. It types the `htmlTemplate` you write, it generates
+placeholder data for the preview server, and it emits the `.d.ts` your backend
+imports — so a parameter you rename in one place cannot silently go stale in the
+other two.

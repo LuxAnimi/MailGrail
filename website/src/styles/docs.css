@@ -1,0 +1,186 @@
+/*----------------------------------------------------------------------------
+  Starlight, restyled onto the mailgrail tokens.
+
+  The site commits to one visual world -- white on black, gold accent -- so
+  both of Starlight's themes are pointed at the same dark palette and the theme
+  toggle is hidden. That is deliberate: a half-considered light theme reads
+  worse than none, and the mark itself is drawn for a dark ground.
+----------------------------------------------------------------------------*/
+
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+  color-scheme: dark;
+
+  --sl-color-accent-low: #4a3a12;
+  --sl-color-accent: var(--mg-gold-deep);
+  --sl-color-accent-high: var(--mg-gold);
+
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #eceef0;
+  --sl-color-gray-2: var(--mg-envelope);
+  --sl-color-gray-3: var(--mg-dim);
+  --sl-color-gray-4: var(--mg-dimmer);
+  --sl-color-gray-5: var(--mg-rule);
+  --sl-color-gray-6: var(--mg-raised);
+  --sl-color-gray-7: var(--mg-raised-2);
+  --sl-color-black: var(--mg-black);
+
+  --sl-color-bg: var(--mg-black);
+  --sl-color-bg-nav: var(--mg-black);
+  --sl-color-bg-sidebar: var(--mg-black);
+  --sl-color-bg-inline-code: var(--mg-raised);
+  --sl-color-bg-accent: var(--mg-gold);
+
+  --sl-color-hairline: var(--mg-rule);
+  --sl-color-hairline-light: var(--mg-rule);
+  --sl-color-hairline-shade: var(--mg-rule-soft);
+
+  --sl-color-text: var(--mg-envelope);
+  --sl-color-text-accent: var(--mg-gold);
+  --sl-color-text-invert: var(--mg-black);
+
+  --sl-font: var(--mg-body);
+  --sl-font-mono: var(--mg-mono);
+
+  --sl-text-code: 0.8125rem;
+  --sl-line-height: 1.65;
+}
+
+/* One visual world -- no toggle. */
+starlight-theme-select {
+  display: none;
+}
+
+/*--- Type -------------------------------------------------------------*/
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.content-panel h1,
+site-title {
+  font-family: var(--mg-display);
+  font-weight: 400;
+  letter-spacing: -0.022em;
+}
+
+.sl-markdown-content h1,
+.content-panel h1 {
+  font-weight: 300;
+  letter-spacing: -0.032em;
+  line-height: 1.08;
+}
+
+.site-title {
+  font-family: var(--mg-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Running text wants a measure; Starlight lets it run the full panel. */
+.sl-markdown-content p,
+.sl-markdown-content li {
+  max-width: var(--mg-measure);
+}
+
+/*--- Chrome -----------------------------------------------------------*/
+
+.sidebar-content a[aria-current="page"] {
+  color: var(--mg-black);
+  background: var(--mg-gold);
+  font-weight: 500;
+}
+
+/* Sidebar group headings, set as the labels they are. */
+.sidebar-content .large {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+}
+
+header.header {
+  border-bottom: 1px solid var(--mg-rule);
+}
+
+/* The mark's construction lines turn to mush below ~96px, so the nav shows
+   only the envelope and grail. This is why the SVG ships in layers. */
+.site-title img {
+  height: 1.75rem;
+}
+
+.site-title img + span,
+.site-title > span {
+  font-family: var(--mg-display);
+}
+
+/*--- Code -------------------------------------------------------------*/
+
+.sl-markdown-content :not(pre) > code {
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  color: var(--mg-envelope);
+  font-weight: 400;
+}
+
+.expressive-code .frame pre,
+.sl-markdown-content pre {
+  border: 1px solid var(--mg-rule) !important;
+  border-radius: 4px !important;
+  background: var(--mg-raised) !important;
+}
+
+/*--- Tables -----------------------------------------------------------*/
+
+.sl-markdown-content table {
+  font-size: 0.9375rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.sl-markdown-content th {
+  font-family: var(--mg-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  border-bottom: 1px solid var(--mg-rule);
+  text-align: left;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+}
+
+.sl-markdown-content td {
+  border-bottom: 1px solid var(--mg-rule-soft);
+  padding: 0.6rem 0.9rem 0.6rem 0;
+  vertical-align: baseline;
+}
+
+.sl-markdown-content td:has(code) {
+  font-variant-numeric: tabular-nums;
+}
+
+/*--- Links ------------------------------------------------------------*/
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--mg-gold);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--mg-gold) 40%, transparent);
+}
+
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-color: var(--mg-gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
