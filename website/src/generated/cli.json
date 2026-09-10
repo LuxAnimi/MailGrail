@@ -1,0 +1,31 @@
+{
+  "commands": [
+    {
+      "description": "Renders every template with placeholder data generated from its schema, and reloads on save.",
+      "flags": [
+        {
+          "default": "./mailgrail.config.ts",
+          "flag": "--configPath <path>",
+          "summary": "Path to your config file."
+        }
+      ],
+      "id": "preview",
+      "summary": "Start the live preview server.",
+      "usage": "mailgrail preview [options]"
+    },
+    {
+      "description": "Writes a template file, a render function and its type declarations to `outputDir`, then verifies the configured engine is installed.",
+      "flags": [
+        {
+          "default": "./mailgrail.config.ts",
+          "flag": "--configPath <path>",
+          "summary": "Path to your config file."
+        }
+      ],
+      "id": "build",
+      "summary": "Compile every template for production.",
+      "usage": "mailgrail build [options]"
+    }
+  ],
+  "help": "Usage:\n  mailgrail preview [options]\n  mailgrail build [options]\n\nCommands:\n  preview   Start email preview server\n  build     Build email templates for production"
+}

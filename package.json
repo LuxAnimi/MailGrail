@@ -64,6 +64,10 @@
     "typecheck:cli": "tsc -p tsconfig.cli.json",
     "typecheck:vite": "tsc -p tsconfig.vite.json",
     "typecheck:example": "tsc -p tsconfig.example.json",
+    "docs:generate": "npm run build && node website/docgen/index.mjs",
+    "docs:check": "node website/docgen/index.mjs --check",
+    "site:dev": "npm --prefix website run dev",
+    "site:build": "npm --prefix website run build",
     "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm run test",
     "clean": "node -e \"const fs=require('fs');for (const d of ['lib','dist-src']) fs.rmSync(d,{recursive:true,force:true})\"",
     "test": "node --test test/*.test.js"

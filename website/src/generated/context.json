@@ -1,0 +1,165 @@
+{
+  "fixtures": [
+    {
+      "api": "render",
+      "compiled": {
+        "ejs": "<p>Welcome, <%= username %> — invoice <%= invoice.number %></p>",
+        "handlebars": "<p>Welcome, {{username}} — invoice {{invoice.number}}</p>",
+        "mustache": "<p>Welcome, {{username}} — invoice {{invoice.number}}</p>"
+      },
+      "id": "render",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<p>Welcome, Alice — invoice INV-2032</p>",
+      "rendered": {
+        "ejs": "<p>Welcome, Alice — invoice INV-2032</p>",
+        "handlebars": "<p>Welcome, Alice — invoice INV-2032</p>",
+        "mustache": "<p>Welcome, Alice — invoice INV-2032</p>"
+      },
+      "sample": {
+        "invoice": {
+          "number": "INV-2032"
+        },
+        "username": "Alice"
+      },
+      "summary": "`mg.render(path)` prints a scalar. The path is dot-separated for nested objects, and typed against your schema -- a key that does not exist is a compile error, not a blank space in a sent email.",
+      "title": "Rendering a value",
+      "tsx": "build: (mg) => (\n  <p>\n    Welcome, {mg.render(\"username\")} — invoice {mg.render(\"invoice.number\")}\n  </p>\n),"
+    },
+    {
+      "api": "when",
+      "compiled": {
+        "ejs": "<div><% if (isPremium) { %><p>You have premium access.</p><% } else { %><p>Upgrade to unlock everything.</p><% } %></div>",
+        "handlebars": "<div>{{#if isPremium}}<p>You have premium access.</p>{{else}}<p>Upgrade to unlock everything.</p>{{/if}}</div>",
+        "mustache": "<div>{{#isPremium}}<p>You have premium access.</p>{{/isPremium}}{{^isPremium}}<p>Upgrade to unlock everything.</p>{{/isPremium}}</div>"
+      },
+      "id": "when",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<div><p>You have premium access.</p></div>",
+      "rendered": {
+        "ejs": "<div><p>You have premium access.</p></div>",
+        "handlebars": "<div><p>You have premium access.</p></div>",
+        "mustache": "<div><p>You have premium access.</p></div>"
+      },
+      "sample": {
+        "isPremium": true
+      },
+      "summary": "`mg.when(path, render, otherwise?)` renders its first branch when the value is truthy. The `otherwise` branch is optional.",
+      "title": "Branching on a boolean",
+      "tsx": "build: (mg) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => <p>You have premium access.</p>,\n      () => <p>Upgrade to unlock everything.</p>,\n    )}\n  </div>\n),"
+    },
+    {
+      "api": "unless",
+      "compiled": {
+        "ejs": "<div><% if (!(isVerified)) { %><p>Please confirm your address.</p><% } %></div>",
+        "handlebars": "<div>{{#unless isVerified}}<p>Please confirm your address.</p>{{/unless}}</div>",
+        "mustache": "<div>{{^isVerified}}<p>Please confirm your address.</p>{{/isVerified}}</div>"
+      },
+      "id": "unless",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<div><p>Please confirm your address.</p></div>",
+      "rendered": {
+        "ejs": "<div><p>Please confirm your address.</p></div>",
+        "handlebars": "<div><p>Please confirm your address.</p></div>",
+        "mustache": "<div><p>Please confirm your address.</p></div>"
+      },
+      "sample": {
+        "isVerified": false
+      },
+      "summary": "`mg.unless` is the inverse of `mg.when`.",
+      "title": "Branching on a falsy value",
+      "tsx": "build: (mg) => (\n  <div>{mg.unless(\"isVerified\", () => <p>Please confirm your address.</p>)}</div>\n),"
+    },
+    {
+      "api": "each",
+      "compiled": {
+        "ejs": "<ul><% (tags || []).forEach(function(__item1, __i2) { %><li><%= __item1 %></li><% }); %></ul>",
+        "handlebars": "<ul>{{#each tags}}<li>{{this}}</li>{{/each}}</ul>",
+        "mustache": "<ul>{{#tags}}<li>{{.}}</li>{{/tags}}</ul>"
+      },
+      "id": "each-primitives",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<ul><li>billing</li><li>urgent</li></ul>",
+      "rendered": {
+        "ejs": "<ul><li>billing</li><li>urgent</li></ul>",
+        "handlebars": "<ul><li>billing</li><li>urgent</li></ul>",
+        "mustache": "<ul><li>billing</li><li>urgent</li></ul>"
+      },
+      "sample": {
+        "tags": [
+          "billing",
+          "urgent"
+        ]
+      },
+      "summary": "For an array of scalars, call `item.render()` with no argument — there is no key to name.",
+      "title": "Iterating an array of primitives",
+      "tsx": "build: (mg) => (\n  <ul>\n    {mg.each(\"tags\", (tag: any, i: number) => (\n      <li key={i}>{tag.render()}</li>\n    ))}\n  </ul>\n),"
+    },
+    {
+      "api": "each",
+      "compiled": {
+        "ejs": "<table><tbody><% (items || []).forEach(function(__item1, __i2) { %><tr><td><%= __item1.name %></td><td><%= __item1.quantity %></td><% if (__item1.isFulfilled) { %><td>Shipped</td><% } else { %><td>Pending</td><% } %></tr><% }); %></tbody></table>",
+        "handlebars": "<table><tbody>{{#each items}}<tr><td>{{name}}</td><td>{{quantity}}</td>{{#if isFulfilled}}<td>Shipped</td>{{else}}<td>Pending</td>{{/if}}</tr>{{/each}}</tbody></table>",
+        "mustache": "<table><tbody>{{#items}}<tr><td>{{name}}</td><td>{{quantity}}</td>{{#isFulfilled}}<td>Shipped</td>{{/isFulfilled}}{{^isFulfilled}}<td>Pending</td>{{/isFulfilled}}</tr>{{/items}}</tbody></table>"
+      },
+      "id": "each-objects",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<table><tbody><tr><td>Widget</td><td>2</td><td>Shipped</td></tr><tr><td>Gadget</td><td>1</td><td>Pending</td></tr></tbody></table>",
+      "rendered": {
+        "ejs": "<table><tbody><tr><td>Widget</td><td>2</td><td>Shipped</td></tr><tr><td>Gadget</td><td>1</td><td>Pending</td></tr></tbody></table>",
+        "handlebars": "<table><tbody><tr><td>Widget</td><td>2</td><td>Shipped</td></tr><tr><td>Gadget</td><td>1</td><td>Pending</td></tr></tbody></table>",
+        "mustache": "<table><tbody><tr><td>Widget</td><td>2</td><td>Shipped</td></tr><tr><td>Gadget</td><td>1</td><td>Pending</td></tr></tbody></table>"
+      },
+      "sample": {
+        "items": [
+          {
+            "isFulfilled": true,
+            "name": "Widget",
+            "quantity": 2
+          },
+          {
+            "isFulfilled": false,
+            "name": "Gadget",
+            "quantity": 1
+          }
+        ]
+      },
+      "summary": "For an array of objects each item is a full context, scoped to the element — `render`, `when`, `unless`, `each` and `with` all work on it.",
+      "title": "Iterating an array of objects",
+      "tsx": "build: (mg) => (\n  <table>\n    <tbody>\n      {mg.each(\"items\", (item: any, i: number) => (\n        <tr key={i}>\n          <td>{item.render(\"name\")}</td>\n          <td>{item.render(\"quantity\")}</td>\n          {item.when(\n            \"isFulfilled\",\n            () => <td>Shipped</td>,\n            () => <td>Pending</td>,\n          )}\n        </tr>\n      ))}\n    </tbody>\n  </table>\n),"
+    },
+    {
+      "api": "with",
+      "compiled": {
+        "ejs": "<div><% const __scope1 = user; %><p>Hello, <%= __scope1.name %></p><% const __scope2 = __scope1.plan; %><p>Your <%= __scope2.name %> plan runs to <%= __scope2.expiresAt %>.</p></div>",
+        "handlebars": "<div>{{#with user}}<p>Hello, {{name}}</p>{{#with plan}}<p>Your {{name}} plan runs to {{expiresAt}}.</p>{{/with}}{{/with}}</div>",
+        "mustache": "<div>{{#user}}<p>Hello, {{name}}</p>{{#plan}}<p>Your {{name}} plan runs to {{expiresAt}}.</p>{{/plan}}{{/user}}</div>"
+      },
+      "id": "with",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<div><p>Hello, Alice</p><p>Your Pro plan runs to 2027-01-31.</p></div>",
+      "rendered": {
+        "ejs": "<div><p>Hello, Alice</p><p>Your Pro plan runs to 2027-01-31.</p></div>",
+        "handlebars": "<div><p>Hello, Alice</p><p>Your Pro plan runs to 2027-01-31.</p></div>",
+        "mustache": "<div><p>Hello, Alice</p><p>Your Pro plan runs to 2027-01-31.</p></div>"
+      },
+      "sample": {
+        "user": {
+          "name": "Alice",
+          "plan": {
+            "expiresAt": "2027-01-31",
+            "name": "Pro"
+          }
+        }
+      },
+      "summary": "`mg.with(path, render)` scopes the context so a deep path is written once instead of on every line.",
+      "title": "Scoping to a nested object",
+      "tsx": "build: (mg) => (\n  <div>\n    {mg.with(\"user\", (user: any) => (\n      <>\n        <p>Hello, {user.render(\"name\")}</p>\n        {user.with(\"plan\", (plan: any) => (\n          <p>\n            Your {plan.render(\"name\")} plan runs to {plan.render(\"expiresAt\")}.\n          </p>\n        ))}\n      </>\n    ))}\n  </div>\n),"
+    }
+  ]
+}

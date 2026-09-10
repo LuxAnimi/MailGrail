@@ -16,6 +16,7 @@ import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
 
 //------------------------------------------------------------------------------
+// #region doc:welcome-schema
 const paramsSchema = t.object({
   username: t.string(),
   email: t.string(),
@@ -23,6 +24,7 @@ const paramsSchema = t.object({
   referralCode: t.optional(t.string()),        // optional — not required, shown when present
   plan: t.default(t.string(), "free"),         // defaulted — falls back to "free"
 });
+// #endregion doc:welcome-schema
 
 //------------------------------------------------------------------------------
 type Params = Infer<typeof paramsSchema>;

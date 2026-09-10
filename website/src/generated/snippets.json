@@ -1,0 +1,29 @@
+{
+  "config-file": {
+    "code": "export default defineConfig({\n  sourceDir: \"emails\",\n  outputDir: \"dist\",\n  typescript: true,\n  previewPort: 7777,\n});",
+    "endLine": 10,
+    "file": "example/mailgrail.config.ts",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L10",
+    "id": "config-file",
+    "lang": "ts",
+    "startLine": 5
+  },
+  "templates-index": {
+    "code": "export const templates: TemplateDefinition<any>[] = [\n  WelcomeEmail,\n  OrderConfirmationEmail,\n  TeamInviteEmail,\n];",
+    "endLine": 14,
+    "file": "example/emails/index.ts",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails/index.ts#L10-L14",
+    "id": "templates-index",
+    "lang": "ts",
+    "startLine": 10
+  },
+  "welcome-schema": {
+    "code": "const paramsSchema = t.object({\n  username: t.string(),\n  email: t.string(),\n  isPro: t.boolean(),                          // boolean  — toggles the pro badge\n  referralCode: t.optional(t.string()),        // optional — not required, shown when present\n  plan: t.default(t.string(), \"free\"),         // defaulted — falls back to \"free\"\n});",
+    "endLine": 26,
+    "file": "example/emails/WelcomeEmail.tsx",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails/WelcomeEmail.tsx#L20-L26",
+    "id": "welcome-schema",
+    "lang": "tsx",
+    "startLine": 20
+  }
+}
