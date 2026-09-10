@@ -1,0 +1,235 @@
+---
+import engines from "../../generated/engines.json";
+import meta from "../../generated/meta.json";
+
+//----------------------------------------------------------------------------
+// Not a numbered list -- these are parallel properties, not a sequence, so
+// numbering them would encode an order that does not exist. Hairline rules and
+// a shared grid carry the grouping instead.
+//----------------------------------------------------------------------------
+const features = [
+  {
+    title: "Types that follow every parameter",
+    body:
+      "One schema types the template you write, generates the preview's " +
+      "placeholder data, and emits the declarations your backend imports. " +
+      "A wrong path is a compile error.",
+  },
+  {
+    title: "React and MJML, not string concatenation",
+    body:
+      "Compose templates from components with props and layouts. MJML handles " +
+      "the table scaffolding that makes email render in Outlook.",
+  },
+  {
+    title: "Nothing to install in production",
+    body:
+      "The compiled module inlines its template and imports only your engine. " +
+      "No React, no MJML, no bundler, no mailgrail — the work happened at " +
+      "build time.",
+  },
+  {
+    title: "Missing values never throw",
+    body:
+      "The generated module normalizes its input first, so every declared key " +
+      "is present, defaults are applied, and an absent optional renders as " +
+      "nothing instead of a ReferenceError.",
+  },
+];
+---
+
+<section class="feat wrap" aria-labelledby="feat-heading">
+  <p class="mg-eyebrow" id="feat-heading">Why it is built this way</p>
+
+  <div class="feat__grid">
+    {
+      features.map((feature) => (
+        <article class="feat__item">
+          <h2 class="feat__title">{feature.title}</h2>
+          <p class="feat__body">{feature.body}</p>
+        </article>
+      ))
+    }
+  </div>
+
+  <div class="matrix">
+    <div class="matrix__head">
+      <h2 class="matrix__title">Pick an engine</h2>
+      <p class="matrix__note">
+        Engines are optional peer dependencies, so npm installs none for you.
+        <code>mailgrail build</code> checks yours is present and fails with an
+        actionable message if it is not — a missing engine surfaces at build
+        time, not when an email is sent.
+      </p>
+    </div>
+
+    <table class="matrix__table">
+      <thead>
+        <tr>
+          <th scope="col">Engine</th>
+          <th scope="col">Install</th>
+          <th scope="col">Supported</th>
+          <th scope="col">Emits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          engines.engines.map((engine) => (
+            <tr>
+              <th scope="row">
+                {engine.id}
+                {engine.isDefault && <span class="matrix__default">default</span>}
+              </th>
+              <td><code>npm install {engine.module}</code></td>
+              <td class="mg-tabular"><code>{engine.range}</code></td>
+              <td><code>.{engine.ext}</code></td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <p class="matrix__foot mg-tabular">
+      Requires Node <code>{engines.node}</code> · mailgrail is ESM-only ·
+      {meta.license} licensed
+    </p>
+  </div>
+</section>
+
+<style>
+  .feat {
+    padding-block: clamp(3rem, 7vw, 5rem);
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .feat__grid {
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 2.75rem) clamp(2rem, 5vw, 4rem);
+  }
+
+  @media (min-width: 46rem) {
+    .feat__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .feat__item {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .feat__title {
+    margin: 0;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: 1.0625rem;
+    letter-spacing: -0.015em;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+  }
+
+  .feat__body {
+    margin: 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 46ch;
+  }
+
+  /*--- Engine matrix ----------------------------------------------*/
+
+  .matrix {
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .matrix__head {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .matrix__title {
+    margin: 0;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: var(--mg-step-2);
+    letter-spacing: -0.02em;
+    color: var(--mg-envelope);
+  }
+
+  .matrix__note {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  .matrix__note code,
+  .matrix__foot code {
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+  /* A table can outrun the viewport; it scrolls in its own box so the page
+     body never does. */
+  .matrix__table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .matrix__table thead th {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+    text-align: left;
+    padding: 0.5rem 1.25rem 0.5rem 0;
+    border-bottom: 1px solid var(--mg-rule);
+    white-space: nowrap;
+  }
+
+  .matrix__table tbody th {
+    font-family: var(--mg-display);
+    font-weight: 500;
+    color: var(--mg-envelope);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .matrix__table td,
+  .matrix__table tbody th {
+    padding: 0.7rem 1.25rem 0.7rem 0;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    vertical-align: baseline;
+  }
+
+  .matrix__table code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-dim);
+    white-space: nowrap;
+  }
+
+  .matrix__default {
+    margin-left: 0.55rem;
+    font-family: var(--mg-body);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mg-gold);
+  }
+
+  .matrix__foot {
+    margin: 1.1rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--mg-dimmer);
+  }
+</style>

@@ -1,0 +1,307 @@
+---
+import Mark from "./Mark.astro";
+import meta from "../../generated/meta.json";
+
+//----------------------------------------------------------------------------
+// "The Construction".
+//
+// The mark draws itself in the order the product works: scaffolding (the
+// schema), envelope (the template), grail (what gets delivered). Then pointer
+// movement drives a shallow parallax, the construction layer moving least and
+// the grail most, which gives the flat line art depth without a 3D library.
+//----------------------------------------------------------------------------
+interface Props {
+  docsHref: string;
+}
+
+const { docsHref } = Astro.props;
+---
+
+<section class="hero">
+  <div class="hero__copy">
+    <p class="mg-eyebrow">Type-safe email templates</p>
+
+    <h1 class="hero__headline">
+      Templates worth<br /> the ceremony.
+    </h1>
+
+    <p class="hero__sub">
+      Write React and MJML with types that follow every parameter through.
+      Compile to a portable template your backend renders under plain Node —
+      no bundler, no React, no mailgrail in production.
+    </p>
+
+    <div class="hero__actions">
+      <code class="install" data-install>
+        <span class="install__prompt" aria-hidden="true">$</span>
+        <span class="install__cmd">{meta.setup.command}</span>
+        <button class="install__copy" type="button" data-copy={meta.setup.command}>
+          <span class="install__copy-label">Copy</span>
+        </button>
+      </code>
+
+      <a class="hero__link" href={docsHref}>
+        Read the documentation
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="hero__mark" data-parallax>
+    <Mark animate />
+  </div>
+</section>
+
+<style>
+  .hero {
+    display: grid;
+    gap: clamp(2.5rem, 6vw, 4rem);
+    align-items: center;
+    padding-block: clamp(3rem, 8vw, 6rem) clamp(3rem, 7vw, 5rem);
+  }
+
+  @media (min-width: 60rem) {
+    .hero {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: clamp(3rem, 6vw, 5rem);
+    }
+  }
+
+  /*--- Copy ---------------------------------------------------------*/
+
+  .hero__headline {
+    margin: 1.1rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: var(--mg-step-4);
+    line-height: 1.04;
+    letter-spacing: -0.032em;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+  }
+
+  .hero__sub {
+    margin: 1.35rem 0 0;
+    max-width: 46ch;
+    font-size: var(--mg-step-1);
+    line-height: 1.65;
+    color: var(--mg-dim);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+
+  /*--- Install line -------------------------------------------------*/
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 100%;
+    padding: 0.6rem 0.6rem 0.6rem 0.95rem;
+    border: 1px solid var(--mg-rule);
+    background: var(--mg-raised);
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-envelope);
+  }
+
+  .install__prompt {
+    flex: none;
+    color: var(--mg-gold);
+  }
+
+  .install__cmd {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .install__copy {
+    flex: none;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--mg-rule);
+    background: transparent;
+    color: var(--mg-dim);
+    font: inherit;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.18s var(--mg-ease), border-color 0.18s var(--mg-ease);
+  }
+
+  .install__copy:hover,
+  .install__copy:focus-visible {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  .install__copy[data-copied] {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  /*--- Link ---------------------------------------------------------*/
+
+  .hero__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--mg-envelope);
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--mg-rule);
+    padding-bottom: 0.15rem;
+    transition: color 0.18s var(--mg-ease), border-color 0.18s var(--mg-ease);
+  }
+
+  .hero__link:hover,
+  .hero__link:focus-visible {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  .hero__link span {
+    transition: transform 0.18s var(--mg-ease);
+  }
+
+  .hero__link:hover span {
+    transform: translateX(3px);
+  }
+
+  /*--- Mark ---------------------------------------------------------*/
+
+  .hero__mark {
+    position: relative;
+    justify-self: center;
+    width: min(100%, 26rem);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+  }
+
+  /* The .ai carries the glow as two embedded rasters, which is most of its
+     11 MB. This reproduces it in CSS for nothing. */
+  .hero__mark::before {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    background: radial-gradient(
+      circle at 50% 58%,
+      rgb(255 200 64 / 0.22),
+      rgb(255 200 64 / 0.06) 45%,
+      transparent 72%
+    );
+    filter: blur(18px);
+    animation: glow-bloom 1.4s 1.2s var(--mg-ease) backwards;
+  }
+
+  @keyframes glow-bloom {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .hero__mark :global(.mark) {
+    position: relative;
+    transition: transform 0.4s var(--mg-ease);
+  }
+
+  /* Layers shift by different amounts, so the flat art reads as depth. */
+  .hero__mark :global(.mark__construction),
+  .hero__mark :global(.mark__envelope),
+  .hero__mark :global(.mark__grail) {
+    transform: translate3d(
+      calc(var(--px, 0) * var(--depth, 0) * 1px),
+      calc(var(--py, 0) * var(--depth, 0) * 1px),
+      0
+    );
+    will-change: transform;
+  }
+
+  .hero__mark :global(.mark__construction) {
+    --depth: 3;
+  }
+  .hero__mark :global(.mark__envelope) {
+    --depth: 7;
+  }
+  .hero__mark :global(.mark__grail) {
+    --depth: 12;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__mark::before {
+      animation: none;
+    }
+    .hero__mark :global(.mark__construction),
+    .hero__mark :global(.mark__envelope),
+    .hero__mark :global(.mark__grail) {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  //--------------------------------------------------------------------------
+  // Pointer parallax. Transform and opacity only -- nothing that triggers
+  // layout -- and the whole thing is skipped when the viewer asks for less
+  // motion or is on a touch device, where there is no pointer to follow.
+  //--------------------------------------------------------------------------
+  const stage = document.querySelector<HTMLElement>("[data-parallax]");
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const fine = window.matchMedia("(pointer: fine)");
+
+  if (stage && !calm.matches && fine.matches) {
+    let frame = 0;
+
+    const onMove = (event: PointerEvent) => {
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const box = stage.getBoundingClientRect();
+        const x = (event.clientX - (box.left + box.width / 2)) / box.width;
+        const y = (event.clientY - (box.top + box.height / 2)) / box.height;
+
+        stage.style.setProperty("--px", String(Math.max(-1, Math.min(1, x))));
+        stage.style.setProperty("--py", String(Math.max(-1, Math.min(1, y))));
+      });
+    };
+
+    const reset = () => {
+      stage.style.setProperty("--px", "0");
+      stage.style.setProperty("--py", "0");
+    };
+
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerleave", reset, { passive: true });
+  }
+
+  //--------------------------------------------------------------------------
+  // Copy the install command. Says what happened, then goes quiet again.
+  //--------------------------------------------------------------------------
+  const copyButton = document.querySelector<HTMLButtonElement>("[data-copy]");
+
+  copyButton?.addEventListener("click", async () => {
+    const label = copyButton.querySelector(".install__copy-label");
+    if (!label) return;
+
+    try {
+      await navigator.clipboard.writeText(copyButton.dataset.copy ?? "");
+      label.textContent = "Copied";
+      copyButton.dataset.copied = "";
+    } catch {
+      label.textContent = "Press ⌘C";
+    }
+
+    setTimeout(() => {
+      label.textContent = "Copy";
+      delete copyButton.dataset.copied;
+    }, 2000);
+  });
+</script>

@@ -22,9 +22,9 @@
         },
         "username": "Alice"
       },
-      "summary": "`mg.render(path)` prints a scalar. The path is dot-separated for nested objects, and typed against your schema -- a key that does not exist is a compile error, not a blank space in a sent email.",
+      "summary": "`mg.render(path)` prints a scalar. The path is dot-separated for nested objects and typed against your schema, so a key that does not exist is a compile error rather than a blank space in a sent email.",
       "title": "Rendering a value",
-      "tsx": "build: (mg) => (\n  <p>\n    Welcome, {mg.render(\"username\")} — invoice {mg.render(\"invoice.number\")}\n  </p>\n),"
+      "tsx": "const greeting = (mg: Ctx) => (\n  <p>\n    Welcome, {mg.render(\"username\")} — invoice {mg.render(\"invoice.number\")}\n  </p>\n);"
     },
     {
       "api": "when",
@@ -47,7 +47,7 @@
       },
       "summary": "`mg.when(path, render, otherwise?)` renders its first branch when the value is truthy. The `otherwise` branch is optional.",
       "title": "Branching on a boolean",
-      "tsx": "build: (mg) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => <p>You have premium access.</p>,\n      () => <p>Upgrade to unlock everything.</p>,\n    )}\n  </div>\n),"
+      "tsx": "const premiumNotice = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => <p>You have premium access.</p>,\n      () => <p>Upgrade to unlock everything.</p>,\n    )}\n  </div>\n);"
     },
     {
       "api": "unless",
@@ -70,7 +70,7 @@
       },
       "summary": "`mg.unless` is the inverse of `mg.when`.",
       "title": "Branching on a falsy value",
-      "tsx": "build: (mg) => (\n  <div>{mg.unless(\"isVerified\", () => <p>Please confirm your address.</p>)}</div>\n),"
+      "tsx": "const verifyBanner = (mg: Ctx) => (\n  <div>{mg.unless(\"isVerified\", () => <p>Please confirm your address.</p>)}</div>\n);"
     },
     {
       "api": "each",
@@ -94,9 +94,9 @@
           "urgent"
         ]
       },
-      "summary": "For an array of scalars, call `item.render()` with no argument — there is no key to name.",
+      "summary": "For an array of scalars call `item.render()` with no argument — there is no key to name.",
       "title": "Iterating an array of primitives",
-      "tsx": "build: (mg) => (\n  <ul>\n    {mg.each(\"tags\", (tag: any, i: number) => (\n      <li key={i}>{tag.render()}</li>\n    ))}\n  </ul>\n),"
+      "tsx": "const tagList = (mg: Ctx) => (\n  <ul>\n    {mg.each(\"tags\", (tag: Ctx, i: number) => (\n      <li key={i}>{tag.render()}</li>\n    ))}\n  </ul>\n);"
     },
     {
       "api": "each",
@@ -128,9 +128,9 @@
           }
         ]
       },
-      "summary": "For an array of objects each item is a full context, scoped to the element — `render`, `when`, `unless`, `each` and `with` all work on it.",
+      "summary": "For an array of objects each item is a full context scoped to the element — `render`, `when`, `unless`, `each` and `with` all work on it.",
       "title": "Iterating an array of objects",
-      "tsx": "build: (mg) => (\n  <table>\n    <tbody>\n      {mg.each(\"items\", (item: any, i: number) => (\n        <tr key={i}>\n          <td>{item.render(\"name\")}</td>\n          <td>{item.render(\"quantity\")}</td>\n          {item.when(\n            \"isFulfilled\",\n            () => <td>Shipped</td>,\n            () => <td>Pending</td>,\n          )}\n        </tr>\n      ))}\n    </tbody>\n  </table>\n),"
+      "tsx": "const orderTable = (mg: Ctx) => (\n  <table>\n    <tbody>\n      {mg.each(\"items\", (item: Ctx, i: number) => (\n        <tr key={i}>\n          <td>{item.render(\"name\")}</td>\n          <td>{item.render(\"quantity\")}</td>\n          {item.when(\n            \"isFulfilled\",\n            () => <td>Shipped</td>,\n            () => <td>Pending</td>,\n          )}\n        </tr>\n      ))}\n    </tbody>\n  </table>\n);"
     },
     {
       "api": "with",
@@ -159,7 +159,7 @@
       },
       "summary": "`mg.with(path, render)` scopes the context so a deep path is written once instead of on every line.",
       "title": "Scoping to a nested object",
-      "tsx": "build: (mg) => (\n  <div>\n    {mg.with(\"user\", (user: any) => (\n      <>\n        <p>Hello, {user.render(\"name\")}</p>\n        {user.with(\"plan\", (plan: any) => (\n          <p>\n            Your {plan.render(\"name\")} plan runs to {plan.render(\"expiresAt\")}.\n          </p>\n        ))}\n      </>\n    ))}\n  </div>\n),"
+      "tsx": "const planSummary = (mg: Ctx) => (\n  <div>\n    {mg.with(\"user\", (user: Ctx) => (\n      <>\n        <p>Hello, {user.render(\"name\")}</p>\n        {user.with(\"plan\", (plan: Ctx) => (\n          <p>\n            Your {plan.render(\"name\")} plan runs to {plan.render(\"expiresAt\")}.\n          </p>\n        ))}\n      </>\n    ))}\n  </div>\n);"
     }
   ]
 }

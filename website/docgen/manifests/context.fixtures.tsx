@@ -10,13 +10,17 @@
 // Bare React elements, no MJML -- like the unit tests in test/. That keeps
 // generation fast and the compiled output short enough to read on a page.
 //
-// The source shown on the site is extracted from this file by `#region doc:*`
-// marker, so there is no second copy of any template to fall out of step.
+// Each template is a standalone `const` wrapped in a `#region doc:*` marker,
+// because that region is what the site displays: a reader should see the shape
+// they would actually write, not this file's fixture plumbing.
 //------------------------------------------------------------------------------
 import type { ReactNode } from "react";
 
+/** The render context. Typed against your own schema in a real template. */
+type Ctx = any;
+
 export type ContextFixture = {
-  /** Stable id, referenced from MDX. */
+  /** Stable id, referenced from MDX and matching the region marker. */
   id: string;
   /** Which `mg.*` method this demonstrates -- coverage is asserted. */
   api: "render" | "when" | "unless" | "each" | "with";
@@ -24,7 +28,7 @@ export type ContextFixture = {
   summary?: string;
   /** Real values, fed to every engine and to the preview context. */
   sample: Record<string, unknown>;
-  build: (mg: any) => ReactNode;
+  build: (mg: Ctx) => ReactNode;
   /**
    * Set false where preview and build legitimately disagree, with a note
    * explaining why. Everything else must reach parity or generation fails.
@@ -34,6 +38,85 @@ export type ContextFixture = {
 };
 
 //------------------------------------------------------------------------------
+// #region doc:render
+const greeting = (mg: Ctx) => (
+  <p>
+    Welcome, {mg.render("username")} — invoice {mg.render("invoice.number")}
+  </p>
+);
+// #endregion doc:render
+
+//------------------------------------------------------------------------------
+// #region doc:when
+const premiumNotice = (mg: Ctx) => (
+  <div>
+    {mg.when(
+      "isPremium",
+      () => <p>You have premium access.</p>,
+      () => <p>Upgrade to unlock everything.</p>,
+    )}
+  </div>
+);
+// #endregion doc:when
+
+//------------------------------------------------------------------------------
+// #region doc:unless
+const verifyBanner = (mg: Ctx) => (
+  <div>{mg.unless("isVerified", () => <p>Please confirm your address.</p>)}</div>
+);
+// #endregion doc:unless
+
+//------------------------------------------------------------------------------
+// #region doc:each-primitives
+const tagList = (mg: Ctx) => (
+  <ul>
+    {mg.each("tags", (tag: Ctx, i: number) => (
+      <li key={i}>{tag.render()}</li>
+    ))}
+  </ul>
+);
+// #endregion doc:each-primitives
+
+//------------------------------------------------------------------------------
+// #region doc:each-objects
+const orderTable = (mg: Ctx) => (
+  <table>
+    <tbody>
+      {mg.each("items", (item: Ctx, i: number) => (
+        <tr key={i}>
+          <td>{item.render("name")}</td>
+          <td>{item.render("quantity")}</td>
+          {item.when(
+            "isFulfilled",
+            () => <td>Shipped</td>,
+            () => <td>Pending</td>,
+          )}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+// #endregion doc:each-objects
+
+//------------------------------------------------------------------------------
+// #region doc:with
+const planSummary = (mg: Ctx) => (
+  <div>
+    {mg.with("user", (user: Ctx) => (
+      <>
+        <p>Hello, {user.render("name")}</p>
+        {user.with("plan", (plan: Ctx) => (
+          <p>
+            Your {plan.render("name")} plan runs to {plan.render("expiresAt")}.
+          </p>
+        ))}
+      </>
+    ))}
+  </div>
+);
+// #endregion doc:with
+
+//------------------------------------------------------------------------------
 export const fixtures: ContextFixture[] = [
   {
     id: "render",
@@ -41,16 +124,10 @@ export const fixtures: ContextFixture[] = [
     title: "Rendering a value",
     summary:
       "`mg.render(path)` prints a scalar. The path is dot-separated for nested " +
-      "objects, and typed against your schema -- a key that does not exist is a " +
-      "compile error, not a blank space in a sent email.",
+      "objects and typed against your schema, so a key that does not exist is a " +
+      "compile error rather than a blank space in a sent email.",
     sample: { username: "Alice", invoice: { number: "INV-2032" } },
-    // #region doc:render
-    build: (mg) => (
-      <p>
-        Welcome, {mg.render("username")} — invoice {mg.render("invoice.number")}
-      </p>
-    ),
-    // #endregion doc:render
+    build: greeting,
   },
 
   {
@@ -61,17 +138,7 @@ export const fixtures: ContextFixture[] = [
       "`mg.when(path, render, otherwise?)` renders its first branch when the " +
       "value is truthy. The `otherwise` branch is optional.",
     sample: { isPremium: true },
-    // #region doc:when
-    build: (mg) => (
-      <div>
-        {mg.when(
-          "isPremium",
-          () => <p>You have premium access.</p>,
-          () => <p>Upgrade to unlock everything.</p>,
-        )}
-      </div>
-    ),
-    // #endregion doc:when
+    build: premiumNotice,
   },
 
   {
@@ -80,11 +147,7 @@ export const fixtures: ContextFixture[] = [
     title: "Branching on a falsy value",
     summary: "`mg.unless` is the inverse of `mg.when`.",
     sample: { isVerified: false },
-    // #region doc:unless
-    build: (mg) => (
-      <div>{mg.unless("isVerified", () => <p>Please confirm your address.</p>)}</div>
-    ),
-    // #endregion doc:unless
+    build: verifyBanner,
   },
 
   {
@@ -92,18 +155,10 @@ export const fixtures: ContextFixture[] = [
     api: "each",
     title: "Iterating an array of primitives",
     summary:
-      "For an array of scalars, call `item.render()` with no argument — there is " +
+      "For an array of scalars call `item.render()` with no argument — there is " +
       "no key to name.",
     sample: { tags: ["billing", "urgent"] },
-    // #region doc:each-primitives
-    build: (mg) => (
-      <ul>
-        {mg.each("tags", (tag: any, i: number) => (
-          <li key={i}>{tag.render()}</li>
-        ))}
-      </ul>
-    ),
-    // #endregion doc:each-primitives
+    build: tagList,
   },
 
   {
@@ -111,7 +166,7 @@ export const fixtures: ContextFixture[] = [
     api: "each",
     title: "Iterating an array of objects",
     summary:
-      "For an array of objects each item is a full context, scoped to the " +
+      "For an array of objects each item is a full context scoped to the " +
       "element — `render`, `when`, `unless`, `each` and `with` all work on it.",
     sample: {
       items: [
@@ -119,25 +174,7 @@ export const fixtures: ContextFixture[] = [
         { name: "Gadget", quantity: 1, isFulfilled: false },
       ],
     },
-    // #region doc:each-objects
-    build: (mg) => (
-      <table>
-        <tbody>
-          {mg.each("items", (item: any, i: number) => (
-            <tr key={i}>
-              <td>{item.render("name")}</td>
-              <td>{item.render("quantity")}</td>
-              {item.when(
-                "isFulfilled",
-                () => <td>Shipped</td>,
-                () => <td>Pending</td>,
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ),
-    // #endregion doc:each-objects
+    build: orderTable,
   },
 
   {
@@ -150,21 +187,6 @@ export const fixtures: ContextFixture[] = [
     sample: {
       user: { name: "Alice", plan: { name: "Pro", expiresAt: "2027-01-31" } },
     },
-    // #region doc:with
-    build: (mg) => (
-      <div>
-        {mg.with("user", (user: any) => (
-          <>
-            <p>Hello, {user.render("name")}</p>
-            {user.with("plan", (plan: any) => (
-              <p>
-                Your {plan.render("name")} plan runs to {plan.render("expiresAt")}.
-              </p>
-            ))}
-          </>
-        ))}
-      </div>
-    ),
-    // #endregion doc:with
+    build: planSummary,
   },
 ];

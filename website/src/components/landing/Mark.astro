@@ -1,0 +1,172 @@
+---
+//----------------------------------------------------------------------------
+// The brand mark, inline so its layers can be animated and recoloured.
+//
+// Extracted from mailgrail.ai by website/scripts/extract-logo.mjs. Three
+// layers: the construction geometry, the envelope, the grail. `detail={false}`
+// drops the construction lines, which turn to mush below about 96px -- that is
+// the whole reason the SVG ships in layers rather than as one flat path.
+//----------------------------------------------------------------------------
+interface Props {
+  /** Show the sacred-geometry scaffolding. Off for small sizes. */
+  detail?: boolean;
+  /** Play the draw-on sequence. Off everywhere but the hero. */
+  animate?: boolean;
+  class?: string;
+  title?: string;
+}
+
+const {
+  detail = true,
+  animate = false,
+  class: className = "",
+  title = "mailgrail",
+} = Astro.props;
+
+const classes = [
+  "mark",
+  detail ? "" : "mark--plain",
+  animate ? "mark--draw" : "",
+  className,
+]
+  .filter(Boolean)
+  .join(" ");
+
+// Without the construction layer the artwork no longer fills the square: the
+// envelope spans x 224-1184 and the grail y 218-1190, so the full viewBox
+// leaves a wide margin and shrinks the mark to sub-pixel strokes in the nav.
+// Crop to the ink, and thicken the stroke to survive at 26px.
+const viewBox = detail ? "0 0 1408 1408" : "194 188 1020 1022";
+const strokeWidth = detail ? 12 : 26;
+---
+
+<svg
+  class={classes}
+  viewBox={viewBox}
+  fill="none"
+  stroke-width={strokeWidth}
+  stroke-linecap="butt"
+  stroke-linejoin="miter"
+  stroke-miterlimit="10"
+  role="img"
+  aria-label={title}
+>
+  <g class="mark__construction" stroke="var(--logo-construction, #414142)">
+    <path
+      d="M 1184.00179 224.001492 L 224.000866 224.001492 L 224.000866 1183.998508 L 1184.00179 1183.998508 Z M 1184.00179 224.001492"
+      transform="matrix(0.999979, 0, 0, -0.999979, 0, 1407.985)"></path>
+    <path
+      d="M -0.000411941 0 C -0.000411941 309.280027 -250.720598 560.000213 -560.000625 560.000213 C -869.280652 560.000213 -1120.000838 309.280027 -1120.000838 0 C -1120.000838 -309.280027 -869.280652 -560.000213 -560.000625 -560.000213 C -250.720598 -560.000213 -0.000411941 -309.280027 -0.000411941 0 Z M -0.000411941 0"
+      transform="matrix(0.999979, 0, 0, -0.999979, 1263.973068, 704)"></path>
+    <path
+      d="M 0.00105116 -0.00151282 L 0.00105116 -956.998466"
+      transform="matrix(0.999979, 0, 0, -0.999979, 415.991136, 225.010206)"></path>
+    <path
+      d="M 0.00160515 -0.00149151 L 0.00160515 -956.998445"
+      transform="matrix(0.999979, 0, 0, -0.999979, 991.978864, 224.010227)"></path>
+    <path
+      d="M 0.00105116 -0.00149151 L 576.001605 -959.998508"
+      transform="matrix(0.999979, 0, 0, -0.999979, 415.991136, 224.010227)"></path>
+    <path
+      d="M 0.00105116 0.00153412 L 576.001605 957.998508"
+      transform="matrix(0.999979, 0, 0, -0.999979, 415.991136, 1181.989815)"></path>
+    <path
+      d="M -0.000838086 0 L 1117.999545 0"
+      transform="matrix(0.999979, 0, 0, -0.999979, 143.996932, 704)"></path>
+    <path
+      d="M 1263.999588 143.999787 L 143.999162 143.999787 L 143.999162 1264.000213 L 1263.999588 1264.000213 Z M 1263.999588 143.999787"
+      transform="matrix(0.999979, 0, 0, -0.999979, 0, 1407.985)"></path>
+    <path
+      d="M 0.00160515 0 C 0.00160515 159.058077 -128.942548 287.998324 -288.000625 287.998324 C -447.058702 287.998324 -575.998949 159.058077 -575.998949 0 C -575.998949 -159.058077 -447.058702 -287.998324 -288.000625 -287.998324 C -128.942548 -287.998324 0.00160515 -159.058077 0.00160515 0 Z M 0.00160515 0"
+      transform="matrix(0.999979, 0, 0, -0.999979, 991.978864, 704)"></path>
+  </g>
+
+  <g class="mark__envelope" stroke="var(--logo-envelope, #D7DADD)">
+    <path
+      d="M 1184.00179 991.998324 L 224.000866 991.998324 L 224.000866 416.001676 L 1184.00179 416.001676 Z M 1184.00179 991.998324"
+      transform="matrix(0.999979, 0, 0, -0.999979, 0, 1407.985)"></path>
+    <path
+      d="M 0.000894905 0.0000213073 L -367.999134 -288.998324"
+      transform="matrix(0.999979, 0, 0, -0.999979, 591.987386, 703.000021)"></path>
+    <path
+      d="M 0.0017614 0 L 368.00179 -287.998324"
+      transform="matrix(0.999979, 0, 0, -0.999979, 815.982614, 704)"></path>
+    <path
+      d="M 0.00178981 -0.00167617 L -480.000625 -369.001726 L -959.999134 -0.00167617"
+      transform="matrix(0.999979, 0, 0, -0.999979, 1183.974773, 416.006136)"></path>
+  </g>
+
+  <g class="mark__grail" stroke="var(--logo-grail, #FFC840)">
+    <path
+      d="M -0.000752857 0.00149151 L -280.998928 0.00149151 C -248.498235 32.498278 -157.000192 28.998203 -104.999084 63.998949 C -53.001882 98.999695 -19.001158 201.001868 -19.001158 284.999751 C -143.999915 299.00005 -281.998949 444.999254 -281.998949 676.00027 L -281.998949 959.998508 L 294.001605 959.998508 L 294.001605 676.00027 C 294.001605 444.999254 158.998729 299.00005 30.999908 284.999751 C 30.999908 201.001868 65.000632 98.999695 117.00174 63.998949 C 168.998942 28.998203 260.500891 32.498278 293.001584 0.00149151 Z M -0.000752857 0.00149151"
+      transform="matrix(0.999979, 0, 0, -0.999979, 697.985128, 1183.989773)"></path>
+  </g>
+</svg>
+
+<style>
+  .mark {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .mark--plain .mark__construction {
+    display: none;
+  }
+
+  /*--- The draw-on ----------------------------------------------------
+    The mark is a grail being *constructed* out of geometry, so it draws
+    itself in that order: the scaffolding, then the envelope, then the
+    grail. Scaffolding is the schema, envelope the template, grail what
+    gets delivered.
+
+    Path lengths vary a lot (a 1120-unit line vs a full circle), so one
+    dasharray cannot fit them all. 4000 comfortably exceeds the longest,
+    which makes every stroke draw at the same rate and finish early
+    rather than stretching to fill its own duration.
+  ------------------------------------------------------------------*/
+  .mark--draw :is(.mark__construction, .mark__envelope, .mark__grail) path {
+    stroke-dasharray: 4000;
+    stroke-dashoffset: 4000;
+    animation: mark-draw 1s var(--mg-ease, ease-out) forwards;
+  }
+
+  .mark--draw .mark__construction path {
+    animation-duration: 0.85s;
+  }
+  .mark--draw .mark__construction path:nth-child(1) { animation-delay: 0s; }
+  .mark--draw .mark__construction path:nth-child(2) { animation-delay: 0.06s; }
+  .mark--draw .mark__construction path:nth-child(3) { animation-delay: 0.12s; }
+  .mark--draw .mark__construction path:nth-child(4) { animation-delay: 0.16s; }
+  .mark--draw .mark__construction path:nth-child(5) { animation-delay: 0.2s; }
+  .mark--draw .mark__construction path:nth-child(6) { animation-delay: 0.24s; }
+  .mark--draw .mark__construction path:nth-child(7) { animation-delay: 0.28s; }
+  .mark--draw .mark__construction path:nth-child(8) { animation-delay: 0.32s; }
+  .mark--draw .mark__construction path:nth-child(9) { animation-delay: 0.36s; }
+
+  .mark--draw .mark__envelope path { animation-delay: 0.5s; }
+  .mark--draw .mark__envelope path:nth-child(2) { animation-delay: 0.62s; }
+  .mark--draw .mark__envelope path:nth-child(3) { animation-delay: 0.68s; }
+  .mark--draw .mark__envelope path:nth-child(4) { animation-delay: 0.74s; }
+
+  .mark--draw .mark__grail path {
+    animation-delay: 0.95s;
+    animation-duration: 1.15s;
+  }
+
+  @keyframes mark-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Show the finished mark, not an empty frame. */
+  @media (prefers-reduced-motion: reduce) {
+    .mark--draw :is(.mark__construction, .mark__envelope, .mark__grail) path {
+      stroke-dasharray: none;
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+  }
+</style>
