@@ -1,0 +1,11 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  // docgen has its own tsconfig: it is Node-side React TSX, not Astro, and
+  // Astro's jsx/jsxImportSource settings are wrong for it.
+  "exclude": ["dist", "docgen"],
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "allowJs": true
+  }
+}

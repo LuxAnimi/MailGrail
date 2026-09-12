@@ -1,0 +1,26 @@
+{
+  // docgen is Node-side code, not Astro code. Its manifests are React TSX --
+  // load.mjs bundles them with esbuild using jsx: "automatic" and
+  // jsxImportSource: "react" -- so the types have to say the same thing.
+  //
+  // Without this they fall under website/tsconfig.json, which inherits
+  // jsx: "preserve" and jsxImportSource: "astro" from Astro's base config and
+  // reports every JSX element in the fixtures as an error.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "strict": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true
+  },
+  // The .mjs generators are plain Node and are not typechecked; this config
+  // exists for the TSX manifests, which are.
+  "include": ["**/*.ts", "**/*.tsx"]
+}

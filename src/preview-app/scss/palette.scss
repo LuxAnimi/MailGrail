@@ -10,13 +10,19 @@ $hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
 }
 
 
-$accent1: hsla(146deg, 50%, 52%, 0.5);
-$accent2: hsla(0deg, 70%, 58%, 0.5);
+// Brand ramp endpoints, measured from src/preview-app/assets/mailgrail.ai:
+// #231F20 is the artwork's ground, #FFC840 the grail, #D7DADD the envelope.
+// The website is built on the same four values.
+//
+// The two chromatic-aberration shadow colours are kept only so the mixins in
+// _mixins.scss still compile; nothing applies them any more (see below).
+$accent1: hsla(43deg, 100%, 63%, 0.35);
+$accent2: hsla(43deg, 100%, 63%, 0.2);
 
-$start-color: #000000;
+$start-color: #231f20;
 $start-accent: #332614;
-$end-color: #ffffff;
-$end-accent: #ffe348;
+$end-color: #eff1f3;
+$end-accent: #ffc840;
 
 $hex-chars: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f;
 $shade-register: [];

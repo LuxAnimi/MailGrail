@@ -4,7 +4,7 @@ import path from "path";
 import type {
   MailgrailConfig,
   MailgrailResolvedConfig,
-} from "../config/types.ts";
+} from "./types.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -16,8 +16,8 @@ export function resolveConfig(
   const resolvedConf: MailgrailResolvedConfig = {
     ...userConfig,
     baseDir: baseDir,
-    sourceDir: path.resolve(baseDir, userConfig.sourceDir ?? "./emails"),
-    outputDir: path.resolve(baseDir, userConfig.outputDir ?? "./_generated"),
+    sourceDir: path.resolve(baseDir, userConfig.sourceDir ?? "./emails-src"),
+    outputDir: path.resolve(baseDir, userConfig.outputDir ?? "./emails-dist"),
     configPath: configPath,
     previewPort: userConfig.previewPort ?? 7777,
     templatingEngine: userConfig.templatingEngine ?? "EJS",

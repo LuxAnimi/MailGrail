@@ -1,7 +1,7 @@
 import type { Plugin } from "vite";
 
 //------------------------------------------------------------------------------
-import type { MailgrailResolvedConfig } from "@/config/types.ts";
+import type { MailgrailResolvedConfig } from "../config/types.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

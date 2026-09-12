@@ -25,7 +25,7 @@ export async function runPreview(argv: string[]) {
 
   const config = await loadMailgrailConfig(values.configPath);
 
-  previewTemplates(config);
-
-  console.log("Previewing on port", config.previewPort);
+  // Awaited so a failure to start the server reaches the CLI's error handler
+  // rather than becoming an unhandled rejection.
+  await previewTemplates(config);
 }

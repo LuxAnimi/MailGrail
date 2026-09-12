@@ -1,0 +1,14 @@
+{
+  // The example templates are consumed by esbuild (see build-templates.ts /
+  // loadConfig.ts), which resolves extensionless relative imports. "bundler"
+  // models that faithfully; NodeNext would demand explicit .js suffixes the
+  // real loader never needs.
+  "extends": "./tsconfig.cli.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "exclude": ["node_modules"],
+  "include": ["example/**/*.ts", "example/**/*.tsx"]
+}

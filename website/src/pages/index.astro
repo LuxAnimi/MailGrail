@@ -1,0 +1,30 @@
+---
+import Landing from "../layouts/Landing.astro";
+import Hero from "../components/landing/Hero.astro";
+import Sequence from "../components/landing/Sequence.astro";
+import CodeShowcase from "../components/landing/CodeShowcase.astro";
+import Pipeline from "../components/landing/Pipeline.astro";
+import Features from "../components/landing/Features.astro";
+import Engines from "../components/landing/Engines.astro";
+import Closing from "../components/landing/Closing.astro";
+import { href } from "../lib/href";
+import meta from "../generated/meta.json";
+
+const docsHref = href("/docs/getting-started/introduction");
+---
+
+<Landing
+  title="MailGrail — type-safe email templates"
+  description={meta.description}
+>
+  <div class="wrap">
+    <Hero docsHref={docsHref} />
+  </div>
+
+  <Sequence />
+  <Pipeline />
+  <CodeShowcase />
+  <Features />
+  <Engines />
+  <Closing docsHref={docsHref} />
+</Landing>

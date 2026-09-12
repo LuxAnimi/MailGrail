@@ -1,0 +1,29 @@
+{
+  "author": "Maxime Dupuis",
+  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
+  "install": {
+    "dev": "npm install --save-dev mailgrail",
+    "peers": "npm install @faire/mjml-react react ejs"
+  },
+  "issuesUrl": "https://github.com/LuxAnimi/MailGrail/issues",
+  "keywords": [
+    "email",
+    "mjml",
+    "react",
+    "templating",
+    "ejs",
+    "transactional-email",
+    "email-template",
+    "typescript"
+  ],
+  "license": "MIT",
+  "name": "mailgrail",
+  "node": "^20.19.0 || >=22.12.0",
+  "npmUrl": "https://www.npmjs.com/package/mailgrail",
+  "repoUrl": "https://github.com/LuxAnimi/MailGrail",
+  "setup": {
+    "command": "npx setup-mailgrail-app@latest",
+    "name": "setup-mailgrail-app"
+  },
+  "version": "0.1.0"
+}

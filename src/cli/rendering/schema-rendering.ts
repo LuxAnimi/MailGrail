@@ -1,50 +1,72 @@
-import type { EmptyObj, RenderTemplateContext } from "../types.js";
+import type { ReactNode } from "react";
+import { createElement, Fragment } from "react";
+
+//------------------------------------------------------------------------------
+import type { RenderTemplateContext } from "../types.js";
 
 //------------------------------------------------------------------------------
 export type TemplatingEngine = "ejs" | "handlebars" | "mustache";
 
 //------------------------------------------------------------------------------
-export type TemplateContext<R> = {
-  render: (path: string) => R;
+// Why tokens instead of emitting engine syntax directly
+//
+// The compiled HTML is produced by React -> renderToMjml -> mjml2html. Both of
+// those stages transform text: React escapes it, and MJML escapes it again and
+// drops bare text that sits between structural components. Emitting `<% %>` or
+// `{{ }}` into the tree therefore loses it (`&lt;%= x %&gt;`, or nothing at all).
+//
+// So the context emits opaque alphanumeric tokens, which survive both stages
+// untouched, and the real engine syntax is substituted back in at the very end.
+// This also lets block helpers return React nodes, so their JSX children render
+// through React normally instead of being coerced with String().
+//------------------------------------------------------------------------------
+const tokenFor = (index: number) => `MAILGRAILx${index}xTOKEN`;
+const TOKEN_RE = /MAILGRAILx(\d+)xTOKEN/g;
 
-  when: (
-    path: string,
-    render: () => string,
-    otherwise?: () => string,
-  ) => string;
-  unless: (
-    path: string,
-    render: () => string,
-    otherwise?: () => string,
-  ) => string;
+//------------------------------------------------------------------------------
+// MJML elements whose content is passed straight through as HTML. A marker
+// inside one of these must stay bare text; anywhere else it has to be wrapped
+// in <mj-raw> or MJML discards it.
+//------------------------------------------------------------------------------
+const RAW_CONTENT_ELEMENTS = new Set([
+  "mj-text",
+  "mj-button",
+  "mj-raw",
+  "mj-table",
+  "mj-accordion-text",
+  "mj-accordion-title",
+  "mj-navbar-link",
+  "mj-social-element",
+  "mj-style",
+  "mj-title",
+  "mj-preview",
+]);
 
-  each: (
-    path: string,
-    render: (item: ItemContext<R>, index: number) => string,
-  ) => string;
+//------------------------------------------------------------------------------
+export type TemplateCompiler<T> = {
+  /** Context handed to the template's `htmlTemplate` function. */
+  ctx: RenderTemplateContext<T>;
 
-  with: (
-    path: string,
-    render: (scoped: TemplateContext<R>) => string,
-  ) => string;
+  /**
+   * Run on the MJML produced by `renderToMjml`, before `mjml2html`.
+   * Wraps structural markers in `<mj-raw>` so MJML preserves them.
+   */
+  prepareMjml: (mjml: string) => string;
+
+  /**
+   * Run on the final HTML from `mjml2html`. Replaces every marker with the
+   * engine syntax it stands for.
+   */
+  substitute: (html: string) => string;
 };
 
 //------------------------------------------------------------------------------
-export type ItemContext<R> =
-  | TemplateContext<R>
-  | { render: () => string } // primitive-ish item: render current item
-  | {
-      each: (render: (item: ItemContext<R>, index: number) => string) => string;
-    } // nested arrays
-  | EmptyObj;
-
-//------------------------------------------------------------------------------
-export function makeTemplateRenderContext<T>(opts: {
+export function createTemplateCompiler<T>(opts: {
   engine: TemplatingEngine;
   rootVar?: string;
   unescaped?: boolean;
   guardArrays?: boolean; // guard array iteration as (expr || [])
-}): RenderTemplateContext<T> {
+}): TemplateCompiler<T> {
   const engine = opts.engine;
   const rootVar = opts.rootVar ?? "";
   const unescaped = opts.unescaped ?? false;
@@ -53,21 +75,34 @@ export function makeTemplateRenderContext<T>(opts: {
   let id = 0;
   const next = (prefix: string) => `__${prefix}${++id}`;
 
-  // Join base + path into either:
-  // - EJS JS expr:   base.path
-  // - HB/Mustache:   base.path (same string form)
+  // Emitted engine syntax, indexed by the token that stands in for it.
+  const fragments: string[] = [];
+  // Markers that are structural (block open/close) rather than inline values.
+  const structural = new Set<number>();
+
+  const mark = (syntax: string, isStructural: boolean): string => {
+    const index = fragments.length;
+    fragments.push(syntax);
+    if (isStructural) structural.add(index);
+    return tokenFor(index);
+  };
+
+  const value = (syntax: string) => mark(syntax, false);
+  const block = (syntax: string) => mark(syntax, true);
+
+  //----------------------------------------------------------------------------
   const joinPath = (base: string, path: string) => {
     if (!base) return path;
     if (!path) return base;
     return `${base}.${path}`;
   };
 
+  //----------------------------------------------------------------------------
   // How to print an expression/path in each engine
   const emitValue = (exprOrPath: string, isCurrent: boolean) => {
     switch (engine) {
       case "ejs": {
         const tag = unescaped ? "<%-" : "<%=";
-        // exprOrPath is a JS expression here
         return `${tag} ${exprOrPath} %>`;
       }
       case "handlebars": {
@@ -76,211 +111,274 @@ export function makeTemplateRenderContext<T>(opts: {
       }
       case "mustache": {
         if (isCurrent) return `{{.}}`;
-        // Mustache unescaped is commonly {{& name}} (or triple mustache {{{name}}})
         return unescaped ? `{{& ${exprOrPath}}}` : `{{${exprOrPath}}}`;
       }
     }
   };
 
-  // Blocks
-  const emitIf = (cond: string, yes: string, no: string | undefined) => {
+  //----------------------------------------------------------------------------
+  // Blocks are emitted as separate open / else / close markers so the JSX
+  // between them can be rendered by React rather than concatenated as a string.
+  //----------------------------------------------------------------------------
+  const ifParts = (cond: string) => {
     switch (engine) {
       case "ejs":
-        return no
-          ? `<% if (${cond}) { %>${yes}<% } else { %>${no}<% } %>`
-          : `<% if (${cond}) { %>${yes}<% } %>`;
-
+        return {
+          open: `<% if (${cond}) { %>`,
+          alt: `<% } else { %>`,
+          close: `<% } %>`,
+        };
       case "handlebars":
-        return no
-          ? `{{#if ${cond}}}${yes}{{else}}${no}{{/if}}`
-          : `{{#if ${cond}}}${yes}{{/if}}`;
-
+        return {
+          open: `{{#if ${cond}}}`,
+          alt: `{{else}}`,
+          close: `{{/if}}`,
+        };
       case "mustache":
-        // Mustache has no else, but we can emulate it with inverted sections:
-        return no
-          ? `{{#${cond}}}${yes}{{/${cond}}}{{^${cond}}}${no}{{/${cond}}}`
-          : `{{#${cond}}}${yes}{{/${cond}}}`;
+        // Mustache has no else; the alternative is an inverted section.
+        return {
+          open: `{{#${cond}}}`,
+          alt: `{{/${cond}}}{{^${cond}}}`,
+          close: `{{/${cond}}}`,
+        };
     }
   };
 
-  const emitUnless = (cond: string, yes: string, no: string | undefined) => {
+  const unlessParts = (cond: string) => {
     switch (engine) {
       case "ejs":
-        return no
-          ? `<% if (!(${cond})) { %>${yes}<% } else { %>${no}<% } %>`
-          : `<% if (!(${cond})) { %>${yes}<% } %>`;
-
+        return {
+          open: `<% if (!(${cond})) { %>`,
+          alt: `<% } else { %>`,
+          close: `<% } %>`,
+        };
       case "handlebars":
-        // Handlebars has #unless
-        return no
-          ? `{{#unless ${cond}}}${yes}{{else}}${no}{{/unless}}`
-          : `{{#unless ${cond}}}${yes}{{/unless}}`;
-
+        return {
+          open: `{{#unless ${cond}}}`,
+          alt: `{{else}}`,
+          close: `{{/unless}}`,
+        };
       case "mustache":
-        // "unless" is just inverted section:
-        return no
-          ? `{{^${cond}}}${yes}{{/${cond}}}{{#${cond}}}${no}{{/${cond}}}`
-          : `{{^${cond}}}${yes}{{/${cond}}}`;
+        return {
+          open: `{{^${cond}}}`,
+          alt: `{{/${cond}}}{{#${cond}}}`,
+          close: `{{/${cond}}}`,
+        };
     }
   };
 
-  const emitEach = (
-    arr: string,
-    body: string,
-    itemVar?: string,
-    indexVar?: string,
-  ) => {
+  const eachParts = (arr: string, itemVar: string, idxVar: string) => {
     switch (engine) {
       case "ejs": {
         const arrExpr = guardArrays ? `(${arr} || [])` : arr;
-        const item = itemVar ?? next("item");
-        const idx = indexVar ?? next("i");
-        return `<% ${arrExpr}.forEach(function(${item}, ${idx}) { %>${body}<% }); %>`;
+        return {
+          open: `<% ${arrExpr}.forEach(function(${itemVar}, ${idxVar}) { %>`,
+          close: `<% }); %>`,
+        };
       }
-
       case "handlebars":
-        // Inside #each, context becomes each item
-        return `{{#each ${arr}}}${body}{{/each}}`;
-
+        return { open: `{{#each ${arr}}}`, close: `{{/each}}` };
       case "mustache":
-        // Mustache section iterates arrays; inside, context becomes each item
-        return `{{#${arr}}}${body}{{/${arr}}}`;
+        return { open: `{{#${arr}}}`, close: `{{/${arr}}}` };
     }
   };
 
-  const emitWith = (obj: string, body: string, scopeVar?: string) => {
+  const withParts = (obj: string, scopeVar: string) => {
     switch (engine) {
-      case "ejs": {
-        const sv = scopeVar ?? next("scope");
-        return `<% const ${sv} = ${obj}; %>${body}`;
-      }
-
+      case "ejs":
+        return { open: `<% const ${scopeVar} = ${obj}; %>`, close: `` };
       case "handlebars":
-        return `{{#with ${obj}}}${body}{{/with}}`;
-
+        return { open: `{{#with ${obj}}}`, close: `{{/with}}` };
       case "mustache":
-        // Mustache "with" is just a section on the object
-        return `{{#${obj}}}${body}{{/${obj}}}`;
+        return { open: `{{#${obj}}}`, close: `{{/${obj}}}` };
     }
   };
 
+  //----------------------------------------------------------------------------
+  const frag = (...nodes: ReactNode[]): ReactNode =>
+    createElement(Fragment, null, ...nodes);
+
+  //----------------------------------------------------------------------------
   // Create a context whose "base" is either:
   // - EJS: JS expression string (e.g. "params.user")
   // - HB/Mustache: path string (e.g. "user") OR "" for current context
   const make = (base: string): RenderTemplateContext<T> => {
     const isEjs = engine === "ejs";
 
-    const exprOrPathFor = (path: string) => {
-      if (isEjs) {
-        // EJS needs a JS expression; base can be "" or "params"
-        const baseExpr = base;
-        return joinPath(baseExpr, path);
-      }
-      // HB/Mustache: base is a *path prefix*; "" means “current context”
-      return joinPath(base, path);
-    };
+    const exprOrPathFor = (path: string) => joinPath(base, path);
 
     const ctx: any = {};
-    (ctx.render = (path: string) => emitValue(exprOrPathFor(path), false)),
-      (ctx.when = (
-        path: string,
-        render: () => string,
-        otherwise: () => string,
-      ) => {
-        const cond = exprOrPathFor(path);
-        return emitIf(cond, render(), otherwise?.());
-      });
+
+    ctx.render = (path: string) =>
+      value(emitValue(exprOrPathFor(path), false));
+
+    ctx.when = (
+      path: string,
+      render: () => ReactNode,
+      otherwise?: () => ReactNode,
+    ) => {
+      const parts = ifParts(exprOrPathFor(path));
+      return otherwise
+        ? frag(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
+        : frag(block(parts.open), render(), block(parts.close));
+    };
 
     ctx.unless = (
       path: string,
-      render: () => string,
-      otherwise: () => string,
+      render: () => ReactNode,
+      otherwise?: () => ReactNode,
     ) => {
-      const cond = exprOrPathFor(path);
-      return emitUnless(cond, render(), otherwise?.());
+      const parts = unlessParts(exprOrPathFor(path));
+      return otherwise
+        ? frag(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
+        : frag(block(parts.open), render(), block(parts.close));
     };
 
-    ctx.each = (path: string, render: (item: any, index: number) => string) => {
+    ctx.each = (
+      path: string,
+      render: (item: any, index: number) => ReactNode,
+    ) => {
       const arr = exprOrPathFor(path);
 
       // Inside each:
-      // - EJS: item has its own variable name, so nested renders must prefix with that var
-      // - HB/Mustache: context becomes item, so base should be "" (current context)
+      // - EJS: the item gets its own variable, so nested lookups prefix with it
+      // - HB/Mustache: the context becomes the item, so the base is "" (current)
       const itemVar = next("item");
       const idxVar = next("i");
 
       const itemCtx = makeItemContext(
-        isEjs ? itemVar : "", // base for nested lookups
+        isEjs ? itemVar : "",
         isEjs ? itemVar : undefined,
       );
 
-      // index number in callback is not meaningful for string templates;
-      // but we still satisfy the signature.
-      const body = render(itemCtx, 0);
-
-      return emitEach(arr, body, itemVar, idxVar);
+      const parts = eachParts(arr, itemVar, idxVar);
+      return frag(block(parts.open), render(itemCtx, 0), block(parts.close));
     };
 
-    ctx.with = (path: string, render: (scope: any) => string) => {
+    ctx.with = (path: string, render: (scope: any) => ReactNode) => {
       const obj = exprOrPathFor(path);
 
       const scopeVar = next("scope");
-      const scopedBase = isEjs ? scopeVar : ""; // HB/Mustache: #with sets current context
-      const scopedCtx = make(scopedBase);
+      // HB/Mustache: #with sets the current context, so nested paths are relative
+      const scopedCtx = make(isEjs ? scopeVar : "");
 
-      const body = render(scopedCtx);
-      return emitWith(obj, body, scopeVar);
+      const parts = withParts(obj, scopeVar);
+      return frag(block(parts.open), render(scopedCtx), block(parts.close));
     };
 
     return ctx as RenderTemplateContext<T>;
   };
 
-  const makeItemContext = (
-    base: string,
-    ejsItemVar?: string,
-  ): ItemContext<string> => {
-    const objectCtx = make(base);
+  //----------------------------------------------------------------------------
+  const makeItemContext = (base: string, ejsItemVar?: string): any => {
+    const objectCtx: any = make(base);
 
-    const primitiveCtx = {
-      render: () => {
-        if (engine === "ejs") {
-          // In EJS, current item is the item variable itself
-          return emitValue(ejsItemVar ?? base, true);
-        }
-        // HB: {{this}}, Mustache: {{.}}
-        return emitValue("", true);
-      },
+    const renderCurrent = () => {
+      if (engine === "ejs") {
+        // In EJS the current item is the item variable itself
+        return value(emitValue(ejsItemVar ?? base, true));
+      }
+      return value(emitValue("", true));
     };
 
-    const arrayCtx = {
-      each: (
-        renderFn: (item: ItemContext<string>, index: number) => string,
-      ) => {
-        // Iterate "current item" as an array
-        if (engine === "ejs") {
-          const arrExpr = ejsItemVar ?? base;
-          const innerItemVar = next("item");
-          const innerIdxVar = next("i");
-          const innerCtx = makeItemContext(innerItemVar, innerItemVar);
-          const body = renderFn(innerCtx, 0);
-          return emitEach(arrExpr, body, innerItemVar, innerIdxVar);
-        }
+    const eachCurrent = (
+      renderFn: (item: any, index: number) => ReactNode,
+    ): ReactNode => {
+      if (engine === "ejs") {
+        const arrExpr = ejsItemVar ?? base;
+        const innerItemVar = next("item");
+        const innerIdxVar = next("i");
+        const innerCtx = makeItemContext(innerItemVar, innerItemVar);
+        const parts = eachParts(arrExpr, innerItemVar, innerIdxVar);
+        return frag(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
+      }
 
-        // HB/Mustache: section/each on current context
-        // Handlebars supports {{#each this}}; Mustache supports {{#.}}
-        const arrRef = engine === "handlebars" ? "this" : ".";
-        const innerCtx = makeItemContext("", undefined);
-        const body = renderFn(innerCtx, 0);
-        return emitEach(arrRef, body);
-      },
+      // HB: {{#each this}}, Mustache: {{#.}}
+      const arrRef = engine === "handlebars" ? "this" : ".";
+      const innerCtx = makeItemContext("", undefined);
+      const parts = eachParts(arrRef, "", "");
+      return frag(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
     };
 
-    return Object.assign({}, objectCtx, primitiveCtx, arrayCtx);
+    // An item context serves several documented shapes at once, so `render`
+    // and `each` dispatch on their arguments rather than being overwritten:
+    //   - primitive item:     item.render()          -> the item itself
+    //   - object item:        item.render("name")    -> a field of the item
+    //   - nested-array item:  item.each((el) => ...) -> iterate the item
+    //   - object w/ an array: item.each("tags", fn)  -> iterate a field
+    const merged: any = Object.assign({}, objectCtx);
+
+    merged.render = (path?: string) =>
+      path === undefined || path === "" ? renderCurrent() : objectCtx.render(path);
+
+    merged.each = (
+      pathOrRender: string | ((item: any, index: number) => ReactNode),
+      maybeRender?: (item: any, index: number) => ReactNode,
+    ) =>
+      typeof pathOrRender === "function"
+        ? eachCurrent(pathOrRender)
+        : objectCtx.each(pathOrRender, maybeRender);
+
+    return merged;
   };
 
+  //----------------------------------------------------------------------------
+  // Wrap structural markers in <mj-raw> so MJML keeps them.
+  //
+  // Bare text between structural MJML components is discarded, but text inside
+  // an mj-text-like element is passed through as HTML -- and an <mj-raw> there
+  // would leak into the output. So the decision depends on the enclosing
+  // element, which is only knowable once the MJML source exists.
+  //----------------------------------------------------------------------------
+  const prepareMjml = (mjml: string): string => {
+    const TAG_RE = /<\/?([a-zA-Z][a-zA-Z0-9-]*)([^>]*?)(\/?)>/g;
+
+    let out = "";
+    let cursor = 0;
+    let rawDepth = 0;
+    let match: RegExpExecArray | null;
+
+    const wrapStructural = (text: string) =>
+      text.replace(TOKEN_RE, (token, index) =>
+        structural.has(Number(index)) ? `<mj-raw>${token}</mj-raw>` : token,
+      );
+
+    while ((match = TAG_RE.exec(mjml)) !== null) {
+      const [tag, name, , selfClosing] = match;
+
+      // Text between the previous tag and this one
+      const text = mjml.slice(cursor, match.index);
+      out += rawDepth > 0 ? text : wrapStructural(text);
+
+      // The tag itself is copied verbatim, so markers inside attributes are
+      // never wrapped.
+      out += tag;
+      cursor = match.index + tag.length;
+
+      if (RAW_CONTENT_ELEMENTS.has(name.toLowerCase()) && !selfClosing) {
+        if (tag.startsWith("</")) rawDepth = Math.max(0, rawDepth - 1);
+        else rawDepth += 1;
+      }
+    }
+
+    const tail = mjml.slice(cursor);
+    out += rawDepth > 0 ? tail : wrapStructural(tail);
+
+    return out;
+  };
+
+  //----------------------------------------------------------------------------
+  const substitute = (html: string): string =>
+    html.replace(TOKEN_RE, (token, index) => {
+      const syntax = fragments[Number(index)];
+      return syntax === undefined ? token : syntax;
+    });
+
+  //----------------------------------------------------------------------------
   // Root base:
   // - EJS: rootVar may be "" or "params"
-  // - HB/Mustache: leave "" so paths are relative to root context
+  // - HB/Mustache: leave "" so paths are relative to the root context
   const rootBase = engine === "ejs" ? rootVar : "";
-  return make(rootBase);
+
+  return { ctx: make(rootBase), prepareMjml, substitute };
 }

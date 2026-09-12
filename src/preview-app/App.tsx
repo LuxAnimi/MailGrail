@@ -5,9 +5,6 @@ import { Sidebar } from "@/preview-app/components/Sidebar";
 import { Content } from "@/preview-app/components/Content";
 
 //------------------------------------------------------------------------------
-import { templates as _templates } from "virtual:mailgrailtemplates";
-
-//------------------------------------------------------------------------------
 import { useTemplates } from "./TemplateLoader";
 
 //------------------------------------------------------------------------------

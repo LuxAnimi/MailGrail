@@ -25,7 +25,11 @@ export async function runBuild(argv: string[]) {
 
   const config = await loadMailgrailConfig(values.configPath);
 
-  buildTemplates(config);
-
   console.log("Building emails to", config.outputDir);
+
+  // Awaited so failures reach the CLI's error handler instead of surfacing as
+  // an unhandled rejection, and so the command does not report before it is done.
+  await buildTemplates(config);
+
+  console.log("Done.");
 }

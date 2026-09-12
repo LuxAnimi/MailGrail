@@ -1,0 +1,83 @@
+---
+import { Code } from "astro:components";
+import snippets from "../../generated/snippets.json";
+
+//----------------------------------------------------------------------------
+// A snippet extracted from example/, which tsconfig.example.json typechecks --
+// so what is shown here is code that actually compiles, with a permalink to
+// the file it came from.
+//
+// A missing id throws rather than rendering an empty box: a deleted region
+// should fail the build, not quietly leave a hole in the page. docgen's
+// --check catches the same thing earlier.
+//----------------------------------------------------------------------------
+interface Props {
+  id: string;
+  title?: string;
+}
+
+const { id, title } = Astro.props;
+
+const snippet = (snippets as Record<string, any>)[id];
+if (!snippet) {
+  throw new Error(
+    `<Snippet id="${id}"> does not exist. Available: ` +
+      Object.keys(snippets).join(", "),
+  );
+}
+---
+
+<figure class="snip not-content">
+  <figcaption class="snip__cap">
+    <span class="snip__title">{title ?? snippet.file}</span>
+    <a class="snip__src" href={snippet.href} rel="noreferrer noopener">
+      view source
+    </a>
+  </figcaption>
+  <Code code={snippet.code} lang={snippet.lang} theme="github-dark" />
+</figure>
+
+<style>
+  .snip {
+    margin-block: 1.25rem 2rem;
+    border: 1px solid var(--mg-rule);
+  }
+
+  .snip__cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+
+  .snip__title {
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dim);
+  }
+
+  .snip__src {
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    text-decoration: none;
+  }
+
+  .snip__src:hover,
+  .snip__src:focus-visible {
+    color: var(--mg-gold);
+  }
+
+  .snip :global(pre.astro-code) {
+    margin: 0;
+    padding: 0.95rem 0.85rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    overflow-x: auto;
+  }
+</style>

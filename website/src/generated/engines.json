@@ -1,0 +1,27 @@
+{
+  "engines": [
+    {
+      "ext": "ejs",
+      "id": "EJS",
+      "isDefault": true,
+      "module": "ejs",
+      "range": "^5.0.0 || ^6.0.0"
+    },
+    {
+      "ext": "hbs",
+      "id": "Handlebars",
+      "isDefault": false,
+      "module": "handlebars",
+      "range": "^4.7.0"
+    },
+    {
+      "ext": "mustache",
+      "id": "Mustache",
+      "isDefault": false,
+      "module": "mustache",
+      "range": "^4.2.0"
+    }
+  ],
+  "node": "^20.19.0 || >=22.12.0",
+  "version": "0.1.0"
+}

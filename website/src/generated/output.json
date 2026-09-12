@@ -1,0 +1,105 @@
+{
+  "completions": [
+    {
+      "name": "orderNumber",
+      "optional": false,
+      "type": "string"
+    },
+    {
+      "name": "items",
+      "optional": false,
+      "type": "{ name: string; quantity: number; price: number; }[]"
+    },
+    {
+      "name": "couponCode",
+      "optional": true,
+      "type": "string"
+    },
+    {
+      "name": "total",
+      "optional": false,
+      "type": "number"
+    }
+  ],
+  "contrast": {
+    "authoring": {
+      "packages": 193,
+      "roots": [
+        "react",
+        "react-dom",
+        "mjml",
+        "@faire/mjml-react"
+      ]
+    },
+    "engines": [
+      {
+        "excerpt": "<div>Welcome aboard.</div>\n<div>Hey <%= username %>, your account is ready.<br/>Signed in as <%= email %>.</div>\n<% if (isPro) { %>\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n<% } else { %>\n<div>You are on the <strong><%= plan %></strong> plan.</div>\n<% } %>",
+        "ext": "ejs",
+        "file": "welcome.ejs",
+        "id": "EJS",
+        "imports": [
+          "import ejs from \"ejs\";"
+        ],
+        "lines": 388,
+        "module": "ejs",
+        "packages": 1
+      },
+      {
+        "excerpt": "<div>Welcome aboard.</div>\n<div>Hey {{username}}, your account is ready.<br/>Signed in as {{email}}.</div>\n{{#if isPro}}\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n{{else}}\n<div>You are on the <strong>{{plan}}</strong> plan.</div>\n{{/if}}",
+        "ext": "hbs",
+        "file": "welcome.hbs",
+        "id": "Handlebars",
+        "imports": [
+          "import Handlebars from \"handlebars\";"
+        ],
+        "lines": 388,
+        "module": "handlebars",
+        "packages": 5
+      },
+      {
+        "excerpt": "<div>Welcome aboard.</div>\n<div>Hey {{username}}, your account is ready.<br/>Signed in as {{email}}.</div>\n{{#isPro}}\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n{{/isPro}}{{^isPro}}\n<div>You are on the <strong>{{plan}}</strong> plan.</div>\n{{/isPro}}",
+        "ext": "mustache",
+        "file": "welcome.mustache",
+        "id": "Mustache",
+        "imports": [
+          "import Mustache from \"mustache\";"
+        ],
+        "lines": 388,
+        "module": "mustache",
+        "packages": 1
+      }
+    ],
+    "template": "welcome"
+  },
+  "dts": "export type OrderConfirmationParams = {\n  orderNumber: string;\n  items: {\n    name: string;\n    quantity: number;\n    price: number;\n  }[];\n  couponCode?: string;\n  total: number;\n};\n\nexport declare function renderOrderConfirmation(\n  params: OrderConfirmationParams\n): {\n  name: \"order-confirmation\";\n  subject: string;\n  sender: string;\n  html: string;\n  text: string;\n};",
+  "exported": [
+    "export function renderOrderConfirmation(input)"
+  ],
+  "files": {
+    "order-confirmation": [
+      "order-confirmation.d.ts",
+      "order-confirmation.ejs",
+      "order-confirmation.js"
+    ],
+    "team-invite": [
+      "team-invite.d.ts",
+      "team-invite.ejs",
+      "team-invite.js"
+    ],
+    "welcome": [
+      "welcome.d.ts",
+      "welcome.ejs",
+      "welcome.js"
+    ]
+  },
+  "fn": "renderOrderConfirmation",
+  "imports": [
+    "import ejs from \"ejs\";"
+  ],
+  "template": "order-confirmation",
+  "type": "OrderConfirmationParams",
+  "usage": {
+    "head": "import { renderOrderConfirmation } from \"./emails-dist/order-confirmation.js\";\n\nconst mail = renderOrderConfirmation({",
+    "tail": "  orderNumber: \"A-1042\",\n  items: [{ name: \"Kettle\", quantity: 1, price: 49 }],\n  total: 49,\n});\n\nawait transport.sendMail({\n  to: customer.email,\n  subject: mail.subject,\n  html: mail.html,\n  text: mail.text,\n});"
+  }
+}

@@ -1,0 +1,151 @@
+---
+import config from "../../generated/config.json";
+
+//----------------------------------------------------------------------------
+// The configuration options.
+//
+// Defaults come from calling resolveConfig({}) at generate time, which is the
+// one place they are defined. The README's hand-copied version of this table
+// had already drifted -- it claimed sourceDir defaults to "emails" while the
+// code says "./emails".
+//----------------------------------------------------------------------------
+const format = (value: unknown) =>
+  typeof value === "string" ? `"${value}"` : String(value);
+---
+
+<div class="cfg not-content">
+  <table class="cfg__table">
+    <thead>
+      <tr>
+        <th scope="col">Option</th>
+        <th scope="col">Type</th>
+        <th scope="col">Default</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        config.options.map((option) => (
+          <tr>
+            <th scope="row">
+              <code>{option.id}</code>
+            </th>
+            <td>
+              <code class="cfg__type">{option.type}</code>
+            </td>
+            <td class="mg-tabular">
+              <code class="cfg__default">{format(option.default)}</code>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <dl class="cfg__list">
+    {
+      config.options.map((option) => (
+        <div class="cfg__entry">
+          <dt>
+            <code>{option.id}</code>
+          </dt>
+          <dd>
+            {option.summary}
+            {option.description && <span class="cfg__more"> {option.description}</span>}
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</div>
+
+<style>
+  .cfg {
+    margin-block: 1.25rem 2rem;
+  }
+
+  .cfg__table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .cfg__table thead th {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    text-align: left;
+    padding: 0.55rem 1.5rem 0.55rem 0;
+    border-bottom: 1px solid var(--mg-rule);
+    white-space: nowrap;
+  }
+
+  .cfg__table td,
+  .cfg__table tbody th {
+    text-align: left;
+    padding: 0.6rem 1.5rem 0.6rem 0;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+
+  .cfg__table code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+  }
+
+  .cfg__table tbody th code {
+    color: var(--mg-envelope);
+  }
+
+  .cfg__type {
+    color: var(--mg-dim);
+  }
+
+  .cfg__default {
+    color: var(--mg-gold);
+  }
+
+  /*--- Descriptions ----------------------------------------------*/
+
+  .cfg__list {
+    margin: 2rem 0 0;
+  }
+
+  .cfg__entry {
+    padding-top: 0.9rem;
+    margin-top: 0.9rem;
+    border-top: 1px solid var(--mg-rule-soft);
+  }
+
+  .cfg__entry:first-child {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .cfg__list dt {
+    margin: 0 0 0.3rem;
+  }
+
+  .cfg__list dt code {
+    font-family: var(--mg-mono);
+    font-size: 0.875rem;
+    color: var(--mg-envelope);
+  }
+
+  .cfg__list dd {
+    margin: 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 66ch;
+  }
+
+  .cfg__more {
+    color: var(--mg-dimmer);
+  }
+</style>

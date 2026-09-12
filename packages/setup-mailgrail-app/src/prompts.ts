@@ -39,15 +39,15 @@ export async function collectPrompts(): Promise<ScaffoldOptions | null> {
 
   const sourceDir = await text({
     message: "Email source directory?",
-    defaultValue: "emails",
-    placeholder: "emails",
+    defaultValue: "emails-src",
+    placeholder: "emails-src",
   });
   if (isCancel(sourceDir)) return null;
 
   const outputDir = await text({
     message: "Build output directory?",
-    defaultValue: "dist/emails",
-    placeholder: "dist/emails",
+    defaultValue: "emails-dist",
+    placeholder: "emails-dist",
   });
   if (isCancel(outputDir)) return null;
 

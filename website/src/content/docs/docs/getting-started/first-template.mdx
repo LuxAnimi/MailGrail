@@ -1,0 +1,120 @@
+---
+title: Your first template
+description: Declare parameters, write the markup, preview it, and compile.
+sidebar:
+  order: 3
+---
+
+import Snippet from "../../../../components/docs/Snippet.astro";
+
+A template is a plain object exported from a `.tsx` file. It declares its
+parameters, an HTML template, a subject line, and a plain-text fallback.
+
+## 1. Declare the parameters
+
+```tsx title="emails/ConfirmEmail.tsx"
+import { t } from "mailgrail";
+import type { Infer } from "mailgrail/dsl";
+
+const paramsSchema = t.object({
+  username: t.string(),
+  confirmationUrl: t.string(),
+});
+
+type Params = Infer<typeof paramsSchema>;
+```
+
+`Infer` turns the schema into the TypeScript type, so `Params` here is
+`{ username: string; confirmationUrl: string }`. You never write that type by
+hand, and it cannot fall out of step with the schema.
+
+## 2. Write the markup
+
+```tsx title="emails/ConfirmEmail.tsx"
+import type { ReactElement } from "react";
+import { MjmlColumn, MjmlText, MjmlButton } from "@faire/mjml-react";
+import type { RenderTemplateContext } from "mailgrail";
+import BaseLayout from "./components/BaseLayout";
+
+const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
+  <BaseLayout>
+    <MjmlColumn>
+      <MjmlText>Welcome, {mg.render("username")}!</MjmlText>
+      <MjmlButton href={mg.render("confirmationUrl")}>
+        Confirm your account
+      </MjmlButton>
+    </MjmlColumn>
+  </BaseLayout>
+);
+```
+
+The function receives a **render context** (`mg`) rather than raw parameters.
+That is what lets MailGrail track which parameters you used and emit the right
+placeholders — see the
+[render context reference](/MailGrail/docs/reference/render-context).
+
+:::note
+`BaseLayout` already wraps its children in an `MjmlSection`, so start directly
+with `MjmlColumn` inside it.
+:::
+
+## 3. Write the subject and text
+
+These two receive **plain parameters**, not a render context, because they are
+strings rather than markup:
+
+```tsx title="emails/ConfirmEmail.tsx"
+const subjectTemplate = (params: Params): string =>
+  `Welcome, ${params.username}!`;
+
+const textTemplate = (params: Params): string =>
+  `Welcome, ${params.username}! Confirm your account: ${params.confirmationUrl}`;
+```
+
+A plain-text part is not optional in practice. Some clients prefer it, some
+spam filters expect it, and it is what shows in a notification preview.
+
+## 4. Export the definition
+
+```tsx title="emails/ConfirmEmail.tsx"
+import type { TemplateDefinition } from "mailgrail";
+
+export const ConfirmEmail: TemplateDefinition<typeof paramsSchema> = {
+  name: "confirm-email",
+  sender: "hello@example.com",
+  params: paramsSchema,
+  htmlTemplate,
+  subjectTemplate,
+  textTemplate,
+};
+```
+
+`name` decides the output filenames and the exported render function:
+`confirm-email` gives you `confirm-email.js` exporting `renderConfirmEmail`.
+
+## 5. Register it
+
+Every template is collected in the source directory's entry point. MailGrail
+looks for `index.ts`, `index.tsx`, `index.js` or `index.jsx` and expects a
+`templates` array:
+
+<Snippet id="templates-index" title="emails/index.ts" />
+
+## 6. Preview it
+
+```sh
+npx mailgrail preview
+# → http://localhost:7777
+```
+
+Every template appears in the sidebar, rendered with placeholder data derived
+from its schema. Edit a file and the preview reloads.
+
+## 7. Compile it
+
+```sh
+npx mailgrail build
+```
+
+Three files land in your `outputDir`, and
+[the output](/MailGrail/docs/reference/output) is what your backend imports.

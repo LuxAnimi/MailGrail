@@ -1,0 +1,520 @@
+---
+import { Code } from "astro:components";
+import Mark from "./Mark.astro";
+import output from "../../generated/output.json";
+import snippets from "../../generated/snippets.json";
+
+//----------------------------------------------------------------------------
+// What the backend ends up calling.
+//
+// Second of the pair. Pipeline above has shown what authoring looks like and
+// what it costs at runtime, so this one is free to argue the other half: that
+// the output is typed, and that this is what separates it from handing a
+// template engine an object and hoping the keys line up.
+//
+// Nothing here is typed by hand. The schema is lifted from the example app by
+// region marker; the declarations beside it are read back off disk after the
+// real compiler has run, and the call site is assembled from the names it
+// emitted. If the compiler's output changes, this section changes with it or
+// CI fails.
+//
+// This used to show the same template compiled to EJS, Handlebars and Mustache
+// with a parity badge. That proved something true and uninteresting: a reader
+// choosing an email library does not care that three template engines can be
+// made to produce the same HTML. What they want to know is what lands in their
+// codebase, and the answer is one typed function per template.
+//----------------------------------------------------------------------------
+const schema = snippets["order-schema"];
+if (!schema) throw new Error("CodeShowcase: snippet 'order-schema' is missing");
+
+// How far in the caret sits: the indent of the properties it is being offered,
+// read off the call site rather than written down here.
+const indent = output.usage.tail.match(/^ */)[0].length;
+---
+
+<section class="show wrap mg-ruled" aria-labelledby="show-heading">
+  <div class="show__head">
+    <div class="show__intro">
+      <p class="mg-eyebrow" id="show-heading">No guessing</p>
+      <h2 class="show__title">Type-safe from schema to send.</h2>
+    </div>
+
+    <p class="show__lede">
+      A template engine takes an untyped bag of data and says nothing when a key
+      is missing or misspelled — you find out from the blank space in someone's
+      inbox. Declare the parameters once and the build writes the type next to
+      the render function, so the call site is checked, autocompleted, and moves
+      with every rename. The call below is assembled from the names the real
+      compiler emitted, so the page cannot drift from them.
+    </p>
+
+    {/* The reader's own CI, drawn rather than described. Nothing here reports
+        anything -- it is a mock, and it is here because it is the shortest way
+        to say what the typing is worth: the check the reader already watches
+        now covers their emails too.
+
+        Two lines, not a paragraph: the verdict, then what it means in four
+        words. The explanation this replaced was accurate and nobody was going
+        to read it. */}
+    <aside class="show__aside status">
+      <Mark check class="status__mark" title="" />
+
+      <div class="status__lines">
+        <p class="status__verdict">
+          Typecheck <span class="status__passed">passed</span>
+        </p>
+        <p class="status__punch">Nothing slips through</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="show__grid breakout">
+    <figure class="pane">
+      <figcaption class="pane__cap">
+        <span class="pane__label">Declare once</span>
+        <span class="pane__file">{schema.file.split("/").pop()}</span>
+      </figcaption>
+      <Code code={schema.code} lang="tsx" theme="github-dark" />
+    </figure>
+
+    <figure class="pane">
+      <figcaption class="pane__cap">
+        <span class="pane__label">Your editor checks</span>
+        {/* The pun is the point: the cliché is "end to end", and the whole
+            section is about the types holding all the way to the send. It sits
+            under a title that already says "to send", so the rhyme is set up
+            before the badge lands -- without that it reads as a typo. */}
+        <span class="pane__badge">typed end to send</span>
+      </figcaption>
+      {/* The editor, mimicked. The code is real and generated; the caret and
+          the list are chrome, drawn to show what the schema in the pane
+          opposite is worth once you are writing the call -- those four rows
+          are that schema, offered back to you.
+
+          The code is emitted in two pieces so the caret can sit on a line of
+          its own between them, which is what the list is positioned against.
+          Nothing here is measured in lines or pixels: the lines above wrap at
+          narrow widths, and anything counted from the top of the block would
+          come unstuck from the line it is pointing at exactly when the pane is
+          tightest.
+
+          The list cycles rather than sitting there, because it covers the
+          properties below it -- which are, fairly, the ones it is offering.
+          Covering them for four seconds at a time illustrates; covering them
+          permanently just hides the call site. */}
+      <div class="ed" style={`--indent: ${indent}ch`}>
+        <div class="ed__head">
+          <Code code={output.usage.head} lang="js" theme="github-dark" />
+        </div>
+
+        <div class="ed__slot">
+          <span class="ed__caret" aria-hidden="true"></span>
+
+          <ul class="ed__list">
+            {
+              output.completions.map((member, i) => (
+                <li class:list={["ed__item", i === 0 && "ed__item--on"]}>
+                  <span class="ed__name">
+                    {member.name}
+                    {member.optional && <i class="ed__opt">?</i>}
+                  </span>
+                  <span class="ed__type">{member.type}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div class="ed__tail">
+          <Code code={output.usage.tail} lang="js" theme="github-dark" />
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<style>
+  /* More room above than the shared section rhythm gives, and more between the
+     argument and the figure below it. These two sections carry the page's two
+     arguments and each needs to read as its own held space rather than as the
+     next band down. Kept identical to its counterpart. */
+  .show {
+    padding-block: calc(var(--mg-section-y) * 1.35) var(--mg-section-y);
+  }
+
+  /* Argument on the left, the build's status beside it -- the same two-column
+     head its counterpart uses, so the pair of sections opens the same way.
+     Below the breakpoint it stacks and the note follows the lede. */
+  .show__head {
+    display: grid;
+    gap: 1.15rem;
+    margin-bottom: clamp(3.5rem, 9vw, 6rem);
+  }
+
+  @media (min-width: 58rem) {
+    /* Two columns, two rows: the heading has the first row to itself, and the
+       lede and the note share the second. That is what puts the note level
+       with the paragraph it sits beside rather than with the title -- aligning
+       it by hand would mean guessing at the heading's height, which changes
+       with every wrap. */
+    .show__head {
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+      column-gap: clamp(2.5rem, 6vw, 4.5rem);
+      row-gap: 1.15rem;
+      align-items: start;
+    }
+
+    .show__intro {
+      grid-area: 1 / 1;
+    }
+
+    .show__lede {
+      grid-area: 2 / 1;
+    }
+
+    .show__aside {
+      grid-area: 2 / 2;
+    }
+  }
+
+  /* The mark with the tick cut into its scaffolding, and the two lines beside
+     it. This is the same move the steps above make -- the whole mark in
+     construction grey with one thing lit in the grail's gold -- so the page
+     says "passed" in the vocabulary it already has rather than in a badge
+     borrowed from a README. */
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 1.05rem;
+  }
+
+  .status__lines {
+    display: grid;
+    min-width: 0;
+  }
+
+  /* One pixel per stroke: stroke-width is in viewBox units, so the weight that
+     renders as 1px is the viewBox over the drawn width -- the same arithmetic
+     the steps do. */
+  .status__mark {
+    flex: none;
+    width: 92px;
+    stroke-width: calc(1408 / 92);
+  }
+
+  /* Every layer down to construction grey, exactly as the steps do it, so the
+     tick is the only lit thing in the drawing. Left in its own colours the
+     grail's gold sits in the middle of the mark and the tick lands on top of
+     it -- two gold shapes in the same 20% of the artwork, and neither readable.
+     The `:global` is needed because the layer classes come from Mark. */
+  .status__mark :global(g) {
+    stroke: var(--mg-rule);
+  }
+
+  /* The tick and the circle it is cut against, lit together: Mark draws the
+     pair last for `check`, so the gold crosses the grey rather than the other
+     way round. Everything else stays construction grey. */
+  .status__mark :global(.mark__check) {
+    stroke: var(--mg-gold);
+  }
+
+  /* The verdict carries the block, at the size the steps title theirs. */
+  .status__verdict {
+    margin: 0;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: 1.125rem;
+    letter-spacing: -0.015em;
+    color: var(--mg-envelope);
+  }
+
+  /* The one word the whole section is arguing for, in the one colour the page
+     spends sparingly. It matches the tick in the mark beside it, which is what
+     ties the drawing to the sentence. */
+  .status__passed {
+    color: var(--mg-gold);
+  }
+
+  /* A subtitle, and set like one: under the line it belongs to, quieter, and
+     at the body size so it reads as the second half of the thought rather than
+     as a second statement. */
+  .status__punch {
+    margin: 0.15rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--mg-dim);
+  }
+
+  .show__title {
+    margin: 1rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: var(--mg-step-3);
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+    max-width: 22ch;
+  }
+
+  .show__lede {
+    margin: 0;
+    max-width: 58ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  /* Break out of the reading column -- the figure needs width the prose does
+     not. The rule and the heading stay on the page's spine, so this reads as
+     a figure stepping out rather than a section that failed to line up. */
+  .breakout {
+    width: min(
+      calc(var(--mg-maxw-wide) - 2 * var(--mg-gutter)),
+      calc(100vw - 2 * var(--mg-gutter))
+    );
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .show__grid {
+    display: grid;
+    gap: 1px;
+    background: var(--mg-rule);
+    border: 1px solid var(--mg-rule);
+  }
+
+  @media (min-width: 58rem) {
+    .show__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .pane {
+    margin: 0;
+    background: var(--mg-black);
+    min-width: 0;
+  }
+
+  /* One height for every cap, whatever it holds -- a filename or a badge.
+     Without the minimum the two panes sat side by side with captions of
+     different heights and their code starting on different lines. */
+  .pane__cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    min-height: 3rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+
+  .pane__label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+  }
+
+  .pane__file {
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dimmer);
+  }
+
+  .pane__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: var(--mg-gold);
+  }
+
+  .pane__badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--mg-gold);
+  }
+
+  /*--- The mimicked editor ----------------------------------------*/
+
+  /* The code's own metrics, so `ch` below is the width of one character of the
+     block it is measuring into, and the caret's line is exactly as tall as the
+     code's. The ground is painted here because the block is three elements
+     now and the seams between them must not show. */
+  .ed {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    background: var(--mg-raised);
+  }
+
+  /* Two code blocks reading as one: the padding between them belongs to the
+     caret's line, not to either <pre>.
+
+     Qualified with .show to outrank the shared Shiki rule below, which sets
+     padding with the shorthand and ties this on specificity otherwise -- the
+     tie goes to whichever comes last, and the gap between the two halves came
+     out three lines tall. */
+  .show .ed__head :global(pre.astro-code) {
+    padding-bottom: 0;
+  }
+
+  .show .ed__tail :global(pre.astro-code) {
+    padding-top: 0;
+  }
+
+  /* The line the caret is on, and the anchor everything else hangs off. One
+     line tall, so the code above and below it stay on the rhythm. */
+  .ed__slot {
+    position: relative;
+    height: 1.7em;
+  }
+
+  .ed__caret {
+    position: absolute;
+    left: calc(1.15rem + var(--indent));
+    top: 0.28em;
+    width: 1px;
+    height: 1.15em;
+    background: var(--mg-gold);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ed__caret {
+      animation: ed-blink 1.1s steps(1, end) infinite;
+    }
+  }
+
+  /* Dimmed rather than extinguished. A caret that goes fully out is invisible
+     in whatever frame a screenshot or a link preview happens to catch, and the
+     caret is what says the line is being typed. */
+  @keyframes ed-blink {
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  /* Over the code, the way the real one is. Hidden at rest and on the way in:
+     the first frame of the page -- the one a thumbnail gets -- is the call
+     site with nothing covering it. */
+  .ed__list {
+    position: absolute;
+    top: calc(100% + 0.15rem);
+    left: calc(1.15rem + var(--indent));
+    z-index: 1;
+    width: max-content;
+    max-width: calc(100% - 2.3rem - var(--indent));
+    margin: 0;
+    padding: 0.3rem 0;
+    list-style: none;
+    border: 1px solid var(--mg-rule);
+    background: var(--mg-black);
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ed__list {
+      animation: ed-offer 11s ease-in-out infinite;
+    }
+  }
+
+  @keyframes ed-offer {
+    0%,
+    7% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    13%,
+    52% {
+      opacity: 1;
+      transform: none;
+    }
+    60%,
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  .ed__item {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    justify-content: space-between;
+    padding: 0.12rem 0.7rem 0.12rem 0.5rem;
+  }
+
+  .ed__item--on {
+    background: rgb(255 200 64 / 0.1);
+  }
+
+  .ed__name {
+    flex: none;
+    color: var(--mg-dim);
+  }
+
+  .ed__item--on .ed__name {
+    color: var(--mg-gold);
+  }
+
+  /* A hairline square for "property", in the mark's own vocabulary -- the page
+     has no icon set and is not getting one for four rows. It hangs off the
+     name rather than the row, or the row's space-between would push it to the
+     far edge and leave the name floating in the middle. */
+  .ed__name::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 0.5rem;
+    vertical-align: 0.05em;
+    border: 1px solid var(--mg-dimmer);
+  }
+
+  .ed__item--on .ed__name::before {
+    border-color: var(--mg-gold);
+  }
+
+  /* The one mark in the list that is doing real work: it says this property is
+     the one you can leave out. */
+  .ed__opt {
+    font-style: normal;
+    color: var(--mg-gold);
+  }
+
+  /* Truncated, not wrapped. `items` is an array of an object and its type runs
+     four times the width of the others; letting it wrap would make one row
+     three lines tall and stop the list reading as a list. Editors elide it for
+     the same reason. */
+  .ed__type {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--mg-dimmer);
+  }
+
+  /*--- Shiki ------------------------------------------------------*/
+
+  .show :global(pre.astro-code) {
+    margin: 0;
+    padding: 1.05rem 1.15rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.7;
+
+    /* Wrapped, not scrolled -- the same call as its counterpart. The import
+       path and the schema's trailing comments both run past the column, and a
+       horizontal scrollbar hides the end of the line from everyone who does
+       not think to drag it. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+</style>

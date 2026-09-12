@@ -1,0 +1,162 @@
+---
+import engines from "../../generated/engines.json";
+import meta from "../../generated/meta.json";
+
+//----------------------------------------------------------------------------
+// Which engine, and what it costs to say yes.
+//
+// This used to be the tail of "Why it is built this way", where it read as a
+// fifth property of the library. It is not one: the four above are claims a
+// reader weighs, and this is the one decision the page actually asks them to
+// make. It gets its own rule, its own eyebrow, and the position right before
+// the install command, so the order is why -> which -> how.
+//
+// The table is generated. Engine ids, install commands, supported ranges and
+// emitted extensions come from the same manifest the docs read, so a version
+// bump in package.json moves this table or CI fails.
+//----------------------------------------------------------------------------
+---
+
+<section class="eng wrap mg-ruled" aria-labelledby="eng-heading">
+  <div class="eng__head">
+    <p class="mg-eyebrow" id="eng-heading">Engines</p>
+    <h2 class="eng__title">Pick an engine.</h2>
+    <p class="eng__note">
+      You may already have a favourite templating engine. Good! MailGrail
+      probably already compiles to it. Engines are optional peer dependencies,
+      so npm installs none for you.{" "}
+      <code>mailgrail build</code> will check if yours is present and fail with
+      an actionable message if it is not. This is enforced at build time so you
+      won't find out in production.
+    </p>
+  </div>
+
+  <table class="eng__table">
+    <thead>
+      <tr>
+        <th scope="col">Engine</th>
+        <th scope="col">Install</th>
+        <th scope="col">Supported</th>
+        <th scope="col">Emits</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        engines.engines.map((engine) => (
+          <tr>
+            <th scope="row">
+              {engine.id}
+              {engine.isDefault && <span class="eng__default">default</span>}
+            </th>
+            <td><code>npm install {engine.module}</code></td>
+            <td class="mg-tabular"><code>{engine.range}</code></td>
+            <td><code>.{engine.ext}</code></td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <p class="eng__foot mg-tabular">
+    Requires Node <code>{engines.node}</code> · MailGrail is ESM-only ·
+    {meta.license} licensed
+  </p>
+</section>
+
+<style>
+  /* The page's own section rhythm, like the bands either side of it. Tried
+     shallower first, on the theory that a table and a paragraph do not need
+     the room; the effect was a section that read as an appendix to the one
+     above rather than as the decision it is asking for. */
+  .eng {
+    padding-block: var(--mg-section-y);
+  }
+
+  .eng__head {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .eng__title {
+    margin: 0.6rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: var(--mg-step-2);
+    letter-spacing: -0.02em;
+    color: var(--mg-envelope);
+  }
+
+  .eng__note {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  .eng__note code,
+  .eng__foot code {
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+  /* A table can outrun the viewport; it scrolls in its own box so the page
+     body never does. */
+  .eng__table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .eng__table thead th {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+    text-align: left;
+    padding: 0.5rem 1.25rem 0.5rem 0;
+    border-bottom: 1px solid var(--mg-rule);
+    white-space: nowrap;
+  }
+
+  .eng__table tbody th {
+    font-family: var(--mg-display);
+    font-weight: 500;
+    color: var(--mg-envelope);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .eng__table td,
+  .eng__table tbody th {
+    padding: 0.7rem 1.25rem 0.7rem 0;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    vertical-align: baseline;
+  }
+
+  .eng__table code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-dim);
+    white-space: nowrap;
+  }
+
+  .eng__default {
+    margin-left: 0.55rem;
+    font-family: var(--mg-body);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mg-gold);
+  }
+
+  .eng__foot {
+    margin: 1.1rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--mg-dimmer);
+  }
+</style>

@@ -1,0 +1,47 @@
+{
+  "config-file": {
+    "code": "export default defineConfig({\n  sourceDir: \"emails-src\",\n  outputDir: \"emails-dist\",\n  typescript: true,\n  previewPort: 7777,\n});",
+    "endLine": 10,
+    "file": "example/mailgrail.config.ts",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L10",
+    "id": "config-file",
+    "lang": "ts",
+    "startLine": 5
+  },
+  "order-schema": {
+    "code": "const paramsSchema = t.object({\n  orderNumber: t.string(),\n  items: t.array(                              // array of object\n    t.object({\n      name: t.string(),\n      quantity: t.number(),                    // number — item quantity\n      price: t.number(),                       // number — item unit price\n    }),\n  ),\n  couponCode: t.optional(t.string()),          // optional — not required\n  total: t.number(),                           // number — order total\n});",
+    "endLine": 32,
+    "file": "example/emails-src/OrderConfirmationEmail.tsx",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/OrderConfirmationEmail.tsx#L21-L32",
+    "id": "order-schema",
+    "lang": "tsx",
+    "startLine": 21
+  },
+  "templates-index": {
+    "code": "export const templates: TemplateDefinition<any>[] = [\n  WelcomeEmail,\n  OrderConfirmationEmail,\n  TeamInviteEmail,\n];",
+    "endLine": 14,
+    "file": "example/emails-src/index.ts",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/index.ts#L10-L14",
+    "id": "templates-index",
+    "lang": "ts",
+    "startLine": 10
+  },
+  "welcome-body": {
+    "code": "<Heading>Welcome aboard.</Heading>\n\n<MainText>\n  Hey {mg.render(\"username\")}, your account is ready.\n  <br />\n  Signed in as {mg.render(\"email\")}.\n</MainText>\n\n{mg.when(\n  \"isPro\",\n  () => <Note accent>★ Pro plan — unlimited projects &amp; priority support</Note>,\n  () => (\n    <Note>\n      You are on the <Strong>{mg.render(\"plan\")}</Strong> plan.\n    </Note>\n  ),\n)}",
+    "endLine": 63,
+    "file": "example/emails-src/WelcomeEmail.tsx",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L47-L63",
+    "id": "welcome-body",
+    "lang": "tsx",
+    "startLine": 47
+  },
+  "welcome-schema": {
+    "code": "const paramsSchema = t.object({\n  username: t.string(),\n  email: t.string(),\n  isPro: t.boolean(),                          // boolean  — toggles the pro badge\n  referralCode: t.optional(t.string()),        // optional — not required, shown when present\n  plan: t.default(t.string(), \"free\"),         // defaulted — falls back to \"free\"\n});",
+    "endLine": 28,
+    "file": "example/emails-src/WelcomeEmail.tsx",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L22-L28",
+    "id": "welcome-schema",
+    "lang": "tsx",
+    "startLine": 22
+  }
+}

@@ -1,0 +1,611 @@
+---
+import { Code } from "astro:components";
+import output from "../../generated/output.json";
+import snippets from "../../generated/snippets.json";
+import bench from "../../data/render-benchmark.json";
+
+//----------------------------------------------------------------------------
+// React/MJML while you build; lightweight templating at runtime.
+//
+// The first half of a pair, and the one that comes first because it answers
+// the earlier question: what is it like to write an email here, and what does
+// that cost at runtime. Everything that makes authoring pleasant runs at build
+// time, and what ships is a text template the reader's existing engine renders.
+// CodeShowcase follows and takes it from there, to what the backend calls.
+//
+// Both halves are generated. The JSX is a region marker in the example app; the
+// compiled lines are read out of the emitted templates after the real build has
+// run once per engine, which is also what proves the engine is a choice rather
+// than a claim.
+//----------------------------------------------------------------------------
+const authored = snippets["welcome-body"];
+if (!authored) throw new Error("Pipeline: snippet 'welcome-body' is missing");
+
+const { contrast } = output;
+const { authoring } = contrast;
+
+// Sorted so the lightest engine leads; the claim is about the floor, not about
+// picking a favourite.
+const engines = [...contrast.engines].sort((a, b) => a.packages - b.packages);
+
+// The headline uses the fastest engine; the tooltip shows all three, so the
+// number is a best case that is shown to be a choice rather than a cherry-pick.
+const fastest = bench.engines[0];
+---
+
+<section class="pipe wrap mg-ruled" aria-labelledby="pipe-heading">
+  <div class="pipe__head">
+    <div class="pipe__intro">
+      <p class="mg-eyebrow" id="pipe-heading">Build time, run time</p>
+      <h2 class="pipe__title">
+        React/MJML while you build. Lightweight templating at runtime.
+      </h2>
+    </div>
+
+    <p class="pipe__lede">
+        You author with components and MJML's layout primitives, so the email is
+        readable and reusable. None of that ships. <code>mailgrail build</code>{" "}
+        runs React and MJML once, at build time, and leaves a plain text template
+        your engine already knows how to render — production carries neither the
+      dependencies nor the work.
+    </p>
+
+    <div class="pipe__evidence">
+      <dl class="kpis">
+        <div class="kpi" tabindex="0" aria-describedby="kpi-speed">
+          <dd class="kpi__figure">
+            <span>{fastest.ratio}<span class="kpi__times">x</span></span>
+            <span class="kpi__unit">faster</span>
+          </dd>
+          <dt class="kpi__label">per message</dt>
+          <dd class="kpi__against">
+            <span class="kpi__was">{bench.authoringMs} ms</span> {fastest.compiledMs} ms
+          </dd>
+
+          <div class="tip" role="tooltip" id="kpi-speed">
+            <p>
+              The same <code>{bench.template}</code> template, compiled through
+              every engine and measured against authoring it per send.
+            </p>
+            <ul>
+              {
+                bench.engines.map((engine) => (
+                  <li>
+                    <code>{engine.module}</code>
+                    <span>{engine.compiledMs} ms · {engine.ratio}x</span>
+                  </li>
+                ))
+              }
+              <li class="tip__against">
+                <code>React + MJML</code>
+                <span>{bench.authoringMs} ms</span>
+              </li>
+            </ul>
+            <p>
+              Compiled is the emitted module — one call against a template the
+              build has already parsed. The other is{" "}
+              <code>renderToStaticMarkup</code> plus <code>mjml2html</code>, the
+              work the build does once, timed as though a server did it per send.
+              Both after warm-up, {bench.runs.compiled.toLocaleString("en")} and{" "}
+              {bench.runs.authoring} runs.
+            </p>
+            <p class="tip__env">
+              Node {bench.node} on {bench.platform}, {bench.measuredAt}. Reproduce
+              with <code>npm run bench:render</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="kpi" tabindex="0" aria-describedby="kpi-deps">
+          <dd class="kpi__figure">
+            {engines[0].packages}<span class="kpi__unit">
+              {engines[0].packages === 1 ? "dependency" : "dependencies"}
+            </span>
+          </dd>
+          <dt class="kpi__label">on your server</dt>
+          <dd class="kpi__against">
+            <span class="kpi__was">{authoring.packages}</span> for React and MJML
+          </dd>
+
+          <div class="tip" role="tooltip" id="kpi-deps">
+            <p>
+              The dependency closure from this repo's <code>package-lock.json</code>:
+              every package reachable through <code>dependencies</code> from each
+              root, hoisted.
+            </p>
+            <ul>
+              {
+                engines.map((engine) => (
+                  <li>
+                    <code>{engine.module}</code>
+                    <span>{engine.packages}</span>
+                  </li>
+                ))
+              }
+              <li class="tip__against">
+                <code>{authoring.roots.join(", ")}</code>
+                <span>{authoring.packages}</span>
+              </li>
+            </ul>
+            <p>
+              The engine is the only one your server installs. The authoring
+              stack stays in <code>devDependencies</code>. Peer and optional
+              edges are not followed, so these are what a plain{" "}
+              <code>npm install</code> pulls.
+            </p>
+          </div>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="pipe__grid breakout">
+    <figure class="pane">
+      <figcaption class="pane__cap">
+        <span class="pane__label">You author</span>
+        <span class="pane__file">{authored.file.split("/").pop()}</span>
+      </figcaption>
+      <Code code={authored.code} lang="tsx" theme="github-dark" />
+    </figure>
+
+    <figure class="pane">
+      <figcaption class="pane__cap">
+        <span class="pane__label">Your backend gets</span>
+
+        {/* Radios, not a JS tablist: they switch with CSS alone and arrow keys
+            already work on a radio group. */}
+        <div class="tabs" role="group" aria-label="Template engine">
+          {
+            engines.map((engine, i) => (
+              <>
+                <input
+                  class="tabs__radio"
+                  type="radio"
+                  name="engine"
+                  id={`engine-${engine.module}`}
+                  checked={i === 0}
+                />
+                <label class="tabs__tab" for={`engine-${engine.module}`}>
+                  {engine.id}
+                </label>
+              </>
+            ))
+          }
+        </div>
+
+        {/* One per engine, only the checked one shown -- the same switch the
+            panels use. It sits here rather than over the code so it lines up
+            with the filename in the pane opposite. */}
+        {
+          engines.map((engine) => (
+            <span class={`pane__file pane__file--${engine.module}`}>
+              {engine.file}
+            </span>
+          ))
+        }
+      </figcaption>
+
+      {
+        engines.map((engine) => (
+          <div class={`panel panel--${engine.module}`}>
+            <Code code={engine.excerpt} lang="html" theme="github-dark" />
+          </div>
+        ))
+      }
+
+    </figure>
+  </div>
+</section>
+
+<style>
+  /* More room above than the shared section rhythm gives, and more between the
+     argument and the figure below it. These two sections carry the page's two
+     arguments and each needs to read as its own held space rather than as the
+     next band down. Kept identical to its counterpart. */
+  .pipe {
+    padding-block: calc(var(--mg-section-y) * 1.35) var(--mg-section-y);
+  }
+
+  /* Argument on the left, evidence on the right. Stacked, the head was four
+     blocks down a narrow column with the right half of the page empty, and the
+     figures read as a footnote to the lede rather than as the point. */
+  .pipe__head {
+    display: grid;
+    gap: 1.15rem;
+    margin-bottom: clamp(3.5rem, 9vw, 6rem);
+  }
+
+  .pipe__evidence {
+    margin-top: 1.4rem;
+  }
+
+  @media (min-width: 58rem) {
+    /* Two columns, two rows: the heading has the first row to itself, and the
+       lede and the figures share the second. That is what puts the figures
+       level with the paragraph rather than with the title -- aligning them by
+       hand would mean guessing at the heading's height, which changes with
+       every wrap. The figures get close to half the row: they are half the
+       argument, not whatever the prose leaves over. */
+    .pipe__head {
+      grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
+      column-gap: clamp(2.5rem, 6vw, 4.5rem);
+      row-gap: 1.15rem;
+      align-items: start;
+    }
+
+    .pipe__intro {
+      grid-area: 1 / 1;
+    }
+
+    .pipe__lede {
+      grid-area: 2 / 1;
+    }
+
+    .pipe__evidence {
+      grid-area: 2 / 2;
+      margin-top: 0;
+    }
+  }
+
+  .pipe__title {
+    margin: 1rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: var(--mg-step-3);
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+    max-width: 24ch;
+  }
+
+  .pipe__lede {
+    margin: 0;
+    max-width: 58ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  /*--- The two figures --------------------------------------------*/
+
+  /* No box. The figures are set on the page like the prose beside them, with a
+     single rule doing the one job a border was doing that mattered -- keeping
+     the two apart. */
+  .kpis {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  @media (min-width: 28rem) {
+    .kpis {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .kpi {
+    position: relative;
+    display: grid;
+    padding: 0.7rem 1.5rem 0.8rem;
+    cursor: help;
+    transition: background 0.18s var(--mg-ease);
+  }
+
+  .kpi:first-child {
+    padding-left: 0;
+  }
+
+  .kpi + .kpi {
+    border-left: 1px solid var(--mg-rule);
+  }
+
+  .kpi:hover,
+  .kpi:focus-visible {
+    background: var(--mg-raised);
+    outline: none;
+  }
+
+  .kpi:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--mg-gold);
+  }
+
+  /* Figure first in the box, label under it -- the number is the thing being
+     read, and a label above it turns the pair into a table row. Source order
+     stays dt-then-dd for the definition list to make sense. */
+  .kpi__figure {
+    order: -1;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: clamp(3rem, 6.5vw, 4rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: var(--mg-gold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A third size between the numeral and the unit: the multiplier belongs to
+     the figure, but at the numeral's size it reads as another digit. Wrapped
+     with the number so the flex gap falls after the pair, not inside it. */
+  .kpi__times {
+    font-size: 0.52em;
+    letter-spacing: -0.01em;
+  }
+
+  .kpi__unit {
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: var(--mg-dim);
+  }
+
+  .kpi__label {
+    margin-top: 0.6rem;
+    font-size: 0.9375rem;
+    color: var(--mg-envelope);
+  }
+
+  .kpi__against {
+    margin: 0.15rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--mg-dimmer);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The number it is being measured against, struck through: the comparison is
+     the whole point and a sentence explaining it was what made this read like a
+     table. */
+  .kpi__was {
+    text-decoration: line-through;
+    text-decoration-color: var(--mg-rule);
+    text-decoration-thickness: 1px;
+  }
+
+  /*--- Tooltips ---------------------------------------------------*/
+
+  /* The method note used to sit under the figures, where it was a paragraph of
+     apparatus nobody had asked for. It is the same information, kept until
+     someone wants it. */
+  .tip {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 0.7rem);
+    left: 0;
+    width: max(100%, 20rem);
+    padding: 0.9rem 1rem 1rem;
+    background: var(--mg-raised);
+    border: 1px solid var(--mg-rule);
+    box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
+    color: var(--mg-dim);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 -0.25rem;
+    transition:
+      opacity 0.16s var(--mg-ease),
+      translate 0.16s var(--mg-ease),
+      visibility 0.16s;
+  }
+
+  /* The second one would run off the page opened leftward. */
+  .kpi:last-child .tip {
+    left: auto;
+    right: 0;
+  }
+
+  .kpi:hover .tip,
+  .kpi:focus-visible .tip,
+  .kpi:focus-within .tip {
+    opacity: 1;
+    visibility: visible;
+    translate: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tip {
+      transition: none;
+    }
+  }
+
+  .tip p {
+    margin: 0;
+  }
+
+  .tip p + p,
+  .tip ul + p {
+    margin-top: 0.6rem;
+  }
+
+  .tip ul {
+    list-style: none;
+    margin: 0.65rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .tip li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px dotted var(--mg-rule);
+    padding-bottom: 0.3rem;
+  }
+
+  .tip li span {
+    flex: none;
+    color: var(--mg-envelope);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tip__against span {
+    color: var(--mg-dimmer);
+  }
+
+  .tip code {
+    font-family: var(--mg-mono);
+    font-size: 0.9em;
+    color: var(--mg-dim);
+  }
+
+  .tip__env {
+    color: var(--mg-dimmer);
+  }
+
+  /* Same breakout as the showcase above: the figure needs width the prose does
+     not, while the rule and the heading stay on the page's spine. */
+  .breakout {
+    width: min(
+      calc(var(--mg-maxw-wide) - 2 * var(--mg-gutter)),
+      calc(100vw - 2 * var(--mg-gutter))
+    );
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .pipe__grid {
+    display: grid;
+    gap: 1px;
+    background: var(--mg-rule);
+    border: 1px solid var(--mg-rule);
+    align-items: start;
+  }
+
+  @media (min-width: 58rem) {
+    .pipe__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .pane {
+    margin: 0;
+    background: var(--mg-black);
+    min-width: 0;
+    height: 100%;
+  }
+
+  .pane__cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    min-height: 3rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+
+  .pane__label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+  }
+
+  .pane__file {
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dimmer);
+  }
+
+  .pane__file em {
+    font-style: normal;
+    opacity: 0.65;
+  }
+
+  /*--- Engine tabs ------------------------------------------------*/
+
+  .tabs {
+    display: flex;
+    gap: 0.15rem;
+  }
+
+  .tabs__radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tabs__tab {
+    /* Pinned, not inherited: at the body's 1.6 the tab's line box makes this
+       cap taller than the one beside it and the panes stop lining up. */
+    line-height: 1.2;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid transparent;
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    cursor: pointer;
+    transition: color 0.18s var(--mg-ease);
+  }
+
+  .tabs__tab:hover {
+    color: var(--mg-dim);
+  }
+
+  .tabs__radio:checked + .tabs__tab {
+    color: var(--mg-gold);
+    border-color: var(--mg-rule);
+  }
+
+  .tabs__radio:focus-visible + .tabs__tab {
+    outline: 2px solid var(--mg-gold);
+    outline-offset: 2px;
+  }
+
+  /* One selector per engine, because CSS cannot match a class to a checked id
+     dynamically. The generator asserts this set of three, so a fourth engine
+     would need a line here. */
+  .panel,
+  .pane__file--ejs,
+  .pane__file--handlebars,
+  .pane__file--mustache {
+    display: none;
+  }
+
+  .pane:has(#engine-ejs:checked) .panel--ejs,
+  .pane:has(#engine-handlebars:checked) .panel--handlebars,
+  .pane:has(#engine-mustache:checked) .panel--mustache {
+    display: block;
+  }
+
+  .pane:has(#engine-ejs:checked) .pane__file--ejs,
+  .pane:has(#engine-handlebars:checked) .pane__file--handlebars,
+  .pane:has(#engine-mustache:checked) .pane__file--mustache {
+    display: inline;
+  }
+
+  /*--- Shiki ------------------------------------------------------*/
+
+  .pipe :global(pre.astro-code) {
+    margin: 0;
+    padding: 1.05rem 1.15rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.7;
+
+    /* Wrapped, not scrolled. Both panes hold lines longer than the column --
+       a compiled paragraph is one line however long its text is -- and a
+       horizontal scrollbar on a landing page hides the end of the sentence
+       from everyone who does not think to drag it. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .engine :global(pre.astro-code) {
+    padding: 0.35rem 1rem 0.3rem;
+    background: transparent !important;
+  }
+</style>

@@ -1,50 +1,10 @@
 {
   "name": "mailgrail",
   "version": "0.1.0",
-  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to EJS and TypeScript.",
+  "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
   "author": "Maxime Dupuis",
+  "license": "MIT",
   "type": "module",
-  "scripts": {
-    "dev": "MAILGRAIL_CONFIG=example/mailgrail.config.ts MAILGRAIL_BASEPATH=src vite",
-    "build": "npm run build:app && npm run build:lib",
-    "build:app": "rollup -c && cp -r src/preview-app/assets dist-src/preview-app/assets",
-    "build:lib": "tsc -p tsconfig.cli.json && cp -r dist-src lib/app && cp vite.config.js lib",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "typecheck": "npm run typecheck:cli && npm run typecheck:vite",
-    "typecheck:cli": "tsc -p tsconfig.cli.json",
-    "typecheck:vite": "tsc -p tsconfig.vite.json",
-    "prepublishOnly": "npm run build"
-  },
-  "bin": {
-    "mailgrail": "./lib/bin/mailgrail.js"
-  },
-  "exports": {
-    ".": {
-      "import": "./lib/src/config/index.js",
-      "types": "./lib/src/config/index.d.ts"
-    },
-    "./dsl": {
-      "import": "./lib/src/dsl/index.js",
-      "types": "./lib/src/dsl/index.d.ts"
-    },
-    "./types": {
-      "import": "./lib/src/cli/types.js",
-      "types": "./lib/src/cli/types.d.ts"
-    }
-  },
-  "files": [
-    "lib"
-  ],
-  "license": "GPL-3.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/maxdup/mailgrail.git"
-  },
-  "homepage": "https://github.com/maxdup/mailgrail#readme",
-  "bugs": {
-    "url": "https://github.com/maxdup/mailgrail/issues"
-  },
   "keywords": [
     "email",
     "mjml",
@@ -55,28 +15,100 @@
     "email-template",
     "typescript"
   ],
-  "engines": {
-    "node": ">=18"
+  "homepage": "https://luxanimi.github.io/MailGrail/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LuxAnimi/MailGrail.git"
   },
+  "bugs": {
+    "url": "https://github.com/LuxAnimi/MailGrail/issues"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "main": "./lib/src/config/index.js",
+  "types": "./lib/src/config/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/src/config/index.d.ts",
+      "import": "./lib/src/config/index.js"
+    },
+    "./dsl": {
+      "types": "./lib/src/dsl/index.d.ts",
+      "import": "./lib/src/dsl/index.js"
+    },
+    "./types": {
+      "types": "./lib/src/cli/types.d.ts",
+      "import": "./lib/src/cli/types.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "mailgrail": "./lib/bin/mailgrail.js"
+  },
+  "files": [
+    "lib",
+    "LICENSE"
+  ],
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "dev": "MAILGRAIL_CONFIG=example/mailgrail.config.ts MAILGRAIL_BASEPATH=src vite",
+    "build": "npm run clean && npm run build:app && npm run build:lib",
+    "build:app": "rollup -c && node -e \"require('fs').cpSync('src/preview-app/assets','dist-src/preview-app/assets',{recursive:true})\"",
+    "build:lib": "tsc -p tsconfig.cli.json && node -e \"require('fs').cpSync('dist-src','lib/app',{recursive:true})\"",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "typecheck": "npm run typecheck:cli && npm run typecheck:vite && npm run typecheck:example",
+    "typecheck:cli": "tsc -p tsconfig.cli.json",
+    "typecheck:vite": "tsc -p tsconfig.vite.json",
+    "typecheck:example": "tsc -p tsconfig.example.json",
+    "docs:generate": "npm run build && node website/docgen/index.mjs",
+    "docs:check": "node website/docgen/index.mjs --check",
+    "site:install": "node website/scripts/ensure-deps.mjs",
+    "site:dev": "npm run site:install && npm --prefix website run dev",
+    "site:build": "npm run site:install && npm --prefix website run build",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm run build && npm run test",
+    "clean": "node -e \"const fs=require('fs');for (const d of ['lib','dist-src']) fs.rmSync(d,{recursive:true,force:true})\"",
+    "test": "node --test test/*.test.js",
+    "bake:glow": "python3 website/scripts/bake-glow.py",
+    "bench:render": "node website/scripts/bench-render.mjs"
+  },
   "dependencies": {
-    "@faire/mjml-react": "^4.0.0",
-    "ejs": "^5.0.2",
+    "@vitejs/plugin-react": "^5.1.4",
     "esbuild": "^0.28.0",
     "mjml": "^5.2.2",
-    "mjml-browser": "^5.2.2",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "vite": "^7.3.1"
+  },
+  "peerDependencies": {
+    "@faire/mjml-react": "^4.0.0",
+    "ejs": "^5.0.0 || ^6.0.0",
+    "handlebars": "^4.7.0",
+    "mustache": "^4.2.0",
+    "react": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ejs": {
+      "optional": true
+    },
+    "handlebars": {
+      "optional": true
+    },
+    "mustache": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "9.39.3",
+    "@faire/mjml-react": "^4.0.0",
+    "@primer/octicons-react": "^19.26.0",
     "@rollup/plugin-alias": "^6.0.0",
     "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/mjml": "^5.0.0",
     "@types/mjml-browser": "^5.0.0",
@@ -84,22 +116,26 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
     "browserslist": "^4.28.2",
+    "ejs": "^5.0.2",
     "eslint": "^9.39.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "handlebars": "^4.7.9",
     "jiti": "^2.6.1",
     "lightningcss": "^1.32.0",
+    "mjml-browser": "^5.2.2",
+    "mustache": "^4.2.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "rollup": "^4.60.1",
     "rollup-plugin-lightningcss": "^1.0.0",
     "rollup-plugin-postcss": "^4.0.2",
     "sass": "^1.99.0",
     "tslib": "^2.8.1",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2",
-    "vite": "^7.3.1"
+    "typescript-eslint": "^8.58.2"
   },
   "browserslist": [
     ">0.5%",

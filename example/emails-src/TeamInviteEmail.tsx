@@ -7,6 +7,7 @@ import BaseLayout from "./components/BaseLayout";
 import Button from "./components/Button";
 import Heading from "./components/Heading";
 import MainText from "./components/MainText";
+import Strong from "./components/Strong";
 import Text from "./components/Text";
 
 //------------------------------------------------------------------------------
@@ -97,9 +98,9 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
         paddingBottom={spacing.s4}
       >
         This invitation expires in{" "}
-        <strong style={{ color: colors.content.tertiary }}>
+        <Strong color={colors.content.tertiary}>
           {mg.render("expiresIn")} days
-        </strong>
+        </Strong>
         .
       </Text>
     </MjmlColumn>

@@ -12,7 +12,7 @@ import { resolveConfig } from "./resolveConfig.js";
 import type {
   MailgrailConfig,
   MailgrailResolvedConfig,
-} from "../config/types.ts";
+} from "./types.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

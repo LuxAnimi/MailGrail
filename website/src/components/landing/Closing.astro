@@ -1,0 +1,124 @@
+---
+import meta from "../../generated/meta.json";
+
+interface Props {
+  docsHref: string;
+}
+
+const { docsHref } = Astro.props;
+---
+
+<section class="close wrap mg-ruled">
+  <div class="close__inner">
+    <p class="mg-eyebrow">Get started</p>
+
+    <h2 class="close__title">Run it inside a project you already have.</h2>
+
+    <p class="close__body">
+      The setup command adds MailGrail to your <code>package.json</code>, writes
+      a <code>mailgrail.config.ts</code>, and scaffolds a starter template with a
+      layout you can edit. Nothing else in your project changes.
+    </p>
+
+    <div class="close__cmds">
+      <code class="cmd"><span aria-hidden="true">$</span>{meta.setup.command}</code>
+      <span class="close__or">or by hand</span>
+      <code class="cmd"><span aria-hidden="true">$</span>{meta.install.dev}</code>
+    </div>
+
+    <a class="close__cta" href={docsHref}>
+      Read the documentation
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .close {
+    padding-block: var(--mg-section-y);
+  }
+
+  .close__inner {
+    max-width: 60ch;
+  }
+
+  .close__title {
+    margin: 1rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: var(--mg-step-3);
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+  }
+
+  .close__body {
+    margin: 1.1rem 0 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  .close__body code {
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+  .close__cmds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin-top: 1.75rem;
+  }
+
+  .cmd {
+    display: inline-flex;
+    gap: 0.7rem;
+    align-items: center;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--mg-rule);
+    background: var(--mg-raised);
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-envelope);
+  }
+
+  .cmd span {
+    color: var(--mg-gold);
+  }
+
+  .close__or {
+    font-size: 0.8125rem;
+    color: var(--mg-dimmer);
+  }
+
+  .close__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.75rem;
+    color: var(--mg-gold);
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--mg-gold) 40%, transparent);
+    padding-bottom: 0.15rem;
+    transition: border-color 0.18s var(--mg-ease);
+  }
+
+  .close__cta:hover,
+  .close__cta:focus-visible {
+    border-color: var(--mg-gold);
+  }
+
+  .close__cta span {
+    transition: transform 0.18s var(--mg-ease);
+  }
+
+  .close__cta:hover span {
+    transform: translateX(3px);
+  }
+</style>

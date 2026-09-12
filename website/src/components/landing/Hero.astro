@@ -1,0 +1,683 @@
+---
+import Mark from "./Mark.astro";
+import meta from "../../generated/meta.json";
+import { href } from "../../lib/href";
+
+//----------------------------------------------------------------------------
+// "The Construction".
+//
+// The mark draws itself in the order the product works: scaffolding (the
+// schema), envelope (the template), grail (what gets delivered). Then pointer
+// movement drives a shallow parallax, the construction layer moving least and
+// the grail most, which gives the flat line art depth without a 3D library.
+//----------------------------------------------------------------------------
+interface Props {
+  docsHref: string;
+}
+
+const { docsHref } = Astro.props;
+
+// The cast light is expensive to draw -- two full-size blurs, the wider of them
+// 84px -- and it never changes once it has faded in. So the site ships a
+// bitmap of it, and the live version is built only when baking that bitmap.
+// `npm run bake:glow` flips this, screenshots the result and writes the webp;
+// see website/scripts/bake-glow.py. Keeping both behind one flag is what stops
+// the baked asset and the CSS that produced it drifting apart.
+// "1"    -- capture mode: the light alone, for the bake script to screenshot.
+// "live" -- the live light in the finished hero, so the bake can be diffed
+//           against what it replaces. Without this the capture build is not
+//           comparable: it has no copy and no mark, so the page is a different
+//           height and every pixel differs.
+const GLOW = process.env.MG_BAKE_GLOW ?? "";
+const LIVE_GLOW = GLOW === "1" || GLOW === "live";
+const BAKE = GLOW === "1";
+
+// Bands across the mark's width, nearest the page first. The mark is rotated
+// about a vertical axis through the pin, which sits near its left edge, so
+// almost all of it leans away from the page: tight light on the left, spreading
+// further and further toward the right.
+//
+// `weight` rises with `blur` rather than falling. Distance does dim light, but
+// a wide blur already spreads a stroke's energy until it nearly vanishes --
+// letting the weight fall on top of that dims it twice, which is what killed
+// the earlier attempt at this well before the near edge.
+//
+// Two bands. Ten of these lagged the page badly the first time round; three
+// worked but each one is a full-size blur, and two still read as varying
+// sharpness because the masks overlap broadly enough to cross-fade rather than
+// step.
+//
+// A mask only paints inside its own box, so anything the blur throws past the
+// element's edge is left unmasked and cut -- it showed up as a hard horizontal
+// edge straight across the glow. The mask is therefore drawn at 300% and these
+// stops are remapped into the middle third, which leaves the outer thirds
+// holding the gradient's end colours: transparent away to the left, opaque away
+// to the right, both of which are what the light should do out there anyway.
+const spread = (stops: string) =>
+  stops.replace(/(\d+(?:\.\d+)?)%/g, (_, n) => `${((100 + Number(n)) / 3).toFixed(2)}%`);
+
+// Radii are the diffusion control, and they are close to free in brightness:
+// a blur preserves the ink's total energy, it only spreads it, so widening
+// these leaves the measured mean lift where it was and simply lowers the peaks.
+// Worth knowing the cost, though -- a blur's filter region grows with its
+// radius, so the far band is much the most expensive thing on this page, and
+// it is the first place to look if the hero ever feels heavy again.
+const SPILL = [
+  { blur: 20, weight: 0.8, mask: "#000 0%, #000 26%, transparent 62%" },
+  { blur: 84, weight: 1, mask: "transparent 34%, #000 70%, #000 100%" },
+];
+---
+
+<section class:list={["hero", BAKE && "hero--bake"]}>
+  <div class="hero__copy">
+    <p class="mg-eyebrow">Type-safe email templates</p>
+
+    <h1 class="hero__headline">
+      Templates worth<br /> the ceremony.
+    </h1>
+
+    <p class="hero__sub">
+      Write React and MJML with types that follow every parameter through.
+      Compile to a portable template your backend renders under plain Node —
+      no bundler, no React, no MailGrail in production.
+    </p>
+
+    <div class="hero__actions">
+      <code class="install" data-install>
+        <span class="install__prompt" aria-hidden="true">$</span>
+        <span class="install__cmd">{meta.setup.command}</span>
+        <button class="install__copy" type="button" data-copy={meta.setup.command}>
+          <span class="install__copy-label">Copy</span>
+        </button>
+      </code>
+
+      <a class="hero__link" href={docsHref}>
+        Read the documentation
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="hero__glowbox">
+    {
+      LIVE_GLOW ? (
+        SPILL.map((band) => (
+          <div
+            class="hero__band"
+            style={`--spill-mask: linear-gradient(to right, ${spread(band.mask)})`}
+          >
+            <div
+              class="hero__lightbox"
+              style={`--spill-blur: ${band.blur}px; --spill-weight: ${band.weight}`}
+            >
+              <Mark depth stroke={24} class="hero__cast" />
+            </div>
+          </div>
+        ))
+      ) : (
+        <img
+          class="hero__glow"
+          src={href("/logo/glow.webp")}
+          alt=""
+          aria-hidden="true"
+          width="1440"
+          height="1440"
+          decoding="async"
+        />
+      )
+    }
+  </div>
+
+  <div class="hero__mark" data-parallax>
+    {!BAKE && <Mark animate depth stroke={4} />}
+  </div>
+</section>
+
+<style>
+  /* The mark is no longer a second column -- it is the ground the copy sits
+     on. Oversized, bleeding past the gutter, tilted so its centre-facing
+     edge comes toward the viewer, with the text reading over the top of it.
+
+     Deliberately not isolated. The light has to out-stack the section below,
+     which the mark must keep sliding under, and an isolated hero would force
+     the same answer on both. The layers here are part of the page's own
+     stack: light, mark and scrim all at 1 and separated by DOM order, copy 2,
+     nav 3. */
+  .hero {
+    position: relative;
+    display: grid;
+    padding-block: var(--mg-hero-y) var(--mg-hero-y-end);
+
+    /* On the hero rather than on the mark, since both boxes need them. */
+    --mark-depth: 40px;
+    --pin: 15.909%;
+  }
+
+  /* A scrim between mark and copy, so the text never has to compete with the
+     line art behind it. Pulled left past the gutter to cover the bleed. */
+  .hero::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset-block: calc(-1 * var(--mg-hero-y)) calc(-1 * var(--mg-hero-y-end));
+    left: calc(-1 * var(--mg-gutter));
+    right: 0;
+    pointer-events: none;
+    /* The scrim hangs below the hero to cover the mark's bleed. Now that the
+       hero is not isolated it would hang over the next section's opening
+       lines as opaque black, so the overhang is clipped back off. */
+    clip-path: inset(0 0 var(--mg-hero-y-end) 0);
+    background: linear-gradient(
+      to right,
+      var(--mg-black) 0%,
+      var(--mg-black) 26%,
+      color-mix(in srgb, var(--mg-black) 82%, transparent) 46%,
+      color-mix(in srgb, var(--mg-black) 35%, transparent) 66%,
+      transparent 84%
+    );
+  }
+
+  /*--- Copy ---------------------------------------------------------*/
+
+  .hero__headline {
+    margin: 1.1rem 0 0;
+    font-family: var(--mg-display);
+    font-weight: 300;
+    font-size: var(--mg-step-4);
+    line-height: 1.04;
+    letter-spacing: -0.032em;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+  }
+
+  .hero__sub {
+    margin: 1.35rem 0 0;
+    max-width: 46ch;
+    font-size: var(--mg-step-1);
+    line-height: 1.65;
+    color: var(--mg-dim);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+
+  /*--- Install line -------------------------------------------------*/
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 100%;
+    padding: 0.6rem 0.6rem 0.6rem 0.95rem;
+    border: 1px solid var(--mg-rule);
+    background: var(--mg-raised);
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+    color: var(--mg-envelope);
+  }
+
+  .install__prompt {
+    flex: none;
+    color: var(--mg-gold);
+  }
+
+  .install__cmd {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .install__copy {
+    flex: none;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--mg-rule);
+    background: transparent;
+    color: var(--mg-dim);
+    font: inherit;
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.18s var(--mg-ease), border-color 0.18s var(--mg-ease);
+  }
+
+  .install__copy:hover,
+  .install__copy:focus-visible {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  .install__copy[data-copied] {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  /*--- Link ---------------------------------------------------------*/
+
+  .hero__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--mg-envelope);
+    font-size: 0.9375rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--mg-rule);
+    padding-bottom: 0.15rem;
+    transition: color 0.18s var(--mg-ease), border-color 0.18s var(--mg-ease);
+  }
+
+  .hero__link:hover,
+  .hero__link:focus-visible {
+    color: var(--mg-gold);
+    border-color: var(--mg-gold);
+  }
+
+  .hero__link span {
+    transition: transform 0.18s var(--mg-ease);
+  }
+
+  .hero__link:hover span {
+    transform: translateX(3px);
+  }
+
+  /*--- Mark ---------------------------------------------------------*/
+
+  .hero__copy {
+    position: relative;
+    z-index: 2;
+    max-width: 36rem;
+  }
+
+  /* Larger than the space it has. It runs off the right edge on purpose --
+     a mark you see all of reads as a logo, one you see part of reads as
+     architecture. */
+  .hero__mark,
+  .hero__glowbox {
+    position: absolute;
+    top: 50%;
+    right: clamp(-30rem, -16vw, -6rem);
+    /* Sized against the pinned pair, not the mark alone. Pinning fans the
+       two copies apart toward the bottom right, so the combined artwork
+       reaches further than one mark does and 68rem now runs the grail off
+       both edges. 50rem is a tenth off the 56 it was, which also puts the
+       reference box at a round 800px for the glow bake. */
+    width: min(50rem, 80vw);
+    aspect-ratio: 1;
+    /* Pinning moved the transform-origin to the artwork's corner, which
+       shifts the projection about 70px left and 36px down inside its box.
+       The size is unchanged -- measured at 1.00x for the mark and 1.06x
+       for both copies together -- so only the drop needed answering: it
+       was pushing the grail's stem past the bottom edge. The leftward
+       shift is left alone, since it puts more of the logo in frame and
+       the scrim already covers the copy column.
+
+       Moves both copies together, so it cannot disturb the pin. */
+    translate: 0 calc(-50% - 8%);
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+
+  /* Over the section below, along with the light. The mark used to slide under
+     it and be cut at the rule; there is no real reason for that, and the cut
+     was the more conspicuous of the two choices. Same level as the light, and
+     after it in the DOM, so it stays in front of it. */
+  .hero__mark {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    /* Shorter perspective is a wider lens -- the same Z and the same tilt
+       read as far more dimensional. 1500 was telephoto and flattened the
+       whole thing out. */
+    perspective: var(--eye-dist, 980px);
+    perspective-origin: var(--pin) var(--pin);
+
+  }
+
+  /* Negative rotateY. What reads as "which way it faces" is the surface
+     normal, and rotateY(θ) turns that normal toward +X -- so a positive
+     angle faces the mark right, off the edge of the page, away from the
+     reader. Negative turns it back toward the middle of the screen, which
+     is where the copy is. */
+  /* Over it, which is the other half of the point: light is not stopped by
+     the edge of a section. Below the scrim at 1 by source order, so the copy
+     still reads over it, and below the nav at 3. */
+  .hero__glowbox {
+    z-index: 1;
+  }
+
+  :is(.hero__mark, .hero__glowbox) :global(.mark--depth) {
+    position: relative;
+    --tilt-x: 7deg;
+    --tilt-y: -24deg;
+    transform: rotateY(var(--tilt-y)) rotateX(var(--tilt-x)) rotateZ(1.5deg);
+    transform-origin: var(--pin) var(--pin);
+    transition: transform 0.4s var(--mg-ease);
+  }
+
+  /* Each layer sits on its own plane. The Z offset is what the perspective
+     turns into visible separation; the pointer offset rides on top of it, so
+     the depth is there in a still frame and deepens as you move. */
+  .hero__mark :global(.mark__plane) {
+    transform: translate3d(
+      calc(var(--px, 0) * var(--depth, 0) * 1px),
+      calc(var(--py, 0) * var(--depth, 0) * 1px),
+      calc(var(--plane-z, 0px) + var(--settle, 0px))
+    );
+    will-change: transform;
+  }
+
+  /* Furthest back, so dimmer -- but not blurred. Ten of the mark's fifteen
+     paths are scaffolding, so a sub-pixel blur on that layer was most of
+     what made the whole mark read as soft. Distance is carried by contrast
+     alone now, which costs nothing in sharpness. */
+  .hero__mark :global(.mark__construction) {
+    --depth: 3;
+    opacity: 0.5;
+  }
+
+  /* Fades up while settling forward from well behind its resting plane, so
+     it reads as already existing and moving into place -- not as something
+     being constructed a stroke at a time. Ends on the same 0.42 the resting
+     rule sets, so the two never fight. */
+  .hero__mark :global(.mark--draw) :global(.mark__construction) {
+    animation: scaffold-settle 2.6s var(--mg-ease) both;
+  }
+
+  @keyframes scaffold-settle {
+    from {
+      opacity: 0;
+      --settle: -300px;
+    }
+    to {
+      opacity: 0.42;
+      --settle: 0px;
+    }
+  }
+
+  /*--- Cast copy ------------------------------------------------------
+    The mark's shadow, built rather than tuned.
+
+    The cast is the same mark, at the same rotation -- it *is* the mark,
+    so it states no tilt, offset or width of its own. What makes it fall
+    somewhere else is that it is rendered from a different camera: its
+    wrapper carries its own `perspective`, so where the viewer's camera
+    sits at --mg-eye, this copy's sits at the light.
+
+    That is the whole construction. A shadow on a plane is the central
+    projection of the caster from the light, and a nested `perspective`
+    with its own `perspective-origin` is exactly a central projection
+    from a chosen point. So the shape, the offset and the skew all fall
+    out of where the light is, and there is nothing left to nudge.
+
+    It is checkable, too, which the nudging never was: put the light on
+    the viewer and the shadow must land exactly behind the mark, hidden.
+    Any drift is a bug in the construction.
+  ------------------------------------------------------------------*/
+  /* The band exists to carry the mask at arm's length. A mask clips its
+     element to the border box, and on a box the size of the mark that clip
+     lands right where the blur is still going -- it was shearing the light off
+     in a hard line, which then got baked into the asset. Measured: with the
+     mask off, the light reached 130px further down and 78px further right.
+
+     `mask-clip: no-clip` is not the way round it, which is what this used to
+     rely on. It does not extend the mask's reach; it exempts everything
+     outside the box from being masked at all, which is a different thing and
+     no use when the mask is what shapes the band.
+
+     So the band is three mark-boxes across, the mask's stops are remapped into
+     its middle third -- `spread()` above -- and the clip falls a whole box
+     width clear of anything the blur can reach. */
+  .hero__band {
+    position: absolute;
+    inset: -100%;
+    z-index: -1;
+    mask-image: var(--spill-mask);
+    -webkit-mask-image: var(--spill-mask);
+  }
+
+  /* Inset back to exactly the mark box: the light's whole geometry -- the pin,
+     the camera, the tilts -- is written in percentages of it. */
+  .hero__lightbox {
+    position: absolute;
+    inset: 33.3333%;
+    /* Both cameras look through the pin, and both copies rotate about it.
+       A point sitting exactly at the perspective-origin projects to
+       itself whatever its depth and whatever the focal distance -- the
+       d/(d-z) scaling is applied *about* that point, so it is the one
+       place the projection cannot move. Put the corner there in both and
+       the two touch exactly, with nothing to measure and nothing to
+       re-measure when either camera changes.
+
+       The cost is that perspective-origin is spent on the pin, so it is
+       no longer a free control. What stays free per copy is the focal
+       distance below and the two tilts -- change either on either copy
+       and the corner holds. */
+    perspective: var(--light-dist, 845px);
+    perspective-origin: var(--pin) var(--pin);
+
+    /* Each band's blur goes on the lightbox rather than on the layers inside
+       it: the lightbox already flattens its subtree, so this is one filter
+       over one composited image instead of one per plane. The band mask lives
+       one level out -- see .hero__band. */
+    filter: blur(var(--spill-blur, 20px));
+    /* Held back behind the strokes. The light is thrown by them, so it has
+       nothing to show until they are most of the way drawn. */
+    animation: spill-in 3.4s 3.8s var(--mg-ease) both;
+  }
+
+  /* Under the bake flag the page carries the light and nothing else -- no
+     copy, no scrim, no mark -- so the capture needs no fragile hiding rules
+     that have to keep up with the markup. See website/scripts/bake-glow.py. */
+  .hero--bake .hero__copy,
+  .hero--bake::after {
+    display: none;
+  }
+
+  /* The baked stand-in for the two bands above. It covers the mark box plus
+     320px of margin for the blur to have spread into, at the 800px reference
+     box the bake is taken at -- 320/800 is the 40% below, so the image sits
+     over exactly the region it was captured from however the box is sized. */
+  .hero__glow {
+    position: absolute;
+    inset: -40%;
+    width: auto;
+    height: auto;
+    z-index: -1;
+    animation: spill-in 3.4s 3.8s var(--mg-ease) both;
+  }
+
+  @keyframes spill-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* Light, not line art. The scaffolding throws none -- it reads as already
+     lying on the page rather than raised above it -- and it is hidden rather
+     than dropped with `detail`, because that prop crops the viewBox and would
+     move the pin off 15.909%. */
+  .hero__lightbox :global(.mark__construction) {
+    display: none;
+  }
+
+  .hero__lightbox :global(.mark__envelope) {
+    /* Twice the grail's, and deliberately, because equal opacity does not buy
+       equal light here. White lifts this ground far less than gold does, and
+       the envelope's strokes are sparse on the right, which is where the wide
+       band lives -- so the diffuse half of its light has little to spread.
+       Measured against the same frame with the envelope off, the lift it adds
+       runs 2.2 mean / 10 peak at 0.2 and 4.2 / 21 at this value; the first was
+       there but not visible. */
+    opacity: calc(0.4 * var(--spill-weight, 1));
+  }
+
+  .hero__lightbox :global(.mark__grail) {
+    opacity: calc(0.21 * var(--spill-weight, 1));
+  }
+
+  /* Two overrides that stop the mark's own styling leaking into the light:
+     the cast planes must not carry the mark's black cast shadows, and they
+     must not ride the parallax -- the light lands on the page, which does not
+     move, and holding them still is what lets the blurs rasterise once. */
+  .hero__glowbox :global(.mark__plane) {
+    filter: none;
+
+    /* The light lands on the page, and the page does not move, so this is cut
+       out of the parallax entirely.
+
+       Setting --depth to 0 is not enough on its own. The shared rule builds
+       its transform out of var(--px) and var(--py), and the parallax writes
+       those on .hero__mark on every pointer move; a descendant that so much as
+       mentions them has its style recomputed each time, even where the
+       arithmetic lands back on zero. Restating the transform without them
+       leaves nothing for the parallax to invalidate.
+
+       Deliberately more specific than it looks like it needs to be, too: the
+       per-layer `--depth` rules further down match the same elements at equal
+       specificity and come later in source order, so at 0,2,0 this lost. */
+    --depth: 0;
+    transform: translate3d(0, 0, var(--plane-z, 0px));
+
+    /* And no promotion. `will-change: transform` on the shared rule buys
+       nothing here -- nothing animates -- while handing each band its own
+       compositing layer holding a full-size blurred texture. */
+    will-change: auto;
+  }
+
+  /* The mark is tilted two ways -- left about the vertical axis, up about
+     the horizontal one. The cast keeps only the first: it lies against the
+     page, so it has no pitch of its own to show. Nothing else is restated,
+     and nothing needs re-measuring: the pin is the fixed point of both
+     projections, so it survives any tilt on either copy. */
+  .hero__glowbox :global(.hero__cast) {
+    --tilt-x: 0deg;
+    /* Shallower than the mark's -24deg: the cast lies against the page, so
+       it reads flatter than the thing casting it rather than as a second
+       copy raised at the same angle. Taken down in two steps, -24 to -14
+       to -7, and the shape it projects to is checkable at each: the
+       scaffolding corner separates by 40 * (sin24 - sin<this>) px, which
+       came out 7px at -14 and 11px at -7. -7 flattened it too far -- the
+       two copies started converging in shape -- so it sits between. */
+    --tilt-y: -11deg;
+  }
+
+  /* Nearest: casts onto the layers behind it, which is the strongest depth
+     cue available and costs no alignment at all. */
+  .hero__mark :global(.mark__grail) {
+    filter: drop-shadow(-22px 26px 24px rgb(0 0 0 / 0.55));
+  }
+
+  .hero__mark :global(.mark__envelope) {
+    filter: drop-shadow(-12px 14px 16px rgb(0 0 0 / 0.4));
+  }
+  .hero__mark :global(.mark__envelope) {
+    --depth: 7;
+  }
+  .hero__mark :global(.mark__grail) {
+    --depth: 12;
+  }
+
+  /* Narrow screens have no room to place text beside the mark, so it drops
+     back to a quieter backdrop rather than competing with the headline. */
+  @media (max-width: 60rem) {
+    /* Below this the mark is a faint backdrop, where a second copy of it
+       would only muddy the headline. */
+    .hero__lightbox,
+    .hero__glow {
+      display: none;
+    }
+
+    .hero__mark {
+      right: -28%;
+      width: min(46rem, 130%);
+      opacity: 0.5;
+    }
+
+    .hero::after {
+      background: linear-gradient(
+        to right,
+        var(--mg-black) 0%,
+        color-mix(in srgb, var(--mg-black) 80%, transparent) 55%,
+        color-mix(in srgb, var(--mg-black) 55%, transparent) 100%
+      );
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__mark :global(.mark__plane) {
+      transform: translateZ(var(--plane-z, 0));
+    }
+
+    .hero__mark :global(.mark--draw) :global(.mark__construction) {
+      animation: none;
+      opacity: 0.5;
+    }
+
+
+  }
+</style>
+
+<script>
+  //--------------------------------------------------------------------------
+  // Pointer parallax. Transform and opacity only -- nothing that triggers
+  // layout -- and the whole thing is skipped when the viewer asks for less
+  // motion or is on a touch device, where there is no pointer to follow.
+  //--------------------------------------------------------------------------
+  const stage = document.querySelector<HTMLElement>("[data-parallax]");
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const fine = window.matchMedia("(pointer: fine)");
+
+  if (stage && !calm.matches && fine.matches) {
+    let frame = 0;
+
+    const onMove = (event: PointerEvent) => {
+      if (frame) return;
+
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const box = stage.getBoundingClientRect();
+        const x = (event.clientX - (box.left + box.width / 2)) / box.width;
+        const y = (event.clientY - (box.top + box.height / 2)) / box.height;
+
+        stage.style.setProperty("--px", String(Math.max(-1, Math.min(1, x))));
+        stage.style.setProperty("--py", String(Math.max(-1, Math.min(1, y))));
+      });
+    };
+
+    const reset = () => {
+      stage.style.setProperty("--px", "0");
+      stage.style.setProperty("--py", "0");
+    };
+
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerleave", reset, { passive: true });
+  }
+
+  //--------------------------------------------------------------------------
+  // Copy the install command. Says what happened, then goes quiet again.
+  //--------------------------------------------------------------------------
+  const copyButton = document.querySelector<HTMLButtonElement>("[data-copy]");
+
+  copyButton?.addEventListener("click", async () => {
+    const label = copyButton.querySelector(".install__copy-label");
+    if (!label) return;
+
+    try {
+      await navigator.clipboard.writeText(copyButton.dataset.copy ?? "");
+      label.textContent = "Copied";
+      copyButton.dataset.copied = "";
+    } catch {
+      label.textContent = "Press ⌘C";
+    }
+
+    setTimeout(() => {
+      label.textContent = "Copy";
+      delete copyButton.dataset.copied;
+    }, 2000);
+  });
+</script>

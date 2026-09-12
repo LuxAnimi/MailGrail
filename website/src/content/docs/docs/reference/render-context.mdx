@@ -1,0 +1,83 @@
+---
+title: Render context
+description: Every mg.* method, with its compiled output in all three engines.
+sidebar:
+  order: 2
+---
+
+import LiveProof from "../../../../components/docs/LiveProof.astro";
+
+`htmlTemplate` receives a render context — `mg` — instead of raw parameters.
+That indirection is what lets MailGrail see which parameters you used and emit
+the matching placeholders, rather than substituting values it would then have
+to reverse-engineer.
+
+```tsx
+const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
+  <MjmlText>Welcome, {mg.render("username")}!</MjmlText>
+);
+```
+
+:::note[Every example below is executed]
+The compiled output and the rendered result are produced by running MailGrail's
+real compiler when this page is built. Generation fails unless the preview
+context and all three engines produce byte-identical output for each example,
+so these pages are also an integration test.
+:::
+
+:::tip[Paths are typed]
+Every path argument is checked against your schema. TypeScript errors on a path
+that does not exist, and on the wrong method for a type — `mg.each` on a
+non-array, `mg.when` on a non-boolean.
+:::
+
+## `mg.render(path)`
+
+<LiveProof id="render" />
+
+## `mg.when(path, render, otherwise?)`
+
+<LiveProof id="when" />
+
+## `mg.unless(path, render, otherwise?)`
+
+<LiveProof id="unless" />
+
+## `mg.each(path, (item, index) => …)`
+
+For an array of scalars the item context has a single no-argument `render`.
+
+<LiveProof id="each-primitives" />
+
+For an array of objects the item is a full context scoped to the element, so
+`render`, `when`, `unless`, `each` and `with` all work on it.
+
+<LiveProof id="each-objects" />
+
+Arrays of arrays nest the same way — the outer item exposes `each` directly:
+
+```tsx
+mg.each("schedule", (day) =>
+  day.each((slot) => (
+    <MjmlText>
+      {slot.render("time")}: {slot.render("event")}
+    </MjmlText>
+  )),
+);
+```
+
+## `mg.with(path, (scoped) => …)`
+
+<LiveProof id="with" />
+
+## Why not just pass the values?
+
+The context emits opaque tokens rather than engine syntax directly, and the
+real syntax is substituted at the very end. That is not indirection for its own
+sake: the compiled HTML passes through React and then MJML, and both transform
+text. React escapes `<% %>` into `&lt;% %&gt;`, and MJML drops bare text
+sitting between structural components outright. Tokens survive both stages, so
+the placeholders arrive intact.
+
+It is also why block helpers return React nodes: their children render through
+React normally instead of being flattened with `String()`.

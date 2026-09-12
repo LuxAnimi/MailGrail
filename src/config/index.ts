@@ -1,4 +1,4 @@
-import type { MailgrailConfig } from "../config/types.ts";
+import type { MailgrailConfig } from "./types.js";
 
 //------------------------------------------------------------------------------
 export function defineConfig(

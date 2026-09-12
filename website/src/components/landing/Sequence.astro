@@ -1,0 +1,209 @@
+---
+//----------------------------------------------------------------------------
+// declare -> preview -> compile.
+//
+// A sequence, genuinely: you cannot preview before you declare, or compile
+// before either. That is carried by the <ol> and by the order on the page --
+// the 01/02/03 markers that used to sit above each title are gone, since the
+// mark above each step already gives the eye something to count.
+//
+// The glyphs are the mark's own three layers, in the order the mark draws them
+// and the order the product works: the scaffolding is the schema, the envelope
+// is the template, the grail is what gets delivered. That is the hero's whole
+// argument, restated small.
+//
+// Drawn with the real mark rather than with stand-in glyphs. At 22px that was
+// not possible -- fifteen paths turn to mush -- but at 56px, with the stroke
+// pinned to a single pixel, the scaffolding holds together.
+//
+// So all three markers are the same complete mark, and the step is told by
+// which layer is lit: the scaffolding for Declare, the grail for Preview, the
+// envelope for Compile, everything else left as grey construction lines.
+//
+// Note this is not the order the mark draws itself in -- the hero goes
+// scaffolding, envelope, grail. It follows the work instead: preview is where
+// you see the finished thing, and compile is what emits the template.
+//----------------------------------------------------------------------------
+import Mark from "./Mark.astro";
+
+const steps = [
+  {
+    lit: "construction",
+    title: "Declare",
+    body:
+      "Describe the parameters with the <code>t</code> DSL. TypeScript infers the " +
+      "types end to end, so a path that does not exist is a compile error rather " +
+      "than a blank space in a sent email.",
+  },
+  {
+    lit: "grail",
+    title: "Preview",
+    body:
+      "<code>mailgrail preview</code> renders every template with placeholder data " +
+      "generated from that same schema, and reloads on save. Desktop and mobile " +
+      "widths, real MJML output.",
+  },
+  {
+    lit: "envelope",
+    title: "Compile",
+    body:
+      "<code>mailgrail build</code> emits a readable template, a render function " +
+      "and its type declarations. That output is what ships — MailGrail stays in " +
+      "your devDependencies.",
+  },
+];
+---
+
+<section class="seq wrap mg-ruled" aria-labelledby="seq-heading">
+  <div class="seq__head">
+    <p class="mg-eyebrow" id="seq-heading">How it works</p>
+    <p class="seq__lede">
+      One schema does three jobs, which is the whole idea: rename a parameter and
+      the template, the preview and the emitted types all move with it.
+    </p>
+  </div>
+
+  <ol class="seq__list">
+    {
+      steps.map((step) => (
+        <li class="step">
+          <Mark front={step.lit} class={`step__mark step__mark--${step.lit}`} />
+          <h2 class="step__title">{step.title}</h2>
+          <p class="step__body" set:html={step.body} />
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  /* Tighter than the section rhythm the rest of the page keeps. The steps are
+     a compact, self-contained unit -- three short cards on a ruled grid -- and
+     the full --mg-section-y around them left it floating in the middle of the
+     page rather than reading as one block. */
+  .seq {
+    padding-block: clamp(2rem, 8vw, 3rem);
+  }
+
+  .seq__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem 3rem;
+    margin-bottom: clamp(1.75rem, 4.5vw, 3rem);
+  }
+
+  .seq__lede {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+  }
+
+  /* 1px gaps over a ruled ground: separation without turning each step into
+     a card, which would flatten the hierarchy. */
+  .seq__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1px;
+    background: var(--mg-rule);
+    /* Top only. The rule under the last row closed the block off like a table,
+       and the section already ends at the next one's rule -- the columns and
+       the gaps between them are enough to say where the boxes are. */
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  @media (min-width: 46rem) {
+    .seq__list {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Centred on one axis: mark, number, title, body. The mark sits above the
+     text on the same centre line rather than beside it, which is what stops it
+     competing -- every arrangement that put the two side by side, in a row or
+     behind one another, had them fighting for the same corner. */
+  .step {
+    background: var(--mg-black);
+    padding: 2.1rem 1.5rem 2.3rem;
+    display: grid;
+    gap: 0;
+    align-content: start;
+    justify-items: center;
+    text-align: center;
+  }
+
+  /* One pixel per stroke: stroke-width is in viewBox units, so the weight that
+     renders as 1px is the viewBox over the drawn width. */
+  .step__mark {
+    justify-self: center;
+    width: 92px;
+    stroke-width: calc(1408 / 92);
+    margin-bottom: 1.15rem;
+  }
+
+  /* Everything is construction grey until the step lights its own layer. The
+     `:global` is needed because the layer classes come from Mark. */
+  .step__mark :global(g) {
+    stroke: var(--mg-rule);
+    transition: stroke 0.3s var(--mg-ease);
+  }
+
+  .step__mark--envelope :global(.mark__envelope),
+  .step__mark--grail :global(.mark__grail) {
+    stroke: var(--mg-gold);
+  }
+
+  /* Declare lights the two concentric circles alone, not the whole
+     scaffolding. Lighting all ten of its paths put more gold on the page than
+     the other two steps combined, and the square and diagonals are the part
+     that reads as a frame rather than as the idea.
+
+     What is lit is the inner square and the cross that quarters it -- the wide
+     rectangle through the middle and the two verticals that bar it. Mark keeps
+     those four at the end of the layer, so they are matched from the back and
+     paint over the rest of the grid. Selected by position because the
+     extracted geometry has no per-path classes -- a re-extraction should check
+     this still holds. */
+  .step__mark--construction :global(.mark__construction path:nth-last-child(-n + 4)) {
+    stroke: var(--mg-gold);
+  }
+
+  /* The lit layer is also drawn last -- see Mark's `front`. SVG paints in
+     document order and has no z-index, so without that the grey grail crossed
+     over the gold envelope on step 02, and both grey layers sat on top of the
+     gold scaffolding on step 01. */
+
+  /* One grey for everything unlit, and a dark one. Brightening the layers
+     behind the lit one to suggest work already done sounded right and read
+     wrong: the envelope and the grail each occupy only part of the
+     scaffolding's square, so a bright grid around a small gold shape took the
+     eye off the very thing the step is about. */
+
+  .step__title {
+    margin: 0 0 0.55rem;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: 1.125rem;
+    letter-spacing: -0.015em;
+    color: var(--mg-envelope);
+  }
+
+  /* Centred copy needs its ragged edges managed or the shape goes lumpy, and
+     it needs a shorter measure than flush-left text to stay readable. */
+  .step__body {
+    margin: 0;
+    max-width: 30ch;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    text-wrap: pretty;
+  }
+
+  .step__body :global(code) {
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+</style>

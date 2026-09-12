@@ -1,0 +1,158 @@
+/*----------------------------------------------------------------------------
+  mailgrail brand tokens
+
+  Every colour here is measured from src/preview-app/assets/mailgrail.ai, not
+  chosen: #231F20 is the artwork's ground, #414142 its construction geometry,
+  #D7DADD the envelope, #FFC840 the grail. The gold matches the #FFC800 already
+  in example/emails/theme.ts.
+
+  The site commits to a single dark world -- white on black with a gold accent
+  -- so there is no light/dark switch. Every colour is still painted explicitly.
+----------------------------------------------------------------------------*/
+
+/* A plain custom property is a string as far as animation is concerned, so it
+   would jump rather than interpolate. Registering it with a type lets the
+   scaffolding's depth be animated -- see the hero's settle. */
+@property --settle {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@layer mg.tokens {
+  :root {
+    /* -- ground ------------------------------------------------------ */
+    --mg-black: #231f20;
+    --mg-raised: #2a2526;
+    --mg-raised-2: #322c2d;
+
+    /* -- line -------------------------------------------------------- */
+    --mg-rule: #414142;
+    --mg-rule-soft: #33302f;
+
+    /* -- ink --------------------------------------------------------- */
+    --mg-envelope: #d7dadd;
+    --mg-dim: #9a938c;
+    --mg-dimmer: #6b6560;
+
+    /* -- accent ------------------------------------------------------ */
+    --mg-gold: #ffc840;
+    --mg-gold-deep: #c98b04;
+
+    /* -- logo layers (consumed by mailgrail.svg) --------------------- */
+    --logo-construction: var(--mg-rule);
+    --logo-envelope: var(--mg-envelope);
+    --logo-grail: var(--mg-gold);
+
+    /* -- type -------------------------------------------------------- */
+    --mg-display: Archivo, "Archivo Fallback", ui-sans-serif, system-ui,
+      -apple-system, "Segoe UI", sans-serif;
+    --mg-body: Inter, "Inter Fallback", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", sans-serif;
+    --mg-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+      monospace;
+
+    /* -- scale ------------------------------------------------------- */
+    --mg-step--1: 0.8125rem;
+    --mg-step-0: 1rem;
+    --mg-step-1: 1.0625rem;
+    --mg-step-2: clamp(1.4rem, 2.8vw, 1.75rem);
+    --mg-step-3: clamp(1.75rem, 4vw, 2.5rem);
+    --mg-step-4: clamp(2.25rem, 6.2vw, 3.75rem);
+
+    /* -- rhythm ------------------------------------------------------ */
+    /* At 1440 this puts 168px between the viewport edge and the first
+       character, with a 1104px column. The deep-margin versions were tried
+       and walked back: 336 crowded the column badly and 272 still bought
+       less presence than it cost in width. The register comes from the
+       vertical rhythm and the type instead.
+
+       The middle term is 6vw rather than 5: identical on desktop, where the
+       4.5rem cap is reached either way, but it holds a 24px inset at phone
+       width instead of dropping to 20. */
+    --mg-gutter: clamp(1.25rem, 6vw, 4.5rem);
+    --mg-measure: 62ch;
+    --mg-maxw: 78rem;
+
+    /* Code wants width that prose does not. The showcase compares two
+       compiled outputs side by side, and squeezing them into the prose
+       column turns every line into a horizontal scroll. It gets its own
+       wider measure -- a deliberate break in the rhythm, which reads as
+       emphasis precisely because everything around it is narrow. */
+    --mg-maxw-wide: 86rem;
+
+    /* Vertical rhythm is deliberately far more generous than the horizontal
+       one -- 336px between blocks against 168px at the edge. That ratio is
+       the point: the page reads as composed because it is tall and airy
+       between sections, not because it is squeezed at the sides. */
+    --mg-section-y: clamp(4rem, 12vw, 10.5rem);
+
+    /* The hero is asymmetric by nature -- a nav above it, a rule below --
+       so it gets its own two values rather than one. Both run deeper than a
+       section: it is the opening, and the only place on the page where the
+       space itself is doing work.
+
+       The vh term is a guard, not a preference: these scale with viewport
+       *width*, so without it a wide-but-short window (a 13" laptop, a
+       half-height browser) would take the full desktop padding and push the
+       headline off the screen. min() lets a tall window have the drama and
+       keeps a short one usable. */
+    --mg-hero-y: clamp(6.5rem, min(22vw, 30vh), 21rem);
+    --mg-hero-y-end: clamp(6rem, min(19vw, 26vh), 24rem);
+
+    /* -- motion ------------------------------------------------------ */
+    --mg-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+}
+
+/*----------------------------------------------------------------------------
+  Shared primitives
+----------------------------------------------------------------------------*/
+@layer mg.base {
+  .mg-eyebrow {
+    margin: 0;
+    font-family: var(--mg-body);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+  }
+
+  /* Numerals that line up in a column read as data, not decoration. */
+  .mg-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mg-rule {
+    border: 0;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  /* A section rule that lines up with the content rather than the padding
+     box. Sections carry the page gutter as padding, so a plain border-top
+     overshoots the text by exactly that gutter on each side -- invisible at
+     a 1rem gutter, obvious at 7rem. */
+  .mg-ruled {
+    position: relative;
+    /* Opaque, and opaque all the way to the viewport edge. The section box only
+       spans the content column, so the background is extended sideways with a
+       spread shadow and the overflow clipped back vertically.
+
+       This used to double as the thing that cut the hero's oversized mark off
+       at the rule. It no longer does -- the hero sits above these sections on
+       purpose and is allowed to run across them -- so the background is here
+       for its own sake now. */
+    background: var(--mg-black);
+    box-shadow: 0 0 0 100vmax var(--mg-black);
+    clip-path: inset(0 -100vmax);
+  }
+
+  .mg-ruled::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline: var(--mg-gutter);
+    border-top: 1px solid var(--mg-rule);
+  }
+}

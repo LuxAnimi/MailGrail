@@ -1,0 +1,127 @@
+---
+//----------------------------------------------------------------------------
+// Not a numbered list -- these are parallel properties, not a sequence, so
+// numbering them would encode an order that does not exist. Hairline rules and
+// a shared grid carry the grouping instead.
+//
+// Four claims, and each one answers a question the sections above leave open:
+// what is authoring like and why it needs a tool at all, what stops a wrong
+// parameter, what the server actually runs, and what adopting it commits you
+// to. The first says the quiet part -- that email markup is its own target --
+// because a reader who has only written HTML for browsers has no reason to
+// think MJML is anything but a layer between them and the thing. React Native
+// is the shortest way to land it: the reader already accepts that React is
+// worth keeping when the renderer targets something other than the DOM, and
+// this is that, for a target they may not have known was one.
+//
+// What this replaced said "Nothing to install in production", which is not
+// true -- the server installs the engine, as its own body admitted and as the
+// figure two sections up says outright.
+//
+// No numbers here, deliberately. The section above measures the same claim and
+// opens its method on hover; repeating a ratio down here would be the same
+// argument made twice, and the weaker telling of it.
+//----------------------------------------------------------------------------
+
+const features = [
+  {
+    title: "Email HTML is not web HTML",
+    body:
+      "React and MJML render into email-safe HTML. It's the same trade React " +
+      "Native makes: iterate fast in the browser with HMR, render to your " +
+      "target platform at build time. MJML is what guarantees the markup and " +
+      "CSS survive email clients.",
+  },
+  {
+    title: "Types that follow every parameter",
+    body:
+      "One schema types the template you write, generates that placeholder " +
+      "data, and emits the declarations your backend imports. A misspelled " +
+      "parameter fails the typecheck rather than the send.",
+  },
+  {
+    title: "Ship templates, not a renderer",
+    body:
+      "React and MJML are powerful but cumbersome. We run them only at build " +
+      "time, emitting lightweight templates that will not weigh down your " +
+      "production environment. Render them with your favourite templating " +
+      "engine.",
+  },
+  {
+    title: "Delivery agnostic",
+    body:
+      "The emitted module is plain ESM — nothing to bundle or configure. " +
+      "Provide the parameters, it hands back <code>subject</code>, " +
+      "<code>text</code> and <code>html</code>. Delivery is yours: " +
+      "nodemailer, Resend, SES or your own SMTP.",
+  },
+];
+---
+
+<section class="feat wrap mg-ruled" aria-labelledby="feat-heading">
+  <p class="mg-eyebrow" id="feat-heading">Why it is built this way</p>
+
+  <div class="feat__grid">
+    {
+      features.map((feature) => (
+        <article class="feat__item">
+          <h2 class="feat__title">{feature.title}</h2>
+          <p class="feat__body" set:html={feature.body} />
+        </article>
+      ))
+    }
+  </div>
+
+</section>
+
+<style>
+  .feat {
+    padding-block: var(--mg-section-y);
+  }
+
+  .feat__grid {
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 2.75rem) clamp(2rem, 5vw, 4rem);
+  }
+
+  @media (min-width: 46rem) {
+    .feat__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .feat__item {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .feat__title {
+    margin: 0;
+    font-family: var(--mg-display);
+    font-weight: 400;
+    font-size: 1.0625rem;
+    letter-spacing: -0.015em;
+    color: var(--mg-envelope);
+    text-wrap: balance;
+  }
+
+  .feat__body {
+    margin: 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 46ch;
+  }
+
+  /* Same treatment the steps give theirs -- a command or a key set in the mono
+     face, a shade brighter than the prose around it. */
+  .feat__body :global(code) {
+    font-family: var(--mg-mono);
+    font-size: 0.875em;
+    color: var(--mg-envelope);
+  }
+
+</style>

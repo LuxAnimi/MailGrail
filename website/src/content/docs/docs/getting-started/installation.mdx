@@ -1,0 +1,88 @@
+---
+title: Installation
+description: Add MailGrail to an existing project, with the scaffold or by hand.
+sidebar:
+  order: 2
+---
+
+import Snippet from "../../../../components/docs/Snippet.astro";
+import EngineMatrix from "../../../../components/docs/EngineMatrix.astro";
+
+## The fast way
+
+Run this inside a project you already have. It does not create one.
+
+```sh
+npx setup-mailgrail-app@latest
+```
+
+It asks four questions — project directory, TypeScript or JavaScript, where
+templates live, where compiled output goes — and then:
+
+- adds `mailgrail`, `@faire/mjml-react`, `react` and `ejs` to your `package.json`
+- adds `preview-emails` and `build-emails` scripts
+- writes a `mailgrail.config.ts`
+- scaffolds a starter template with a layout you can edit
+
+```
+emails-src/
+  index.ts
+  WelcomeEmail.tsx
+  components/
+    BaseLayout.tsx
+    theme.ts
+```
+
+## By hand
+
+```sh
+npm install --save-dev mailgrail
+npm install @faire/mjml-react react ejs
+```
+
+`@faire/mjml-react` and `react` are peer dependencies: your template files
+import them directly, and MailGrail resolves them from your project rather than
+bundling its own copies.
+
+`ejs` is different. It is imported by the **compiled output**, not by MailGrail
+itself — which is what lets that output run without MailGrail installed.
+Engines are declared as optional peer dependencies, so npm installs none of
+them for you. Install the one matching your `templatingEngine`:
+
+<EngineMatrix />
+
+`mailgrail build` checks the configured engine is present and fails with an
+actionable message if it is not, so a missing engine surfaces at build time
+rather than when an email is sent.
+
+## Requirements
+
+import Requirements from "../../../../components/docs/Requirements.astro";
+
+<Requirements />
+
+MailGrail is ESM-only. Import it from an ESM module, or from a TypeScript
+project with `"module": "NodeNext"`.
+
+## Configure
+
+Create a `mailgrail.config.ts` beside your `package.json`:
+
+<Snippet id="config-file" title="mailgrail.config.ts" />
+
+Both directories are resolved relative to the config file. See the
+[configuration reference](/MailGrail/docs/reference/config) for every option
+and its default.
+
+## Add the scripts
+
+```json
+{
+  "scripts": {
+    "preview-emails": "mailgrail preview",
+    "build-emails": "mailgrail build"
+  }
+}
+```
+
+Next: [your first template](/MailGrail/docs/getting-started/first-template).

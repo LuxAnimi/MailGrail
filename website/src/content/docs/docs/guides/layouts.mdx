@@ -1,0 +1,142 @@
+---
+title: Layouts and components
+description: Sharing a shell, a theme and typography across every template.
+sidebar:
+  order: 2
+---
+
+Templates are React components, so the usual composition applies: a layout that
+wraps everything, small components for repeated pieces, and a theme module for
+the values they share.
+
+## A base layout
+
+Every template starts with the same document shell — head, fonts, body
+background, width. Put it in one component:
+
+```tsx title="emails/components/BaseLayout.tsx"
+import {
+  Mjml, MjmlBody, MjmlHead, MjmlFont, MjmlAttributes,
+  MjmlAll, MjmlSection,
+} from "@faire/mjml-react";
+import type { ReactNode } from "react";
+import { colors, fontFamily } from "../theme";
+
+export default function BaseLayout({
+  children,
+  width = 600,
+}: {
+  children: ReactNode;
+  width?: number;
+}) {
+  return (
+    <Mjml>
+      <MjmlHead>
+        <MjmlFont
+          name="Manrope"
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700"
+        />
+        <MjmlAttributes>
+          <MjmlAll fontFamily={fontFamily.sans} />
+        </MjmlAttributes>
+      </MjmlHead>
+
+      <MjmlBody width={width} backgroundColor={colors.bg.ground}>
+        <MjmlSection>{children}</MjmlSection>
+      </MjmlBody>
+    </Mjml>
+  );
+}
+```
+
+Because the layout supplies the `MjmlSection`, templates start at
+`MjmlColumn`. Pick one convention and hold to it — nesting a section inside a
+section is a common source of surprising spacing.
+
+## A theme module
+
+Email has no cascade worth relying on, so shared values have to be passed
+explicitly. A plain module is enough, and it keeps colours out of the templates:
+
+```ts title="emails/theme.ts"
+export const colors = {
+  bg: { ground: "#080a12", overground: "#ffffff" },
+  accent: { 500: "#FFC800", reverse: "#C98B04" },
+  content: {
+    primary: "#e3e5ed",
+    secondary: "#c9cff2",
+    tertiary: "#606897",
+  },
+};
+
+export const spacing = { s3: "12px", s5: "20px", s8: "32px" };
+export const fontSize = { xs: "12px", sm: "14px", md: "16px" };
+```
+
+## Small components
+
+Wrap the MJML primitives you use repeatedly so intent reads at the call site
+and the styling lives in one place:
+
+```tsx title="emails/components/Heading.tsx"
+import { MjmlText } from "@faire/mjml-react";
+import type { ReactNode } from "react";
+import { colors, fontSize, fontWeight } from "../theme";
+
+export default function Heading({ children }: { children: ReactNode }) {
+  return (
+    <MjmlText
+      fontSize={fontSize.xl}
+      fontWeight={fontWeight.bold}
+      color={colors.content.primary}
+      paddingBottom="8px"
+    >
+      {children}
+    </MjmlText>
+  );
+}
+```
+
+Then a template reads as content rather than markup:
+
+```tsx
+<BaseLayout>
+  <MjmlColumn>
+    <Heading>Welcome aboard.</Heading>
+    <MainText>Hey {mg.render("username")}, your account is ready.</MainText>
+    <Button href="https://example.com/app">Open the app</Button>
+  </MjmlColumn>
+</BaseLayout>
+```
+
+## What components may not do
+
+A component can take props, branch on them, and return different markup —
+all of that runs at compile time and is baked into the output.
+
+What it must not do is branch on a **parameter value**, because at compile time
+there is no value to branch on:
+
+```tsx
+// Wrong — there is no value here at compile time.
+{params.isPro && <ProBadge />}
+
+// Right — mg.when emits a conditional into the template.
+{mg.when("isPro", () => <ProBadge />)}
+```
+
+The distinction is compile-time versus render-time. Props are compile-time;
+parameters are render-time and always go through `mg`.
+
+## Passing the context down
+
+A component that needs to render a parameter takes the context, or the already
+rendered node, as a prop:
+
+```tsx
+// Pass the rendered node — simplest, and keeps the component unaware of paths.
+<Greeting name={mg.render("username")} />
+
+// Or pass a scoped context when the component needs several fields.
+{mg.with("user", (user) => <UserCard user={user} />)}
+```

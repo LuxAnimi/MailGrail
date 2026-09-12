@@ -1,0 +1,90 @@
+---
+title: Choosing an engine
+description: EJS, Handlebars or Mustache — what actually differs.
+sidebar:
+  order: 4
+---
+
+import EngineMatrix from "../../../../components/docs/EngineMatrix.astro";
+import LiveProof from "../../../../components/docs/LiveProof.astro";
+
+The engine you pick decides three things: the extension of the emitted template
+file, the syntax inside it, and the module the generated `.js` imports at run
+time. It does not change what you write.
+
+<EngineMatrix />
+
+## The same template, three ways
+
+You author one thing; only the compiled artifact differs.
+
+<LiveProof id="each-objects" />
+
+The badge is not decoration. Generation of this page fails unless the preview
+context and all three engines produce byte-identical output for that fixture,
+so the equivalence shown here is enforced rather than asserted.
+
+## How to choose
+
+**EJS** is the default and the least surprising if you come from JavaScript.
+It embeds real expressions, so its compiled output reads like JavaScript.
+Loops emit `forEach`, conditionals emit `if`/`else`. Pick it unless something
+else pushes you.
+
+**Handlebars** is logic-less by design and has the broadest reach outside
+Node — if the same templates need rendering by a service written in another
+language, Handlebars implementations exist nearly everywhere. Its `{{#each}}`
+and `{{#if}}` blocks are readable to people who do not write JavaScript.
+
+**Mustache** is the strictest and the most portable. It has no `else`, so
+MailGrail compiles a two-branch `mg.when` into a positive section followed by
+an inverted one — `{{#x}}…{{/x}}{{^x}}…{{/x}}`. That is more verbose, and it
+means the condition is evaluated twice, which matters only if you were
+planning to hand-edit the output.
+
+## Switching
+
+Change one line and rebuild:
+
+```ts title="mailgrail.config.ts"
+export default defineConfig({
+  templatingEngine: "Handlebars",
+});
+```
+
+Install the engine, since npm will not do it for you:
+
+```sh
+npm install handlebars
+```
+
+Then delete the stale artifacts from the previous engine — `outputDir` is not
+cleaned between builds, so old `.ejs` files linger beside the new `.hbs` ones.
+
+## Missing engines fail loudly
+
+The compiled modules import the engine from **your** project, not from
+MailGrail, which is what lets them run without MailGrail installed. It also
+means the engine has to be a real dependency of yours.
+
+`mailgrail build` resolves it up front and fails with an actionable message if
+it is absent:
+
+```
+templatingEngine is "Handlebars", but "handlebars" is not installed in this project.
+The compiled templates import it at runtime, so install it with:
+
+  npm install handlebars
+```
+
+Catching it at build time is the whole point: the alternative is a
+`MODULE_NOT_FOUND` at the moment someone signs up.
+
+## One thing they all agree on
+
+Whichever engine you choose, a missing parameter never throws. The generated
+module normalizes its input first, so every declared key is present, `t.default`
+values are applied, and an absent optional becomes an empty string.
+
+Without that, the three would disagree — EJS raises a `ReferenceError` on a
+missing key while Handlebars and Mustache silently render nothing.

@@ -12,7 +12,7 @@ import { watchMailgrailConfig } from "../config/watchConfig.js";
 import { MailgrailTemplatesPlugin } from "../plugins/template-loader.js";
 import { MailgrailConfigPlugin } from "../plugins/config-loader.js";
 import { getLibraryDir } from "./utils.js";
-import type { MailgrailResolvedConfig } from "@/config/types.js";
+import type { MailgrailResolvedConfig } from "../config/types.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -37,6 +37,14 @@ export async function previewTemplates(config: MailgrailResolvedConfig) {
       MailgrailTemplatesPlugin(config.sourceDir),
     ],
     assetsInclude: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.svg"],
+    optimizeDeps: {
+      // The preview app is served from inside node_modules, so Vite would
+      // otherwise treat it as a dependency and hand it to esbuild to
+      // pre-bundle -- which cannot resolve the virtual modules our plugins
+      // provide. Skipping the scan leaves them to the plugins at request time.
+      entries: [],
+      exclude: ["virtual:mailgrailconfig", "virtual:mailgrailtemplates"],
+    },
   };
 
   const server = await createServer(viteConfig);

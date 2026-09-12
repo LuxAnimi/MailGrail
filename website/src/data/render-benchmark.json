@@ -1,0 +1,32 @@
+{
+  "template": "welcome",
+  "authoringMs": 1.02,
+  "runs": {
+    "compiled": 20000,
+    "authoring": 400
+  },
+  "engines": [
+    {
+      "id": "EJS",
+      "module": "ejs",
+      "compiledMs": 0.002,
+      "ratio": 510
+    },
+    {
+      "id": "Handlebars",
+      "module": "handlebars",
+      "compiledMs": 0.002,
+      "ratio": 510
+    },
+    {
+      "id": "Mustache",
+      "module": "mustache",
+      "compiledMs": 0.004,
+      "ratio": 255
+    }
+  ],
+  "best": "EJS",
+  "node": "v25.2.1",
+  "platform": "Linux x64",
+  "measuredAt": "2026-09-11"
+}

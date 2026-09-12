@@ -1,0 +1,17 @@
+---
+// Starlight's <Head> with the brand typefaces added.
+//
+// Archivo carries display, Inter the running text, JetBrains Mono the code.
+// The preview app declares Inter but never loads it, so it has been silently
+// falling back to Tahoma; here the faces are actually fetched.
+import Default from "@astrojs/starlight/components/Head.astro";
+---
+
+<Default><slot /></Default>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+/>

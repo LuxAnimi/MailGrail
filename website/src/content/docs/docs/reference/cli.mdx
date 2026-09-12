@@ -1,0 +1,47 @@
+---
+title: CLI
+description: The mailgrail preview and mailgrail build commands.
+sidebar:
+  order: 4
+---
+
+import CliCommands from "../../../../components/docs/CliCommands.astro";
+
+MailGrail installs a single binary with two commands. Both read your
+`mailgrail.config.ts` and both accept `--configPath`.
+
+<CliCommands />
+
+## Running it
+
+With the scripts the scaffold adds:
+
+```sh
+npm run preview-emails
+npm run build-emails
+```
+
+Or directly, without adding scripts:
+
+```sh
+npx mailgrail preview
+npx mailgrail build
+```
+
+## In CI
+
+`mailgrail build` is the only command you need in a pipeline. It exits non-zero
+when a template fails to compile or the configured engine is missing, so a
+broken template fails the build rather than reaching production:
+
+```yaml
+- run: npm ci
+- run: npx mailgrail build
+```
+
+If you commit the compiled output rather than generating it at deploy time, add
+a check that it is current — the same idea as a lockfile:
+
+```sh
+npx mailgrail build && git diff --exit-code emails-dist
+```

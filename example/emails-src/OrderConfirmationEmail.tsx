@@ -7,6 +7,7 @@ import BaseLayout from "./components/BaseLayout";
 import Button from "./components/Button";
 import Heading from "./components/Heading";
 import MainText from "./components/MainText";
+import Strong from "./components/Strong";
 import Text from "./components/Text";
 
 //------------------------------------------------------------------------------
@@ -16,9 +17,10 @@ import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
 
 //------------------------------------------------------------------------------
+// #region doc:order-schema
 const paramsSchema = t.object({
   orderNumber: t.string(),
-  items: t.array(                              // array of object — line items
+  items: t.array(                              // array of object
     t.object({
       name: t.string(),
       quantity: t.number(),                    // number — item quantity
@@ -28,6 +30,7 @@ const paramsSchema = t.object({
   couponCode: t.optional(t.string()),          // optional — not required
   total: t.number(),                           // number — order total
 });
+// #endregion doc:order-schema
 
 //------------------------------------------------------------------------------
 type Params = Infer<typeof paramsSchema>;
@@ -47,10 +50,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
       <Heading>Order confirmed.</Heading>
 
       <MainText>
-        Order{" "}
-        <strong style={{ color: colors.content.secondary }}>
-          #{mg.render("orderNumber")}
-        </strong>
+        Order <Strong>#{mg.render("orderNumber")}</Strong>
       </MainText>
 
       <Text

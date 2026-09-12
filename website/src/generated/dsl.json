@@ -1,0 +1,221 @@
+{
+  "constructors": [
+    {
+      "call": "t.string",
+      "description": null,
+      "examples": [
+        {
+          "compiled": {
+            "ejs": {
+              "username": "<%= username %>"
+            },
+            "handlebars": {
+              "username": "{{username}}"
+            },
+            "mustache": {
+              "username": "{{username}}"
+            }
+          },
+          "keys": [
+            "username"
+          ],
+          "label": null,
+          "source": "t.object({ username: t.string() })",
+          "tsType": "{\n  username: string;\n}"
+        }
+      ],
+      "id": "string",
+      "notes": [],
+      "seeAlso": [],
+      "signature": "t.string(): StringSchema",
+      "summary": "A text parameter."
+    },
+    {
+      "call": "t.number",
+      "description": "Rendered with the engine's default number formatting. Format it yourself — currency, thousands separators — before passing it in, since the compiled template has no access to your locale.",
+      "examples": [
+        {
+          "compiled": {
+            "ejs": {
+              "invoiceTotal": "<%= invoiceTotal %>"
+            },
+            "handlebars": {
+              "invoiceTotal": "{{invoiceTotal}}"
+            },
+            "mustache": {
+              "invoiceTotal": "{{invoiceTotal}}"
+            }
+          },
+          "keys": [
+            "invoiceTotal"
+          ],
+          "label": null,
+          "source": "t.object({ invoiceTotal: t.number() })",
+          "tsType": "{\n  invoiceTotal: number;\n}"
+        }
+      ],
+      "id": "number",
+      "notes": [],
+      "seeAlso": [],
+      "signature": "t.number(): NumberSchema",
+      "summary": "A numeric parameter."
+    },
+    {
+      "call": "t.boolean",
+      "description": "On its own a boolean renders as `true` or `false`. It is far more useful as the subject of `mg.when` or `mg.unless`.",
+      "examples": [
+        {
+          "compiled": {
+            "ejs": {
+              "isAdmin": "<%= isAdmin %>"
+            },
+            "handlebars": {
+              "isAdmin": "{{isAdmin}}"
+            },
+            "mustache": {
+              "isAdmin": "{{isAdmin}}"
+            }
+          },
+          "keys": [
+            "isAdmin"
+          ],
+          "label": null,
+          "source": "t.object({ isAdmin: t.boolean() })",
+          "tsType": "{\n  isAdmin: boolean;\n}"
+        }
+      ],
+      "id": "boolean",
+      "notes": [],
+      "seeAlso": [
+        "render-context"
+      ],
+      "signature": "t.boolean(): BooleanSchema",
+      "summary": "A true/false parameter, usually used to branch."
+    },
+    {
+      "call": "t.object",
+      "description": "Objects nest freely. Reach for `mg.with` in a template to scope to one and stop repeating the path prefix.",
+      "examples": [
+        {
+          "compiled": null,
+          "keys": [
+            "address"
+          ],
+          "label": null,
+          "source": "t.object({\n  address: t.object({\n    street: t.string(),\n    city: t.string(),\n    country: t.string(),\n  }),\n})",
+          "tsType": "{\n  address: {\n    street: string;\n    city: string;\n    country: string;\n  };\n}"
+        }
+      ],
+      "id": "object",
+      "notes": [],
+      "seeAlso": [],
+      "signature": "t.object(shape): ObjectSchema",
+      "summary": "A group of named parameters."
+    },
+    {
+      "call": "t.array",
+      "description": null,
+      "examples": [
+        {
+          "compiled": null,
+          "keys": [
+            "tags"
+          ],
+          "label": "Of primitives",
+          "source": "t.object({ tags: t.array(t.string()) })",
+          "tsType": "{\n  tags: string[];\n}"
+        },
+        {
+          "compiled": null,
+          "keys": [
+            "items"
+          ],
+          "label": "Of objects",
+          "source": "t.object({\n  items: t.array(\n    t.object({\n      name: t.string(),\n      quantity: t.number(),\n      isFulfilled: t.boolean(),\n    }),\n  ),\n})",
+          "tsType": "{\n  items: {\n    name: string;\n    quantity: number;\n    isFulfilled: boolean;\n  }[];\n}"
+        },
+        {
+          "compiled": null,
+          "keys": [
+            "matrix"
+          ],
+          "label": "Of arrays",
+          "source": "t.object({ matrix: t.array(t.array(t.string())) })",
+          "tsType": "{\n  matrix: string[][];\n}"
+        }
+      ],
+      "id": "array",
+      "notes": [],
+      "seeAlso": [],
+      "signature": "t.array(element): ArraySchema",
+      "summary": "A repeated parameter, iterated with `mg.each`."
+    },
+    {
+      "call": "t.optional",
+      "description": "Use this when an absent value genuinely has nothing to show. To branch on one, reach for `mg.when`; in `subjectTemplate` and `textTemplate`, which receive plain params rather than a render context, guard it yourself.",
+      "examples": [
+        {
+          "compiled": {
+            "ejs": {
+              "nickname": "<%= nickname %>"
+            },
+            "handlebars": {
+              "nickname": "{{nickname}}"
+            },
+            "mustache": {
+              "nickname": "{{nickname}}"
+            }
+          },
+          "keys": [
+            "nickname"
+          ],
+          "label": null,
+          "source": "t.object({ nickname: t.optional(t.string()) })",
+          "tsType": "{\n  nickname?: string;\n}"
+        }
+      ],
+      "id": "optional",
+      "notes": [],
+      "seeAlso": [
+        "default"
+      ],
+      "signature": "t.optional(schema): OptionalSchema",
+      "summary": "The parameter may be omitted, and renders as nothing when it is."
+    },
+    {
+      "call": "t.default",
+      "description": "Omittable on input, never undefined at render time — so a template can use it unguarded.",
+      "examples": [
+        {
+          "compiled": {
+            "ejs": {
+              "role": "<%= role %>"
+            },
+            "handlebars": {
+              "role": "{{role}}"
+            },
+            "mustache": {
+              "role": "{{role}}"
+            }
+          },
+          "keys": [
+            "role"
+          ],
+          "label": null,
+          "source": "t.object({ role: t.default(t.string(), \"user\") })",
+          "tsType": "{\n  role?: string;\n}"
+        }
+      ],
+      "id": "default",
+      "notes": [
+        "**`optional` vs `default`** — both let the caller leave the key out. They differ only in what appears when it is absent: nothing, or the stand-in value.",
+        "`t.default(t.optional(t.string()), \"user\")` is valid and means exactly `t.default(t.string(), \"user\")`. The nesting is never required."
+      ],
+      "seeAlso": [
+        "optional"
+      ],
+      "signature": "t.default(schema, value): DefaultedSchema",
+      "summary": "The parameter may be omitted, and renders `value` when it is."
+    }
+  ]
+}

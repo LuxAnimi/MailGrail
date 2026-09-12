@@ -26,7 +26,7 @@ export const Sidebar = ({
         {!config.hideAppLogo && (
           <img src="/preview-app/assets/mailgrail_main-transparent.png" />
         )}
-        {!config.hideAppName && <h1 className="title">Mailgrail</h1>}
+        {!config.hideAppName && <h1 className="title">MailGrail</h1>}
         {!config.hideAppDescription && (
           <p className="subtitle">
             Fast email template iteration, <br />

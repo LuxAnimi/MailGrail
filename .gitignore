@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# mailgrail's build output, in the example app and in scaffolded projects
+emails-dist/
 *.local
 
 # Editor directories and files
@@ -25,5 +28,8 @@ dist-ssr
 
 dist-src/
 dist-lib/
-lib/
+/lib/
 packages/*/dist/
+# website
+website/.astro/
+website/dist/

@@ -1,0 +1,155 @@
+---
+import { Code } from "astro:components";
+import cli from "../../generated/cli.json";
+
+//----------------------------------------------------------------------------
+// The CLI reference. `help` is captured by running the real binary at generate
+// time, and every documented command is asserted to appear in it -- so a
+// command that disappears fails the docs.
+//----------------------------------------------------------------------------
+---
+
+<div class="cli not-content">
+  {
+    cli.help && (
+      <div class="cli__help">
+        <p class="cli__cap">mailgrail --help</p>
+        <Code code={cli.help} lang="ansi" theme="github-dark" />
+      </div>
+    )
+  }
+
+  {
+    cli.commands.map((command) => (
+      <section class="cmd">
+        <h3 class="cmd__usage">
+          <code>{command.usage}</code>
+        </h3>
+
+        <p class="cmd__summary">{command.summary}</p>
+        {command.description && <p class="cmd__desc">{command.description}</p>}
+
+        <table class="cmd__flags">
+          <thead>
+            <tr>
+              <th scope="col">Flag</th>
+              <th scope="col">Default</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {command.flags.map((flag) => (
+              <tr>
+                <th scope="row">
+                  <code>{flag.flag}</code>
+                </th>
+                <td>
+                  <code class="cmd__default">{flag.default}</code>
+                </td>
+                <td>{flag.summary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    ))
+  }
+</div>
+
+<style>
+  .cli {
+    margin-block: 1.25rem 2rem;
+    display: grid;
+    gap: 2rem;
+  }
+
+  .cli__help {
+    border: 1px solid var(--mg-rule);
+  }
+
+  .cli__cap {
+    margin: 0;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule);
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dimmer);
+  }
+
+  .cmd__usage {
+    margin: 0 0 0.6rem;
+  }
+
+  .cmd__usage code {
+    font-family: var(--mg-mono);
+    font-size: 1rem;
+    color: var(--mg-gold);
+  }
+
+  .cmd__summary {
+    margin: 0;
+    color: var(--mg-envelope);
+    font-size: 0.9375rem;
+  }
+
+  .cmd__desc {
+    margin: 0.5rem 0 0;
+    color: var(--mg-dim);
+    font-size: 0.9375rem;
+    max-width: 64ch;
+  }
+
+  .cmd__flags {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    border-top: 1px solid var(--mg-rule);
+  }
+
+  .cmd__flags thead th {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+    text-align: left;
+    padding: 0.5rem 1.5rem 0.5rem 0;
+    border-bottom: 1px solid var(--mg-rule);
+    white-space: nowrap;
+  }
+
+  .cmd__flags td,
+  .cmd__flags tbody th {
+    text-align: left;
+    padding: 0.6rem 1.5rem 0.6rem 0;
+    border-bottom: 1px solid var(--mg-rule-soft);
+    vertical-align: baseline;
+  }
+
+  .cmd__flags tbody th code {
+    color: var(--mg-envelope);
+    white-space: nowrap;
+  }
+
+  .cmd__flags code {
+    font-family: var(--mg-mono);
+    font-size: 0.8125rem;
+  }
+
+  .cmd__default {
+    color: var(--mg-gold);
+    white-space: nowrap;
+  }
+
+  .cli :global(pre.astro-code) {
+    margin: 0;
+    padding: 0.9rem 0.85rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+</style>

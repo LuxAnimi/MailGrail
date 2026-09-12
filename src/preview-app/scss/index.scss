@@ -37,19 +37,20 @@
 
         h1.title {
             margin-top: 1.25rem;
+            // Archivo, as on the website -- one wordmark, one voice.
+            font-family: "Archivo", "Inter", ui-sans-serif, sans-serif;
             font-size: 24px;
-            font-weight: 800;
+            font-weight: 500;
+            letter-spacing: -0.02em;
             color: palette.base-color(f, 0, f);
-            font-size: 48;
             line-height: 2rem;
         }
 
         .subtitle {
-            margin-top: 0.25rem;
-            font-size: 16px;
-            color: palette.base-color(c, 0);
-            font-size: 18;
-            line-height: 1.5rem;
+            margin-top: 0.35rem;
+            font-size: 14px;
+            color: palette.base-color(9, 0);
+            line-height: 1.45;
         }
     }
 
@@ -95,8 +96,10 @@
         gap: 1.25rem;
 
         .splash-logo {
-            width: 260px;
-            filter: grayscale(1) brightness(0.7) opacity(0.25) invert(1);
+            width: 220px;
+            // The card is light, so the mark has to go darker, not lighter.
+            // The old filter inverted it, which left it almost invisible.
+            filter: grayscale(1) opacity(0.16);
             user-select: none;
             pointer-events: none;
         }
@@ -152,6 +155,41 @@
             color: #222;
         }
 
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .populate-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: transparent;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #888;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            white-space: nowrap;
+
+            &:hover {
+                color: #444;
+                border-color: #bbb;
+            }
+
+            &.active {
+                background: white;
+                color: #222;
+                border-color: #bbb;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+        }
+
         .viewport-picker {
             display: flex;
             align-items: center;
@@ -160,13 +198,6 @@
             background: #f0f0f0;
             border-radius: 8px;
             padding: 0.2rem;
-
-            .viewport-picker-separator {
-                width: 1px;
-                height: 1rem;
-                background: #d8d8d8;
-                margin: 0 0.1rem;
-            }
 
             .viewport-btn {
                 display: flex;
