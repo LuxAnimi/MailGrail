@@ -7,7 +7,7 @@
 // exactly how a Pages deploy breaks while `astro dev` looks fine -- the failure
 // src/lib/href.ts's header comment was written about.
 //
-// The check that matters most is the last one. `npx setup-mailgrail-app` prints
+// The check that matters most is the last one. `npm create @luxanimi/mailgrail` prints
 // a URL that every published copy of that package hard-codes forever, so if the
 // site stops serving it, previously-installed scaffolders send people to a 404
 // and there is no way to recall them.
@@ -89,7 +89,7 @@ mustExist("docs/index.html", "a truncated /docs URL would 404");
 // 3. The scaffolder and the site have to agree on the URL. This is the one that
 //    protects users who installed an older copy of the package.
 const handoff = readFileSync(
-  path.join(REPO, "packages/setup-mailgrail-app/src/handoff.ts"),
+  path.join(REPO, "packages/create-mailgrail/src/handoff.ts"),
   "utf8",
 );
 const printed = handoff.match(/HANDOFF_URL\s*=\s*"([^"]+)"/)?.[1];

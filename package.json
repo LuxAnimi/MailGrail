@@ -1,8 +1,11 @@
 {
-  "name": "mailgrail",
+  "name": "@luxanimi/mailgrail",
   "version": "0.1.0",
   "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
-  "author": "Maxime Dupuis",
+  "author": {
+    "name": "LuxAnimi",
+    "url": "https://github.com/LuxAnimi"
+  },
   "license": "MIT",
   "type": "module",
   "keywords": [
@@ -56,7 +59,7 @@
   "scripts": {
     "dev": "MAILGRAIL_CONFIG=example/mailgrail.config.ts MAILGRAIL_BASEPATH=src vite",
     "build": "npm run clean && npm run build:app && npm run build:lib",
-    "build:app": "rollup -c && node -e \"require('fs').cpSync('src/preview-app/assets','dist-src/preview-app/assets',{recursive:true})\"",
+    "build:app": "rollup -c && node -e \"require('fs').cpSync('src/preview-app/assets','dist-src/preview-app/assets',{recursive:true,filter:(s)=>!s.endsWith('.ai')})\"",
     "build:lib": "tsc -p tsconfig.cli.json && node -e \"require('fs').cpSync('dist-src','lib/app',{recursive:true})\"",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -141,5 +144,8 @@
     ">0.5%",
     "not dead",
     "not op_mini all"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

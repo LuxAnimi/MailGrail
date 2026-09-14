@@ -9,7 +9,7 @@ export function getTemplates(opts: ScaffoldOptions): Record<string, string> {
   const files: Record<string, string> = {};
 
   // mailgrail.config
-  files[`mailgrail.config.${ext}`] = `import { defineConfig } from "mailgrail";
+  files[`mailgrail.config.${ext}`] = `import { defineConfig } from "@luxanimi/mailgrail";
 
 export default defineConfig({
   sourceDir: "${sourceDir}",
@@ -19,8 +19,8 @@ export default defineConfig({
 
   // emails/index
   files[`${sourceDir}/index.${ext}`] = ts
-    ? `import type { TemplateDefinition } from "mailgrail";
-import type { Schema } from "mailgrail/dsl";
+    ? `import type { TemplateDefinition } from "@luxanimi/mailgrail";
+import type { Schema } from "@luxanimi/mailgrail/dsl";
 import { WelcomeEmail } from "./WelcomeEmail.js";
 
 // Add your templates here
@@ -37,8 +37,8 @@ export const templates = [WelcomeEmail];
   files[`${sourceDir}/WelcomeEmail.${extx}`] = ts
     ? `import type { ReactElement } from "react";
 import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 import BaseLayout from "./components/BaseLayout.js";
 
 const paramsSchema = t.object({
@@ -80,7 +80,7 @@ export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
 };
 `
     : `import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
-import { t } from "mailgrail";
+import { t } from "@luxanimi/mailgrail";
 import BaseLayout from "./components/BaseLayout.js";
 
 const paramsSchema = t.object({

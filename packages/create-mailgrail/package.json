@@ -1,11 +1,14 @@
 {
-  "name": "setup-mailgrail-app",
+  "name": "@luxanimi/create-mailgrail",
   "version": "0.1.0",
-  "description": "Scaffold a new MailGrail email project",
-  "author": "Maxime Dupuis",
+  "description": "Scaffold MailGrail email templates into an existing project",
+  "author": {
+    "name": "LuxAnimi",
+    "url": "https://github.com/LuxAnimi"
+  },
   "type": "module",
   "bin": {
-    "setup-mailgrail-app": "./dist/bin/setup-mailgrail-app.js"
+    "create-mailgrail": "./dist/bin/create-mailgrail.js"
   },
   "files": [
     "dist",
@@ -14,9 +17,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LuxAnimi/MailGrail.git"
+    "url": "git+https://github.com/LuxAnimi/MailGrail.git",
+    "directory": "packages/create-mailgrail"
   },
-  "homepage": "https://github.com/LuxAnimi/MailGrail#readme",
+  "homepage": "https://luxanimi.github.io/MailGrail/",
   "bugs": {
     "url": "https://github.com/LuxAnimi/MailGrail/issues"
   },
@@ -25,7 +29,7 @@
     "mjml",
     "react",
     "mailgrail",
-    "scaffold",
+    "create-mailgrail",
     "create"
   ],
   "engines": {
@@ -43,5 +47,8 @@
     "@types/node": "^25.3.2",
     "@types/qrcode-terminal": "^0.12.2",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

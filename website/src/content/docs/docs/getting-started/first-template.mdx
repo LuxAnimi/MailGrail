@@ -13,8 +13,8 @@ parameters, an HTML template, a subject line, and a plain-text fallback.
 ## 1. Declare the parameters
 
 ```tsx title="emails/ConfirmEmail.tsx"
-import { t } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 
 const paramsSchema = t.object({
   username: t.string(),
@@ -33,7 +33,7 @@ hand, and it cannot fall out of step with the schema.
 ```tsx title="emails/ConfirmEmail.tsx"
 import type { ReactElement } from "react";
 import { MjmlColumn, MjmlText, MjmlButton } from "@faire/mjml-react";
-import type { RenderTemplateContext } from "mailgrail";
+import type { RenderTemplateContext } from "@luxanimi/mailgrail";
 import BaseLayout from "./components/BaseLayout";
 
 const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
@@ -77,7 +77,7 @@ spam filters expect it, and it is what shows in a notification preview.
 ## 4. Export the definition
 
 ```tsx title="emails/ConfirmEmail.tsx"
-import type { TemplateDefinition } from "mailgrail";
+import type { TemplateDefinition } from "@luxanimi/mailgrail";
 
 export const ConfirmEmail: TemplateDefinition<typeof paramsSchema> = {
   name: "confirm-email",

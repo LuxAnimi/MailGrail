@@ -45,7 +45,7 @@ export function packageAdditions(ts: boolean): PackageAdditions {
     },
 
     devDependencies: {
-      mailgrail: "latest",
+      "@luxanimi/mailgrail": "latest",
       ...(ts ? { "@types/react": "^19.0.0" } : {}),
     },
   };
@@ -68,6 +68,20 @@ function updatePackageJson(projectDir: string, ts: boolean): void {
   }
 
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
+}
+
+//------------------------------------------------------------------------------
+// Whether the target project can import the compiled templates directly.
+//
+// `mailgrail build` emits ESM, so a project left on CommonJS -- which is what
+// `npm init -y` produces -- fails with "Cannot use import statement outside a
+// module" the first time it uses the output. The scaffolder reports this rather
+// than fixing it: flipping "type" on a project that already has CommonJS source
+// in it would break that code, and it is not a call a scaffolder can make.
+export function projectIsEsm(projectDir: string): boolean {
+  const pkgPath = path.join(projectDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
+  return pkg["type"] === "module";
 }
 
 //------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Everything `npx setup-mailgrail-app` puts in a project, as data.
+// Everything `npm create @luxanimi/mailgrail` puts in a project, as data.
 //
 // The site's "setting up by hand" page has to reach the *identical* end state as
 // the scaffolder, and the only way that stays true is to stop transcribing it.
@@ -26,7 +26,7 @@ const DOCUMENTED = {
   typescript: true,
 };
 
-const PKG = "packages/setup-mailgrail-app";
+const PKG = "packages/create-mailgrail";
 
 export async function emitScaffold({ repo, out, check }) {
   const templates = await loadManifest(path.join(repo, PKG, "src/templates.ts"));

@@ -28,6 +28,12 @@ export async function previewTemplates(config: MailgrailResolvedConfig) {
       emptyOutDir: true,
     },
     server: {
+      // Bind IPv4 loopback explicitly. Left to its default, Vite resolves
+      // "localhost" through Node's DNS order and on some machines -- containers
+      // and CI runners among them -- binds ::1 only, while anything resolving
+      // localhost to 127.0.0.1 then cannot reach it. Pinning the family keeps
+      // the address we advertise and the one we listen on the same everywhere.
+      host: "127.0.0.1",
       port: config.previewPort,
       fs: { allow: [root, path.resolve(libraryDir)] },
     },

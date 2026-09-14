@@ -1,0 +1,71 @@
+name: Publish
+
+# Trusted publishing (OIDC). No NPM_TOKEN is stored in this repository: npm
+# verifies this workflow's identity directly against the trusted publisher
+# configured on each package, so the only long-lived secret is the one that does
+# not exist.
+#
+# Two things must match the npmjs.com configuration exactly, or the publish is
+# rejected with "trusted publisher is not configured":
+#   - this file's name (publish.yml, case-sensitive, including the extension)
+#   - the repository and workflow named under
+#     Package -> Settings -> Trusted publishing
+#
+# Configure it once per package, and note that a package must already exist
+# before npm will let you add a trusted publisher -- the first version of each
+# has to be pushed with a granular access token, after which that token should
+# be revoked.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # The critical one: without it the runner cannot mint the OIDC token npm
+  # checks, and no amount of correct configuration on npmjs.com will help.
+  id-token: write
+
+# Never cancel a publish half-way; a superseded run is still safer finished.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Trusted publishing does not support self-hosted runners.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # Node 22 bundles npm 10.9.x, and trusted publishing needs >= 11.5.1.
+      # Without this the publish fails with an unhelpful auth error rather than
+      # anything pointing at the version.
+      - name: Upgrade npm past the trusted-publishing floor
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - run: npm ci
+
+      # Quality gates are not repeated here on purpose: `prepublishOnly` in the
+      # root package already runs lint, typecheck, build and the full test suite,
+      # and the scaffolder's runs its build. Duplicating them would double the
+      # release time and give the checks two places to drift apart.
+
+      # The library must land before the scaffolder: the scaffolder writes
+      # "@luxanimi/mailgrail": "latest" into the user's package.json and immediately
+      # installs, so a scaffolder published against a missing library is broken
+      # for every user until the library appears.
+      - name: Publish @luxanimi/mailgrail
+        run: .github/scripts/publish-if-new.sh .
+
+      - name: Publish @luxanimi/create-mailgrail
+        run: .github/scripts/publish-if-new.sh packages/create-mailgrail

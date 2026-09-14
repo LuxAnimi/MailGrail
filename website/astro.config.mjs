@@ -12,7 +12,7 @@ export default defineConfig({
   base: "/MailGrail",
   trailingSlash: "ignore",
 
-  // /setup is the URL `npx setup-mailgrail-app` prints when it finishes. Every
+  // /setup is the URL `npm create @luxanimi/mailgrail` prints when it finishes. Every
   // published copy of that package hard-codes it forever, so it stays an alias
   // rather than the real path -- the page behind it can be renamed or re-filed
   // and only this line changes. scripts/check-handoff.mjs fails the build if

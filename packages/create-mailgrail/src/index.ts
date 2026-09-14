@@ -1,20 +1,31 @@
 import { intro, outro, spinner, cancel, note } from "@clack/prompts";
 import { collectPrompts } from "./prompts.js";
-import { scaffold } from "./scaffold.js";
+import { scaffold, projectIsEsm } from "./scaffold.js";
 import { install, detectPackageManager } from "./install.js";
 import { printHandoff } from "./handoff.js";
 
 //------------------------------------------------------------------------------
-const [major] = process.versions.node.split(".").map(Number) as [number, ...number[]];
-if (major < 18) {
-  console.error("setup-mailgrail-app requires Node.js 18 or higher.");
+// Keep this in step with `engines` here and in mailgrail itself. The guard used
+// to stop only below 18, which let 18.x and early 20.x through -- far enough to
+// scaffold the project and then fail during the install of a package those
+// versions cannot run. Failing here says why.
+const [major, minor] = process.versions.node
+  .split(".")
+  .map(Number) as [number, number, ...number[]];
+
+const supported = (major === 20 && minor >= 19) || (major === 22 && minor >= 12) || major > 22;
+
+if (!supported) {
+  console.error(
+    `create-mailgrail requires Node.js ^20.19.0 || >=22.12.0 (found ${process.versions.node}).`,
+  );
   process.exit(1);
 }
 
 //------------------------------------------------------------------------------
 async function main() {
   console.log();
-  intro("  setup-mailgrail-app  ");
+  intro("  create-mailgrail  ");
 
   const opts = await collectPrompts();
 
@@ -60,6 +71,22 @@ async function main() {
   ].join("\n");
 
   note(nextSteps, "Next steps");
+
+  if (!projectIsEsm(options.projectDir)) {
+    note(
+      [
+        '  Your package.json has no "type": "module", and the compiled',
+        "  templates are ESM. Importing them from CommonJS fails with",
+        '  "Cannot use import statement outside a module".',
+        "",
+        '  Set "type": "module", or reach the output with a dynamic',
+        "  import(). Nothing here changed it for you \u2014 flipping it can",
+        "  break existing CommonJS code.",
+      ].join("\n"),
+      "One thing to know",
+    );
+  }
+
   printHandoff();
   outro("Happy emailing!");
 }

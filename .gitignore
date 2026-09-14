@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 
+# Never commit a registry token
+.npmrc
+
 # mailgrail's build output, in the example app and in scaffolded projects
 emails-dist/
 *.local

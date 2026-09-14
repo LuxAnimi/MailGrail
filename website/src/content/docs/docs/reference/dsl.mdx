@@ -12,8 +12,8 @@ that schema at build time to generate TypeScript types, and at preview time to
 generate placeholder data.
 
 ```ts
-import { t } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 
 const paramsSchema = t.object({
   username: t.string(),

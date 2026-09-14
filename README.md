@@ -23,7 +23,7 @@ actually emits. This README is the short version.
 ## Quick start
 
 ```sh
-npx setup-mailgrail-app@latest
+npm create @luxanimi/mailgrail
 ```
 
 Run this inside an existing project. It will add MailGrail to your `package.json`, create a `mailgrail.config.ts`, and scaffold a starter template.
@@ -33,7 +33,7 @@ Run this inside an existing project. It will add MailGrail to your `package.json
 ## Manual installation
 
 ```sh
-npm install --save-dev mailgrail
+npm install --save-dev @luxanimi/mailgrail
 npm install @faire/mjml-react react ejs
 ```
 
@@ -60,7 +60,7 @@ rather than when an email is sent.
 Create a `mailgrail.config.ts` in your project root:
 
 ```ts
-import { defineConfig } from "mailgrail";
+import { defineConfig } from "@luxanimi/mailgrail";
 
 export default defineConfig({
   sourceDir: "emails-src",
@@ -77,8 +77,8 @@ A template is a plain object exported from a `.tsx` file. It declares its parame
 ```tsx
 import type { ReactElement } from "react";
 import { MjmlSection, MjmlColumn, MjmlText, MjmlButton } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 import BaseLayout from "./components/BaseLayout";
 
 // 1. Define your parameters
@@ -123,8 +123,8 @@ export const ConfirmEmail: TemplateDefinition<typeof paramsSchema> = {
 Then export all your templates from `emails/index.ts`:
 
 ```ts
-import type { TemplateDefinition } from "mailgrail";
-import type { Schema } from "mailgrail/dsl";
+import type { TemplateDefinition } from "@luxanimi/mailgrail";
+import type { Schema } from "@luxanimi/mailgrail/dsl";
 import { ConfirmEmail } from "./ConfirmEmail";
 
 export const templates: TemplateDefinition<Schema<any>>[] = [ConfirmEmail];
@@ -485,7 +485,7 @@ const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
 ## Config reference
 
 ```ts
-import { defineConfig } from "mailgrail";
+import { defineConfig } from "@luxanimi/mailgrail";
 
 export default defineConfig({
   sourceDir: "emails-src",
@@ -597,13 +597,13 @@ The fastest way to add MailGrail to an existing project:
 
 ```sh
 cd your-project
-npx setup-mailgrail-app@latest
+npm create @luxanimi/mailgrail
 ```
 
 It asks a few questions:
 
 ```
-  setup-mailgrail-app
+  create-mailgrail
 
   Project directory? › .
   Language? › TypeScript

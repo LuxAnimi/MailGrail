@@ -24,15 +24,24 @@ const OUTPUT_DIR = "out";
 
 let projectDir;
 
-const npm = (args, cwd) =>
-  execFileSync("npm", args, { cwd, encoding: "utf8", stdio: "pipe" });
+// `npm publish --dry-run` exports its own flags to lifecycle scripts as
+// npm_config_*, so the `npm pack` below inherits dry-run: it still reports a
+// filename in its JSON but writes no tarball, and the install then fails on a
+// file that never existed. Standalone `npm test` is unaffected, which is what
+// makes it confusing -- the suite only breaks when run through a publish, which
+// is precisely when you are relying on it.
+const npm = (args, cwd) => {
+  const env = { ...process.env };
+  delete env["npm_config_dry_run"];
+  return execFileSync("npm", args, { cwd, encoding: "utf8", stdio: "pipe", env });
+};
 
 function writeFixture(dir, engine) {
   fs.mkdirSync(path.join(dir, SOURCE_DIR), { recursive: true });
 
   fs.writeFileSync(
     path.join(dir, "mailgrail.config.ts"),
-    `import { defineConfig } from "mailgrail";
+    `import { defineConfig } from "@luxanimi/mailgrail";
 
 export default defineConfig({
   sourceDir: ${JSON.stringify(SOURCE_DIR)},
@@ -47,8 +56,8 @@ export default defineConfig({
     path.join(dir, SOURCE_DIR, "WelcomeEmail.tsx"),
     `import type { ReactElement } from "react";
 import { Mjml, MjmlBody, MjmlSection, MjmlColumn, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 
 const paramsSchema = t.object({
   username: t.string(),
@@ -91,8 +100,8 @@ export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
     path.join(dir, SOURCE_DIR, "OptionsEmail.tsx"),
     `import type { ReactElement } from "react";
 import { Mjml, MjmlBody, MjmlSection, MjmlColumn, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 
 const paramsSchema = t.object({
   username: t.string(),
@@ -131,8 +140,8 @@ export const OptionsEmail: TemplateDefinition<typeof paramsSchema> = {
 
   fs.writeFileSync(
     path.join(dir, SOURCE_DIR, "index.ts"),
-    `import type { TemplateDefinition } from "mailgrail";
-import type { Schema } from "mailgrail/dsl";
+    `import type { TemplateDefinition } from "@luxanimi/mailgrail";
+import type { Schema } from "@luxanimi/mailgrail/dsl";
 import { WelcomeEmail } from "./WelcomeEmail";
 import { OptionsEmail } from "./OptionsEmail";
 
@@ -230,8 +239,8 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
   test("published types resolve for a consumer", () => {
     fs.writeFileSync(
       path.join(projectDir, "consumer.ts"),
-      `import { defineConfig, t } from "mailgrail";
-import type { Infer } from "mailgrail/dsl";
+      `import { defineConfig, t } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
 
 const schema = t.object({ username: t.string() });
 type P = Infer<typeof schema>;
@@ -320,7 +329,15 @@ export const conf = defineConfig({ sourceDir: "templates" });
     const config = path.join(projectDir, "mailgrail.config.ts");
     const original = fs.readFileSync(config, "utf8");
 
-    npm(["uninstall", "handlebars"], projectDir);
+    // Hide the package rather than `npm uninstall` it. npm 10 leaves handlebars
+    // on disk to satisfy mailgrail's optional peer edge, so the uninstall
+    // silently does nothing, the build succeeds and this test fails -- on CI
+    // only, while passing locally on npm 11. A rename is unambiguous, offline
+    // and instant.
+    const installed = path.join(projectDir, "node_modules", "handlebars");
+    const hidden = `${installed}.hidden`;
+    fs.renameSync(installed, hidden);
+
     fs.writeFileSync(
       config,
       original.replace(/templatingEngine: "[A-Za-z]*"/, 'templatingEngine: "Handlebars"'),
@@ -344,7 +361,7 @@ export const conf = defineConfig({ sourceDir: "templates" });
       assert.ok(!/\bat \w+ \(/.test(output), `stack trace leaked:\n${output}`);
     } finally {
       fs.writeFileSync(config, original);
-      npm(["install", "handlebars@^4"], projectDir);
+      fs.renameSync(hidden, installed);
     }
   });
 

@@ -9,7 +9,7 @@ import ScaffoldFile from "../../../../components/docs/ScaffoldFile.astro";
 import ScaffoldPackage from "../../../../components/docs/ScaffoldPackage.astro";
 import EngineMatrix from "../../../../components/docs/EngineMatrix.astro";
 
-You only need this page if you are **not** running `npx setup-mailgrail-app`. It
+You only need this page if you are **not** running `npm create @luxanimi/mailgrail`. It
 reaches the same end state, one step at a time. Already ran the scaffolder?
 Skip ahead to [your first template](/MailGrail/docs/getting-started/first-template).
 
@@ -19,7 +19,7 @@ cannot drift apart.
 ## Why do it this way
 
 - **The scaffolder is not allowed to run.** Plenty of environments do not permit
-  `npx`-ing an arbitrary package into a repository.
+  running an arbitrary scaffolder against a repository.
 - **It is a monorepo.** The scaffolder edits the `package.json` it finds and
   assumes one project; a workspace usually wants the templates in one package
   and the config path pointed at it.
@@ -51,7 +51,7 @@ Pick one, install it, and set `templatingEngine` to match in step 3. The
 scaffolder never offers this choice.
 
 :::note
-The scaffolder writes `"mailgrail": "latest"` into `devDependencies`. That
+The scaffolder writes `"@luxanimi/mailgrail": "latest"` into `devDependencies`. That
 resolves to whatever is newest at install time, which is fine for a scaffold and
 poor for a manifest you keep — pin a real range instead.
 :::
@@ -112,12 +112,12 @@ entry point in step 4 is not where `sourceDir` points.
 
 ## Parity checklist
 
-Everything `npx setup-mailgrail-app` does, and the step that covers it:
+Everything `npm create @luxanimi/mailgrail` does, and the step that covers it:
 
 | The scaffolder | Covered by |
 |---|---|
 | Adds `@faire/mjml-react`, `react`, `ejs` to `dependencies` | Step 1 |
-| Adds `mailgrail` and `@types/react` to `devDependencies` | Step 1 |
+| Adds `@luxanimi/mailgrail` and `@types/react` to `devDependencies` | Step 1 |
 | Adds the `preview-emails` and `build-emails` scripts | Step 2 |
 | Writes `mailgrail.config.ts` | Step 3 |
 | Scaffolds the four template files | Step 4 |
