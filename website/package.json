@@ -6,7 +6,7 @@
   "description": "Marketing site and documentation for mailgrail",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/check-handoff.mjs",
     "preview": "astro preview",
     "check": "astro check"
   },

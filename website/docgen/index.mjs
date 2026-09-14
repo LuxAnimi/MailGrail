@@ -29,6 +29,7 @@ import { emitContext } from "./emit/context.mjs";
 import { emitSnippets } from "./emit/snippets.mjs";
 import { emitMeta } from "./emit/meta.mjs";
 import { emitOutput } from "./emit/output.mjs";
+import { emitScaffold } from "./emit/scaffold.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, "../..");
@@ -43,6 +44,7 @@ const GENERATORS = {
   context: emitContext,
   snippets: emitSnippets,
   output: emitOutput,
+  scaffold: emitScaffold,
 };
 
 //------------------------------------------------------------------------------

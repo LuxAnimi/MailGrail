@@ -12,26 +12,59 @@ type PackageJson = {
 };
 
 //------------------------------------------------------------------------------
+export type PackageAdditions = {
+  scripts: Record<string, string>;
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+};
+
+//------------------------------------------------------------------------------
+// Every package.json change the scaffolder makes, as data rather than as a
+// sequence of assignments.
+//
+// The docs site documents this exact set on its "setting up by hand" page, and
+// reads it from here at docs-generation time -- so a version bump or a new
+// dependency cannot drift away from the page telling people to install it.
+// Keep it a pure function of `ts`: docgen calls it outside any project.
+//------------------------------------------------------------------------------
+export function packageAdditions(ts: boolean): PackageAdditions {
+  return {
+    scripts: {
+      "preview-emails": "mailgrail preview",
+      "build-emails": "mailgrail build",
+    },
+
+    // MailGrail's peer dependencies: the user's template files import these
+    // directly, and MailGrail resolves them from the project's node_modules.
+    // `ejs` is different again -- it is imported by the *compiled output*, which
+    // is why it is a real dependency rather than a dev one.
+    dependencies: {
+      "@faire/mjml-react": "^4.0.0",
+      react: "^19.0.0",
+      ejs: "^5.0.2",
+    },
+
+    devDependencies: {
+      mailgrail: "latest",
+      ...(ts ? { "@types/react": "^19.0.0" } : {}),
+    },
+  };
+}
+
+//------------------------------------------------------------------------------
 function updatePackageJson(projectDir: string, ts: boolean): void {
   const pkgPath = path.join(projectDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
 
-  pkg.scripts ??= {};
-  pkg.scripts["preview-emails"] ??= "mailgrail preview";
-  pkg.scripts["build-emails"] ??= "mailgrail build";
+  const additions = packageAdditions(ts);
 
-  // MailGrail's peer dependencies: the user's template files import these
-  // directly, and MailGrail resolves them from the project's node_modules.
-  pkg.dependencies ??= {};
-  pkg.dependencies["@faire/mjml-react"] ??= "^4.0.0";
-  pkg.dependencies["react"] ??= "^19.0.0";
-  // The compiled output imports its templating engine at runtime.
-  pkg.dependencies["ejs"] ??= "^5.0.2";
-
-  pkg.devDependencies ??= {};
-  pkg.devDependencies["mailgrail"] ??= "latest";
-  if (ts) {
-    pkg.devDependencies["@types/react"] ??= "^19.0.0";
+  for (const section of ["scripts", "dependencies", "devDependencies"] as const) {
+    const existing = (pkg[section] ??= {});
+    for (const [name, value] of Object.entries(additions[section])) {
+      // `??=` throughout: an existing pin or script always wins. The scaffolder
+      // adds to a project, it never overwrites a decision already made there.
+      existing[name] ??= value;
+    }
   }
 
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");

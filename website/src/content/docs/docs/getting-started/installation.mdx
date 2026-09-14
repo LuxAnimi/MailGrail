@@ -55,6 +55,11 @@ them for you. Install the one matching your `templatingEngine`:
 actionable message if it is not, so a missing engine surfaces at build time
 rather than when an email is sent.
 
+That is the dependencies. The scaffolder also writes a config and four starter
+files — [setting up by hand](/MailGrail/docs/getting-started/manual-setup) walks
+through the rest of them, generated from the scaffolder's own source so the two
+paths stay identical.
+
 ## Requirements
 
 import Requirements from "../../../../components/docs/Requirements.astro";
@@ -84,5 +89,9 @@ and its default.
   }
 }
 ```
+
+Both are standalone — nothing in your project calls them yet. Wiring
+`build-emails` into your real build is a decision of its own, covered in
+[wiring it into your build](/MailGrail/docs/getting-started/build-integration).
 
 Next: [your first template](/MailGrail/docs/getting-started/first-template).

@@ -1,0 +1,89 @@
+---
+import { Code } from "astro:components";
+import scaffold from "../../generated/scaffold.json";
+
+//----------------------------------------------------------------------------
+// One file exactly as `npx setup-mailgrail-app` writes it.
+//
+// The content comes from the scaffolder's own getTemplates(), via docgen, so
+// following the "by hand" page top to bottom lands you where the wizard would
+// have -- and a starter template that changes without the page changing fails
+// docs:check rather than quietly leaving the two paths divergent.
+//
+// A missing path throws, matching Snippet.astro: a renamed file should break
+// the build, not render an empty box.
+//----------------------------------------------------------------------------
+interface Props {
+  path: string;
+  lang?: string;
+}
+
+const { path, lang } = Astro.props;
+
+const files = scaffold.files as Record<string, string>;
+const code = files[path];
+
+if (code === undefined) {
+  throw new Error(
+    `<ScaffoldFile path="${path}"> is not written by the scaffolder. ` +
+      `Available: ${Object.keys(files).join(", ")}`,
+  );
+}
+
+const inferred =
+  lang ??
+  (path.endsWith(".tsx")
+    ? "tsx"
+    : path.endsWith(".jsx")
+      ? "jsx"
+      : path.endsWith(".ts")
+        ? "ts"
+        : "js");
+---
+
+<figure class="snip not-content">
+  <figcaption class="snip__cap">
+    <span class="snip__title">{path}</span>
+    <span class="snip__src">written by the scaffolder</span>
+  </figcaption>
+  <Code code={code.trimEnd()} lang={inferred} theme="github-dark" />
+</figure>
+
+<style>
+  .snip {
+    margin-block: 1.25rem 2rem;
+    border: 1px solid var(--mg-rule);
+  }
+
+  .snip__cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+
+  .snip__title {
+    font-family: var(--mg-mono);
+    font-size: 0.75rem;
+    color: var(--mg-dim);
+  }
+
+  .snip__src {
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mg-dimmer);
+  }
+
+  .snip :global(pre.astro-code) {
+    margin: 0;
+    padding: 0.95rem 0.85rem;
+    background: var(--mg-raised) !important;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    overflow-x: auto;
+  }
+</style>

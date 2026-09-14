@@ -11,6 +11,12 @@ import { href } from "../lib/href";
 import meta from "../generated/meta.json";
 
 const docsHref = href("/docs/getting-started/introduction");
+
+// The closing section is the "Get started" call to action and shows the install
+// command, so it points at installation rather than the introduction -- someone
+// who has scrolled the whole page has had the introduction already. The hero
+// keeps the introduction, where a first-time reader should land.
+const startHref = href("/docs/getting-started/installation");
 ---
 
 <Landing
@@ -26,5 +32,5 @@ const docsHref = href("/docs/getting-started/introduction");
   <CodeShowcase />
   <Features />
   <Engines />
-  <Closing docsHref={docsHref} />
+  <Closing startHref={startHref} />
 </Landing>

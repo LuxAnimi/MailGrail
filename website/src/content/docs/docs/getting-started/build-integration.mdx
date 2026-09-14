@@ -1,0 +1,204 @@
+---
+title: Wiring it into your build
+description: Commit the compiled output, or generate it in CI — and what each choice costs.
+sidebar:
+  order: 5
+---
+
+You have templates, and a `build-emails` script. Nothing calls it yet.
+
+That last gap is the one setup decision worth making deliberately, because the
+generated `.d.ts` is an **input to `tsc`**. Leave it unmade and the failure does
+not show up on your machine, where `emails-dist/` already exists — it shows up on
+a clean clone, or in CI, as:
+
+```
+error TS2307: Cannot find module './emails-dist/welcome-email.js'
+```
+
+There are two good answers. Pick one on purpose.
+
+The examples below use the default `emails-dist`. If you chose a different
+`outputDir`, substitute it throughout.
+
+## The two options
+
+| | Commit the output | Generate it in the build |
+|---|---|---|
+| In git | The compiled files | Only the sources |
+| Review | You see the rendered HTML change | You see the template change only |
+| Fresh clone | Works immediately | Must build before typecheck |
+| Deploy | No email build step | `mailgrail build` before packaging |
+| Merge conflicts | Possible, in generated files | None |
+| Needs devDependencies at build | No | Yes |
+
+## Option A — commit the compiled output
+
+Keep `emails-dist/` **out** of `.gitignore`, and rebuild whenever a template
+changes:
+
+```sh
+npm run build-emails
+git add emails-dist
+```
+
+The payoff is the diff. A one-word change to a template shows up as a change to
+the rendered HTML, in review, where someone can actually see it — which is a
+genuinely useful artifact and the main reason to choose this.
+
+### Check it is current in CI
+
+Generated files that are committed drift. Add the same check you would add for a
+lockfile:
+
+```sh
+npx mailgrail build
+git add --intent-to-add emails-dist
+git diff --exit-code emails-dist
+```
+
+The `git add --intent-to-add` line is load-bearing. `git diff` only looks at
+**tracked** files, so without it the check passes green when you add a brand-new
+template and forget to commit its output — and the failure surfaces in
+production, at import, instead of in CI.
+
+### If `git add` stages nothing
+
+A pattern already in your `.gitignore` — `dist`, `build`, `*.d.ts` — will
+silently swallow the output, and the symptom is that this option appears not to
+work at all. Ask git directly:
+
+```sh
+git check-ignore -v emails-dist/welcome-email.js
+```
+
+It prints the file and line of the pattern responsible, or nothing at all if the
+path is not ignored.
+
+### If the check is red on every run
+
+On Windows, `core.autocrlf` rewrites line endings on checkout, so freshly
+generated output never matches the committed copy. Pin the directory:
+
+```
+emails-dist/** -text
+```
+
+in `.gitattributes`.
+
+### Resolving a conflict
+
+Do not merge generated HTML by hand. Take either side and rebuild:
+
+```sh
+git checkout --ours emails-dist
+npx mailgrail build
+git add emails-dist
+```
+
+## Option B — generate it during the build
+
+Ignore the output:
+
+```
+emails-dist/
+```
+
+Then make something actually run the build. Prefer naming it explicitly:
+
+```json
+{
+  "scripts": {
+    "build": "mailgrail build && tsc",
+    "typecheck": "mailgrail build && tsc --noEmit"
+  }
+}
+```
+
+Both lines matter. The second is the one people miss: typechecking is a separate
+entry point from building, and it needs the `.d.ts` just as much.
+
+:::caution
+`prebuild` works on npm, but package managers disagree about pre/post scripts —
+pnpm gates them behind the `enable-pre-post-scripts` setting, and Yarn Berry does
+not run arbitrary pre/post scripts at all. The explicit `&&` chain behaves the
+same everywhere, so it is the safer default.
+:::
+
+### What this costs day to day
+
+On a fresh clone, before anything is built, every
+`import { renderWelcomeEmail } from "./emails-dist/welcome-email.js"` is red in
+the editor until someone runs the build once. Nothing is broken, but it is the
+first thing a new contributor sees, and it is the strongest argument for
+Option A.
+
+### Docker and multi-stage builds
+
+`mailgrail` lives in `devDependencies`, so `npm ci --omit=dev` removes the very
+thing that generates the output. Build in a stage that still has dev
+dependencies, then carry the result forward:
+
+```dockerfile
+FROM node:22 AS build
+COPY . .
+RUN npm ci
+RUN npx mailgrail build
+
+FROM node:22-slim
+COPY --from=build /app/emails-dist ./emails-dist
+RUN npm ci --omit=dev
+```
+
+The same ordering applies to bundlers and file tracing — esbuild, `ncc`, Vercel.
+They can only include files that exist when they run, so generate before you
+bundle, not alongside.
+
+## Not `postinstall`
+
+It looks like the obvious hook. It is the wrong one, in both directions:
+
+- **It does not run where you need it.** A production install is
+  `npm ci --omit=dev`, which drops `mailgrail` — so the hook fires and cannot
+  find the binary.
+- **It runs where you do not.** Installing any unrelated package re-runs it, so
+  a one-line dependency bump recompiles every template.
+- **It turns a typo into an uninstallable project.** A template that fails to
+  compile becomes an install failure rather than a build failure, which is a much
+  worse place to discover it.
+
+Installing and building are different phases. This belongs to the second one.
+
+## Either way
+
+**The engine is a real dependency.** The compiled output imports `ejs` (or
+Handlebars, or Mustache) at runtime, so it belongs in `dependencies`, not
+`devDependencies`. MailGrail, React and MJML can all stay dev-only.
+
+**The output is ESM.** The generated `.js` uses `import` and `export`, so a
+CommonJS backend cannot `require()` it. Either set `"type": "module"` in the
+package that imports it, or reach it with a dynamic `import()`.
+
+**The `.ejs` file does not need to ship.** The generated `.js` inlines its own
+template; the standalone template file is there for reading and debugging.
+
+## When `tsc` still cannot see the types
+
+If ordering is right and the import is still unresolved, the cause is reach, not
+timing: `outputDir` has to be somewhere your `tsconfig.json` actually looks. A
+path outside `include` — or above `rootDir` — produces the identical `TS2307`
+for an entirely different reason.
+
+## Monorepos
+
+Give each package its own `outputDir` inside that package, and point the CLI at
+the right config:
+
+```sh
+npx mailgrail build --configPath packages/api/mailgrail.config.ts
+```
+
+The same choice applies per package, and there is no need to make it the same
+way twice.
+
+Next: [sending email](/MailGrail/docs/guides/sending-email).

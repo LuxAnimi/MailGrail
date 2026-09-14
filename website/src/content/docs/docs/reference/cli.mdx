@@ -40,8 +40,6 @@ broken template fails the build rather than reaching production:
 ```
 
 If you commit the compiled output rather than generating it at deploy time, add
-a check that it is current — the same idea as a lockfile:
-
-```sh
-npx mailgrail build && git diff --exit-code emails-dist
-```
+a check that it is current — the same idea as a lockfile. There is a subtlety to
+getting that check right, so it lives with the rest of the decision in
+[wiring it into your build](/MailGrail/docs/getting-started/build-integration).

@@ -12,6 +12,24 @@ export default defineConfig({
   base: "/MailGrail",
   trailingSlash: "ignore",
 
+  // /setup is the URL `npx setup-mailgrail-app` prints when it finishes. Every
+  // published copy of that package hard-codes it forever, so it stays an alias
+  // rather than the real path -- the page behind it can be renamed or re-filed
+  // and only this line changes. scripts/check-handoff.mjs fails the build if
+  // this and the constant in the scaffolder ever disagree.
+  //
+  // /docs is here because Starlight generates no index for the docs root: every
+  // page lives under a group, so the bare /docs a reader gets by truncating a
+  // URL would otherwise 404.
+  // Note the destinations carry the base and the keys do not: Astro applies
+  // `base` when it *matches* a redirect, but writes the destination through
+  // verbatim. Drop the prefix here and /MailGrail/setup forwards to
+  // /docs/... -- off the deployment entirely, and green in `astro dev`.
+  redirects: {
+    "/setup": "/MailGrail/docs/getting-started/build-integration",
+    "/docs": "/MailGrail/docs/getting-started/introduction",
+  },
+
   integrations: [
     starlight({
       title: "MailGrail",

@@ -584,6 +584,11 @@ await transporter.sendMail({
 The compiled output only depends on your templating engine at runtime — no MailGrail,
 no React, no MJML, and no bundler. The heavy lifting happens at build time.
 
+Nothing runs `mailgrail build` for you. Whether you commit the compiled output or
+generate it in CI is a decision with real consequences for review, deploys and a
+clean clone's typecheck — see
+[wiring it into your build](https://luxanimi.github.io/MailGrail/docs/getting-started/build-integration).
+
 ---
 
 ## Setup command
@@ -620,6 +625,12 @@ emails-src/
     BaseLayout.tsx
     theme.ts
 ```
+
+It does **not** touch your `.gitignore` — see the link above.
+
+Prefer to do it yourself? [Setting up by hand](https://luxanimi.github.io/MailGrail/docs/getting-started/manual-setup)
+lists every one of those changes as a step, generated from the scaffolder's own
+source so the two cannot drift apart.
 
 ---
 

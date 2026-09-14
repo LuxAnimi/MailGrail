@@ -1,0 +1,131 @@
+---
+title: Setting up by hand
+description: Every change the scaffolder makes, as steps you can follow yourself.
+sidebar:
+  order: 3
+---
+
+import ScaffoldFile from "../../../../components/docs/ScaffoldFile.astro";
+import ScaffoldPackage from "../../../../components/docs/ScaffoldPackage.astro";
+import EngineMatrix from "../../../../components/docs/EngineMatrix.astro";
+
+You only need this page if you are **not** running `npx setup-mailgrail-app`. It
+reaches the same end state, one step at a time. Already ran the scaffolder?
+Skip ahead to [your first template](/MailGrail/docs/getting-started/first-template).
+
+Everything below is generated from the scaffolder's own source, so the two paths
+cannot drift apart.
+
+## Why do it this way
+
+- **The scaffolder is not allowed to run.** Plenty of environments do not permit
+  `npx`-ing an arbitrary package into a repository.
+- **It is a monorepo.** The scaffolder edits the `package.json` it finds and
+  assumes one project; a workspace usually wants the templates in one package
+  and the config path pointed at it.
+- **You want to read the diff before taking it.** Reasonable.
+- **You want an engine other than EJS.** The scaffolder always wires EJS and
+  never asks. Doing it by hand is the only way to start on Handlebars or
+  Mustache — see step 1.
+- **You are reproducing setup somewhere else** — a Dockerfile, a CI job, your
+  own project template.
+
+The steps assume the defaults (`emails-src`, `emails-dist`, TypeScript). If you
+want different directories, change them consistently in step 3 and step 4.
+
+## 1. Install the dependencies
+
+<ScaffoldPackage mode="install" />
+
+`@faire/mjml-react` and `react` are peer dependencies: your template files import
+them directly and MailGrail resolves them from your project.
+
+`ejs` is different — it is imported by the **compiled output**, not by MailGrail,
+which is what lets that output run without MailGrail installed. This is the step
+where you can choose something else. Engines are optional peer dependencies, so
+npm installs none of them for you:
+
+<EngineMatrix />
+
+Pick one, install it, and set `templatingEngine` to match in step 3. The
+scaffolder never offers this choice.
+
+:::note
+The scaffolder writes `"mailgrail": "latest"` into `devDependencies`. That
+resolves to whatever is newest at install time, which is fine for a scaffold and
+poor for a manifest you keep — pin a real range instead.
+:::
+
+## 2. Add the scripts
+
+<ScaffoldPackage mode="scripts" />
+
+Nothing calls these yet. Deciding what runs `build-emails`, and when, is
+[the next page](/MailGrail/docs/getting-started/build-integration) — it is the one
+setup decision worth making deliberately.
+
+## 3. Create the config
+
+Beside your `package.json`:
+
+<ScaffoldFile path="mailgrail.config.ts" />
+
+Both directories resolve relative to the config file. If you chose a non-EJS
+engine in step 1, add `templatingEngine: "Handlebars"` (or `"Mustache"`) here.
+Every option and its default is in the
+[configuration reference](/MailGrail/docs/reference/config).
+
+## 4. Create the templates
+
+Four files. The entry point, which MailGrail looks for as `index.ts` in your
+source directory:
+
+<ScaffoldFile path="emails-src/index.ts" />
+
+A starter template:
+
+<ScaffoldFile path="emails-src/WelcomeEmail.tsx" />
+
+The layout it wraps itself in:
+
+<ScaffoldFile path="emails-src/components/BaseLayout.tsx" />
+
+And the tokens that layout reads:
+
+<ScaffoldFile path="emails-src/components/theme.ts" />
+
+On a JavaScript project these are the same files with `.js` / `.jsx` extensions
+and no type imports — `mailgrail.config.js`, `emails-src/index.js`,
+`emails-src/WelcomeEmail.jsx`, `emails-src/components/BaseLayout.jsx` and
+`emails-src/components/theme.js`.
+
+## 5. Check it works
+
+```sh
+npm run preview-emails
+# → http://localhost:7777
+```
+
+You should see **WelcomeEmail** in the sidebar, rendered with placeholder data
+derived from its own schema. If the server starts but the list is empty, the
+entry point in step 4 is not where `sourceDir` points.
+
+## Parity checklist
+
+Everything `npx setup-mailgrail-app` does, and the step that covers it:
+
+| The scaffolder | Covered by |
+|---|---|
+| Adds `@faire/mjml-react`, `react`, `ejs` to `dependencies` | Step 1 |
+| Adds `mailgrail` and `@types/react` to `devDependencies` | Step 1 |
+| Adds the `preview-emails` and `build-emails` scripts | Step 2 |
+| Writes `mailgrail.config.ts` | Step 3 |
+| Scaffolds the four template files | Step 4 |
+| Runs your package manager's install | Step 1 |
+| **Touches `.gitignore`** | **Nothing — it does not, and neither does this page** |
+
+That last row is deliberate on both paths. Whether the compiled output belongs in
+git is a real decision with consequences for review, deploys and typechecking,
+and it is the subject of the next page.
+
+Next: [wiring it into your build](/MailGrail/docs/getting-started/build-integration).

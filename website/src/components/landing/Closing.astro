@@ -2,10 +2,10 @@
 import meta from "../../generated/meta.json";
 
 interface Props {
-  docsHref: string;
+  startHref: string;
 }
 
-const { docsHref } = Astro.props;
+const { startHref } = Astro.props;
 ---
 
 <section class="close wrap mg-ruled">
@@ -26,8 +26,8 @@ const { docsHref } = Astro.props;
       <code class="cmd"><span aria-hidden="true">$</span>{meta.install.dev}</code>
     </div>
 
-    <a class="close__cta" href={docsHref}>
-      Read the documentation
+    <a class="close__cta" href={startHref}>
+      Start installing
       <span aria-hidden="true">&rarr;</span>
     </a>
   </div>

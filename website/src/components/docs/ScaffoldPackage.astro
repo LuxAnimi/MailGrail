@@ -1,0 +1,40 @@
+---
+import { Code } from "astro:components";
+import scaffold from "../../generated/scaffold.json";
+
+//----------------------------------------------------------------------------
+// The package.json half of what the scaffolder does, rendered from the same
+// packageAdditions() the scaffolder itself calls.
+//
+// mode="install" turns the dependency map into the install commands that
+// reproduce it; mode="scripts" shows the scripts block to paste. Versions are
+// the scaffolder's real pins, so a bump there shows up here or fails
+// docs:check -- the whole reason this page can claim parity.
+//----------------------------------------------------------------------------
+interface Props {
+  mode: "install" | "scripts";
+}
+
+const { mode } = Astro.props;
+const pkg = scaffold.packageJson;
+
+// "latest" is not a version to type on a command line -- `npm install x` already
+// means the newest -- so it renders bare. Everything else carries its range.
+const spec = ([name, range]: [string, string]) =>
+  range === "latest" ? name : `${name}@${range}`;
+
+const deps = Object.entries(pkg.dependencies).map(spec).join(" ");
+const devDeps = Object.entries(pkg.devDependencies).map(spec).join(" ");
+
+const install = [
+  `npm install ${deps}`,
+  `npm install --save-dev ${devDeps}`,
+].join("\n");
+
+const scripts = JSON.stringify({ scripts: pkg.scripts }, null, 2);
+
+const code = mode === "install" ? install : scripts;
+const lang = mode === "install" ? "sh" : "json";
+---
+
+<Code code={code} lang={lang} theme="github-dark" />

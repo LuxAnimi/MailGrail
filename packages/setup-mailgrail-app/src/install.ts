@@ -1,7 +1,9 @@
 import { spawnSync } from "child_process";
 
 //------------------------------------------------------------------------------
-function detectPackageManager(): string {
+// Also used to phrase the closing "next steps" note, so a pnpm user is not told
+// to type `npm run`.
+export function detectPackageManager(): string {
   const ua = process.env["npm_config_user_agent"] ?? "";
   if (ua.startsWith("pnpm")) return "pnpm";
   if (ua.startsWith("yarn")) return "yarn";

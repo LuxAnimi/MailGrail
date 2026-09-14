@@ -100,15 +100,11 @@ More on wiring it up in
 
 ## Commit it, or build it
 
-Both work.
+Both work, and they differ in more than taste — review, deploys and a clean
+clone's typecheck all change with the answer.
 
-**Commit the output** and your deployment needs no build step for email, and
-you can see in a diff exactly how a template change alters the rendered HTML —
-which is a genuinely useful review artifact. Add a CI check that it is current.
-
-**Build it in CI** and you carry no generated files in review. Run
-`mailgrail build` before packaging, and make sure your engine is a real
-dependency rather than a dev one.
+That decision, with the mechanics for each,
+is [wiring it into your build](/MailGrail/docs/getting-started/build-integration).
 
 ## Turning off types
 
