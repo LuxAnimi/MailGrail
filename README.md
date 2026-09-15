@@ -296,7 +296,9 @@ In the compiled EJS output, `mg.render("username")` becomes `<%= username %>`.
 
 ### `mg.when(path, render, otherwise?)`
 
-Conditionally renders based on a boolean field. The `otherwise` branch is optional.
+Conditionally renders based on a boolean or string field. The `otherwise` branch is optional.
+
+A string counts as present when it is non-empty, so `mg.when` doubles as a presence test for `t.optional(t.string())`, which is empty when omitted. Number fields are rejected at compile time: `0` would read as absent.
 
 ```tsx
 const paramsSchema = t.object({
@@ -310,6 +312,9 @@ mg.when("isPremium",
 
 // Without an else branch:
 mg.when("isPremium", () => <PremiumBadge />)
+
+// Presence of an optional string:
+mg.when("nickname", () => <MjmlText>Hi {mg.render("nickname")}!</MjmlText>)
 ```
 
 In EJS output: `<% if (isPremium) { %>...<% } else { %>...<% } %>`.
@@ -534,12 +539,15 @@ export type ConfirmEmailParams = {
 
 export declare function renderConfirmEmail(params: ConfirmEmailParams): {
   name: "confirm-email";
-  sender: string;
+  sender: "hello@example.com";
   subject: string;
   text: string;
   html: string;
 };
 ```
+
+`sender` is typed as the literal address from the template. A template that
+declares no `sender` has no `sender` key, in the type or in the returned object.
 
 ### `.js` — render function
 
@@ -560,6 +568,29 @@ export function renderConfirmEmail(params) {
   };
 }
 ```
+
+### `package.json`
+
+The first build also writes a minimal `package.json` into the output directory.
+It never touches one that already exists, so edit it freely:
+
+```json
+{
+  "type": "module",
+  "exports": {
+    "./*": {
+      "types": "./*.d.ts",
+      "default": "./*.js"
+    }
+  }
+}
+```
+
+`"type": "module"` makes the output load as ESM whatever the surrounding package
+declares. The wildcard `exports` is for when the directory becomes a package of
+its own: give it a `name`, depend on it as a workspace or `file:` dependency, and
+`import { renderConfirmEmail } from "@acme/emails/confirm-email"` resolves, types
+included. Relative imports need none of that.
 
 ### Using the output in your backend
 
@@ -613,7 +644,7 @@ It asks a few questions:
 
 Then it:
 - Adds `mailgrail`, `@faire/mjml-react`, `react` and `ejs` to your `package.json`
-- Adds `preview-emails` and `build-emails` scripts to your `package.json`
+- Adds `preview-emails` and `build-emails` scripts to your `package.json` (plus `typecheck-emails` on a TypeScript project)
 - Creates `mailgrail.config.ts`
 - Scaffolds a starter template in `emails/`:
 
@@ -624,6 +655,7 @@ emails-src/
   components/
     BaseLayout.tsx
     theme.ts
+  tsconfig.json     ← TypeScript projects only; used by typecheck-emails
 ```
 
 It does **not** touch your `.gitignore` — see the link above.

@@ -30,7 +30,7 @@ interface TemplateDefinition<S extends Schema<any>> {
 | `htmlTemplate` | Receives the render context. Returns MJML as React elements. |
 | `subjectTemplate` | Receives plain parameters. Returns a string. |
 | `textTemplate` | Receives plain parameters. Returns the plain-text part. |
-| `sender` | Optional default `from` address, passed through to the output. |
+| `sender` | Optional default `from` address, passed through to the output and typed there as the literal. Leave it out and the output has no `sender` at all. |
 
 ## Why two different argument types
 

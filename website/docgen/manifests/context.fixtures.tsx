@@ -60,6 +60,19 @@ const premiumNotice = (mg: Ctx) => (
 // #endregion doc:when
 
 //------------------------------------------------------------------------------
+// #region doc:when-optional
+const salutation = (mg: Ctx) => (
+  <div>
+    {mg.when(
+      "nickname",
+      () => <p>Hi {mg.render("nickname")}!</p>,
+      () => <p>Hi there!</p>,
+    )}
+  </div>
+);
+// #endregion doc:when-optional
+
+//------------------------------------------------------------------------------
 // #region doc:unless
 const verifyBanner = (mg: Ctx) => (
   <div>{mg.unless("isVerified", () => <p>Please confirm your address.</p>)}</div>
@@ -139,6 +152,18 @@ export const fixtures: ContextFixture[] = [
       "value is truthy. The `otherwise` branch is optional.",
     sample: { isPremium: true },
     build: premiumNotice,
+  },
+
+  {
+    id: "when-optional",
+    api: "when",
+    title: "Testing whether a string is present",
+    summary:
+      "A string path works too, as a presence test. An omitted " +
+      "`t.optional(t.string())` renders as an empty string, which every engine " +
+      "treats as false. Number paths are rejected: `0` would read as absent.",
+    sample: { nickname: "Al" },
+    build: salutation,
   },
 
   {

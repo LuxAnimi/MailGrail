@@ -50,6 +50,29 @@
       "tsx": "const premiumNotice = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => <p>You have premium access.</p>,\n      () => <p>Upgrade to unlock everything.</p>,\n    )}\n  </div>\n);"
     },
     {
+      "api": "when",
+      "compiled": {
+        "ejs": "<div><% if (nickname) { %><p>Hi <%= nickname %>!</p><% } else { %><p>Hi there!</p><% } %></div>",
+        "handlebars": "<div>{{#if nickname}}<p>Hi {{nickname}}!</p>{{else}}<p>Hi there!</p>{{/if}}</div>",
+        "mustache": "<div>{{#nickname}}<p>Hi {{nickname}}!</p>{{/nickname}}{{^nickname}}<p>Hi there!</p>{{/nickname}}</div>"
+      },
+      "id": "when-optional",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<div><p>Hi Al!</p></div>",
+      "rendered": {
+        "ejs": "<div><p>Hi Al!</p></div>",
+        "handlebars": "<div><p>Hi Al!</p></div>",
+        "mustache": "<div><p>Hi Al!</p></div>"
+      },
+      "sample": {
+        "nickname": "Al"
+      },
+      "summary": "A string path works too, as a presence test. An omitted `t.optional(t.string())` renders as an empty string, which every engine treats as false. Number paths are rejected: `0` would read as absent.",
+      "title": "Testing whether a string is present",
+      "tsx": "const salutation = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"nickname\",\n      () => <p>Hi {mg.render(\"nickname\")}!</p>,\n      () => <p>Hi there!</p>,\n    )}\n  </div>\n);"
+    },
+    {
       "api": "unless",
       "compiled": {
         "ejs": "<div><% if (!(isVerified)) { %><p>Please confirm your address.</p><% } %></div>",

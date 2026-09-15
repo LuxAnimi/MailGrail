@@ -38,7 +38,9 @@ const inferred =
       ? "jsx"
       : path.endsWith(".ts")
         ? "ts"
-        : "js");
+        : path.endsWith(".json")
+          ? "json"
+          : "js");
 ---
 
 <figure class="snip not-content">

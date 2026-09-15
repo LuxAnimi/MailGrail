@@ -117,6 +117,7 @@ function assertEngineInstalled(
 //------------------------------------------------------------------------------
 export async function buildTemplates(config: MailgrailResolvedConfig) {
   await ensureDir(config.outputDir);
+  await writeOutputPackageJson(config);
 
   const engine = resolveEngine(config);
   const spec = ENGINES[engine];
@@ -152,6 +153,34 @@ export async function buildTemplates(config: MailgrailResolvedConfig) {
         "utf8",
       );
     }
+  }
+}
+
+//------------------------------------------------------------------------------
+// A minimal package.json for outputDir, written only when there is none.
+//
+// `"type": "module"` makes the emitted ESM load as ESM whatever the enclosing
+// package declares. The wildcard `exports` is the non-obvious step between a
+// successful build and importing the output as a package of its own. The name
+// that package gets is the project's call, so none is written -- and an
+// existing file is never touched, since a hand-written one is a decision
+// already made. `wx` makes that check and the write a single operation.
+//------------------------------------------------------------------------------
+async function writeOutputPackageJson(config: MailgrailResolvedConfig) {
+  const target = config.typescript
+    ? { types: "./*.d.ts", default: "./*.js" }
+    : "./*.js";
+
+  const pkg = { type: "module", exports: { "./*": target } };
+
+  try {
+    await fs.writeFile(
+      path.join(config.outputDir, "package.json"),
+      JSON.stringify(pkg, null, 2) + "\n",
+      { encoding: "utf8", flag: "wx" },
+    );
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
   }
 }
 
@@ -288,6 +317,13 @@ function emitJs(
 ): string {
   const fnName = `render${pascal(template.name)}`;
 
+  // Left out, rather than emitted as `sender: undefined`, when the template has
+  // none -- so the returned object matches its .d.ts (see emitDts).
+  const sender =
+    template.sender === undefined
+      ? ""
+      : `    sender: ${JSON.stringify(template.sender)},\n`;
+
   // Each template is prepared once, when the module is first imported, rather
   // than on every call. Engines differ in how much that saves -- Handlebars was
   // re-compiling the whole document per render, EJS re-parsing it -- but none of
@@ -310,8 +346,7 @@ export function ${fnName}(input) {
 
   return {
     name: ${JSON.stringify(template.name)},
-    sender: ${JSON.stringify(template.sender)},
-    subject: ${spec.render("renderSubject", "subjectTemplate")},
+${sender}    subject: ${spec.render("renderSubject", "subjectTemplate")},
     text: ${spec.render("renderText", "textTemplate")},
     html: ${spec.render("renderHtml", "htmlTemplate")},
   };

@@ -25,13 +25,24 @@ export type PackageAdditions = {
 // The docs site documents this exact set on its "setting up by hand" page, and
 // reads it from here at docs-generation time -- so a version bump or a new
 // dependency cannot drift away from the page telling people to install it.
-// Keep it a pure function of `ts`: docgen calls it outside any project.
+// Keep it a pure function of its arguments: docgen calls it outside any project.
 //------------------------------------------------------------------------------
-export function packageAdditions(ts: boolean): PackageAdditions {
+export function packageAdditions(
+  ts: boolean,
+  sourceDir: string,
+): PackageAdditions {
   return {
     scripts: {
       "preview-emails": "mailgrail preview",
       "build-emails": "mailgrail build",
+      // mailgrail loads templates through esbuild, which strips types without
+      // checking them, so this is the only thing that ever runs tsc over them.
+      // It uses the tsconfig.json scaffolded into the source directory.
+      ...(ts
+        ? {
+            "typecheck-emails": `tsc -p ${/\s/.test(sourceDir) ? JSON.stringify(sourceDir) : sourceDir}`,
+          }
+        : {}),
     },
 
     // MailGrail's peer dependencies: the user's template files import these
@@ -46,17 +57,21 @@ export function packageAdditions(ts: boolean): PackageAdditions {
 
     devDependencies: {
       "@luxanimi/mailgrail": "latest",
-      ...(ts ? { "@types/react": "^19.0.0" } : {}),
+      ...(ts ? { "@types/react": "^19.0.0", typescript: "^6.0.0" } : {}),
     },
   };
 }
 
 //------------------------------------------------------------------------------
-function updatePackageJson(projectDir: string, ts: boolean): void {
+function updatePackageJson(
+  projectDir: string,
+  ts: boolean,
+  sourceDir: string,
+): void {
   const pkgPath = path.join(projectDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
 
-  const additions = packageAdditions(ts);
+  const additions = packageAdditions(ts, sourceDir);
 
   for (const section of ["scripts", "dependencies", "devDependencies"] as const) {
     const existing = (pkg[section] ??= {});
@@ -71,24 +86,10 @@ function updatePackageJson(projectDir: string, ts: boolean): void {
 }
 
 //------------------------------------------------------------------------------
-// Whether the target project can import the compiled templates directly.
-//
-// `mailgrail build` emits ESM, so a project left on CommonJS -- which is what
-// `npm init -y` produces -- fails with "Cannot use import statement outside a
-// module" the first time it uses the output. The scaffolder reports this rather
-// than fixing it: flipping "type" on a project that already has CommonJS source
-// in it would break that code, and it is not a call a scaffolder can make.
-export function projectIsEsm(projectDir: string): boolean {
-  const pkgPath = path.join(projectDir, "package.json");
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
-  return pkg["type"] === "module";
-}
-
-//------------------------------------------------------------------------------
 export function scaffold(opts: ScaffoldOptions): void {
   const { projectDir } = opts;
 
-  updatePackageJson(projectDir, opts.typescript);
+  updatePackageJson(projectDir, opts.typescript, opts.sourceDir);
 
   const templates = getTemplates(opts);
 

@@ -19,7 +19,12 @@ import type {
 export async function loadMailgrailConfig(
   configPath?: string,
 ): Promise<MailgrailResolvedConfig> {
-  const baseDir = configPath ? path.dirname(configPath) : process.cwd();
+  // Resolved up front: baseDir ends up in createRequire (build-templates.ts),
+  // which rejects a relative path, so `--configPath mailgrail.config.ts` used
+  // to crash the build.
+  const baseDir = configPath
+    ? path.dirname(path.resolve(configPath))
+    : process.cwd();
   const configFile = path.resolve(
     configPath || path.resolve(baseDir, "mailgrail.config.ts"),
   );

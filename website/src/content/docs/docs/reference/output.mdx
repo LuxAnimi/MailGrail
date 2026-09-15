@@ -16,7 +16,8 @@ emails-dist/
 ```
 
 The template file's extension follows `templatingEngine` — `.ejs`, `.hbs` or
-`.mustache`.
+`.mustache`. The first build also writes a [`package.json`](#packagejson) beside
+them.
 
 ## The template file
 
@@ -35,7 +36,7 @@ export type ConfirmEmailParams = {
 
 export declare function renderConfirmEmail(params: ConfirmEmailParams): {
   name: "confirm-email";
-  sender: string;
+  sender: "hello@example.com";
   subject: string;
   text: string;
   html: string;
@@ -45,6 +46,9 @@ export declare function renderConfirmEmail(params: ConfirmEmailParams): {
 Parameters declared with `t.optional` or `t.default` appear here as optional
 properties — `nickname?: string` — so the call site knows exactly what it may
 leave out.
+
+`sender` is the literal address from the template. A template that declares no
+`sender` has none in the type, and none in the returned object either.
 
 ## `.js` — the render function
 
@@ -74,6 +78,33 @@ Two things worth noticing. The only import is your engine — no React, no MJML,
 no bundler, no mailgrail. And the input is normalized before it reaches the
 engine, which is what makes a missing optional render as nothing instead of
 throwing.
+
+## `package.json`
+
+Written into the output directory on the first build, and never again: an
+existing `package.json` there is left exactly as it is, so edit it freely.
+
+```json
+{
+  "type": "module",
+  "exports": {
+    "./*": {
+      "types": "./*.d.ts",
+      "default": "./*.js"
+    }
+  }
+}
+```
+
+`"type": "module"` makes the output load as ESM whatever the surrounding package
+declares. The wildcard `exports` matters once the directory is a package of its
+own — give it a `name`, depend on it as a workspace or `file:` dependency, and
+
+```ts
+import { renderConfirmEmail } from "@acme/emails/confirm-email";
+```
+
+resolves, types included. Relative imports, as below, need none of that.
 
 ## Using it from a backend
 

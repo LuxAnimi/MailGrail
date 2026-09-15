@@ -77,7 +77,7 @@ Every option and its default is in the
 
 ## 4. Create the templates
 
-Four files. The entry point, which MailGrail looks for as `index.ts` in your
+Four files, plus a `tsconfig.json` on a TypeScript project. The entry point, which MailGrail looks for as `index.ts` in your
 source directory:
 
 <ScaffoldFile path="emails-src/index.ts" />
@@ -94,8 +94,14 @@ And the tokens that layout reads:
 
 <ScaffoldFile path="emails-src/components/theme.ts" />
 
+And the config that typechecks them. MailGrail loads templates through esbuild,
+which strips types without checking them, so without this file nothing ever runs
+`tsc` over the directory — including the `typecheck-emails` script from step 2:
+
+<ScaffoldFile path="emails-src/tsconfig.json" />
+
 On a JavaScript project these are the same files with `.js` / `.jsx` extensions
-and no type imports — `mailgrail.config.js`, `emails-src/index.js`,
+and no type imports, and there is no `tsconfig.json` — `mailgrail.config.js`, `emails-src/index.js`,
 `emails-src/WelcomeEmail.jsx`, `emails-src/components/BaseLayout.jsx` and
 `emails-src/components/theme.js`.
 
@@ -110,6 +116,14 @@ You should see **WelcomeEmail** in the sidebar, rendered with placeholder data
 derived from its own schema. If the server starts but the list is empty, the
 entry point in step 4 is not where `sourceDir` points.
 
+On a TypeScript project, also run:
+
+```sh
+npm run typecheck-emails
+```
+
+It should exit without printing anything.
+
 ## Parity checklist
 
 Everything `npm create @luxanimi/mailgrail` does, and the step that covers it:
@@ -117,10 +131,10 @@ Everything `npm create @luxanimi/mailgrail` does, and the step that covers it:
 | The scaffolder | Covered by |
 |---|---|
 | Adds `@faire/mjml-react`, `react`, `ejs` to `dependencies` | Step 1 |
-| Adds `@luxanimi/mailgrail` and `@types/react` to `devDependencies` | Step 1 |
-| Adds the `preview-emails` and `build-emails` scripts | Step 2 |
+| Adds `@luxanimi/mailgrail`, `@types/react` and `typescript` to `devDependencies` | Step 1 |
+| Adds the `preview-emails`, `build-emails` and `typecheck-emails` scripts | Step 2 |
 | Writes `mailgrail.config.ts` | Step 3 |
-| Scaffolds the four template files | Step 4 |
+| Scaffolds the four template files and `tsconfig.json` | Step 4 |
 | Runs your package manager's install | Step 1 |
 | **Touches `.gitignore`** | **Nothing — it does not, and neither does this page** |
 

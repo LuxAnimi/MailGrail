@@ -71,7 +71,7 @@
     ],
     "template": "welcome"
   },
-  "dts": "export type OrderConfirmationParams = {\n  orderNumber: string;\n  items: {\n    name: string;\n    quantity: number;\n    price: number;\n  }[];\n  couponCode?: string;\n  total: number;\n};\n\nexport declare function renderOrderConfirmation(\n  params: OrderConfirmationParams\n): {\n  name: \"order-confirmation\";\n  subject: string;\n  sender: string;\n  html: string;\n  text: string;\n};",
+  "dts": "export type OrderConfirmationParams = {\n  orderNumber: string;\n  items: {\n    name: string;\n    quantity: number;\n    price: number;\n  }[];\n  couponCode?: string;\n  total: number;\n};\n\nexport declare function renderOrderConfirmation(\n  params: OrderConfirmationParams\n): {\n  name: \"order-confirmation\";\n  subject: string;\n  sender: \"orders@mailgrail.com\";\n  html: string;\n  text: string;\n};",
   "exported": [
     "export function renderOrderConfirmation(input)"
   ],
@@ -80,6 +80,9 @@
       "order-confirmation.d.ts",
       "order-confirmation.ejs",
       "order-confirmation.js"
+    ],
+    "package.json": [
+      "package.json"
     ],
     "team-invite": [
       "team-invite.d.ts",

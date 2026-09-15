@@ -84,7 +84,7 @@ export async function emitConfig({ repo, out, check, lib }) {
 
   const d2 = emitJson(
     path.join(out, "engines.json"),
-    { engines, node: pkg.engines?.node ?? null, version: pkg.version },
+    { engines, node: pkg.engines?.node ?? null },
     { check },
   );
   if (d2) diffs.push({ file: "engines.json", diff: d2 });

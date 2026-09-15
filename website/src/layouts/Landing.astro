@@ -2,6 +2,7 @@
 import { href } from "../lib/href";
 import Mark from "../components/landing/Mark.astro";
 import meta from "../generated/meta.json";
+import { version } from "../lib/version";
 
 interface Props {
   title: string;
@@ -67,7 +68,7 @@ const docsHref = href("/docs/getting-started/introduction");
           <div>
             <p class="foot__name">MailGrail</p>
             <p class="foot__meta mg-tabular">
-              v{meta.version} · {meta.license} · Node {meta.node}
+              v{version} · {meta.license} · Node {meta.node}
             </p>
           </div>
         </div>

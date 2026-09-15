@@ -1,6 +1,6 @@
 import { intro, outro, spinner, cancel, note } from "@clack/prompts";
 import { collectPrompts } from "./prompts.js";
-import { scaffold, projectIsEsm } from "./scaffold.js";
+import { scaffold } from "./scaffold.js";
 import { install, detectPackageManager } from "./install.js";
 import { printHandoff } from "./handoff.js";
 
@@ -65,27 +65,15 @@ async function main() {
   const nextSteps = [
     `  ${run} preview-emails    — start the live preview server`,
     `  ${run} build-emails      — ${built}`,
+    ...(options.typescript
+      ? [`  ${run} typecheck-emails  — typecheck the templates`]
+      : []),
     "",
     `  Templates:  ${options.sourceDir}/`,
     `  Output:     ${options.outputDir}/`,
   ].join("\n");
 
   note(nextSteps, "Next steps");
-
-  if (!projectIsEsm(options.projectDir)) {
-    note(
-      [
-        '  Your package.json has no "type": "module", and the compiled',
-        "  templates are ESM. Importing them from CommonJS fails with",
-        '  "Cannot use import statement outside a module".',
-        "",
-        '  Set "type": "module", or reach the output with a dynamic',
-        "  import(). Nothing here changed it for you \u2014 flipping it can",
-        "  break existing CommonJS code.",
-      ].join("\n"),
-      "One thing to know",
-    );
-  }
 
   printHandoff();
   outro("Happy emailing!");

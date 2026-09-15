@@ -24,6 +24,5 @@
   "setup": {
     "command": "npm create @luxanimi/mailgrail",
     "name": "@luxanimi/create-mailgrail"
-  },
-  "version": "0.1.0"
+  }
 }

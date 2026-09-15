@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-15
+
+### Added
+
+- `mailgrail build` writes a minimal `package.json` (`"type": "module"` and
+  wildcard `exports`) into `outputDir` when there is none. An existing one is
+  never modified. This also lets a `"type": "commonjs"` project `require()` the
+  output
+- `mg.when` / `mg.unless` accept string paths as a presence test: an omitted
+  `t.optional(t.string())` is empty, so it is false. Number paths are still
+  rejected, since `0` would read as absent
+- create-mailgrail: TypeScript projects get `<sourceDir>/tsconfig.json`, a
+  `typecheck-emails` script and a `typescript` devDependency, so the scaffolded
+  templates are actually typechecked
+
+### Removed
+
+- create-mailgrail no longer warns that a CommonJS project cannot import the
+  output: the emitted `package.json` makes that work
+
+### Fixed
+
+- `mg.render` is typed `string` rather than `ReactNode`, so
+  `href={mg.render("url")}` compiles under `strict`
+- The emitted `.d.ts` types `sender` as the template's literal address. A
+  template without a `sender` no longer returns `sender: undefined` behind a
+  `string` type -- the key is absent from both
+- A relative `--configPath` no longer crashes `mailgrail build` and
+  `mailgrail preview`
+
 ## [0.1.0] - 2026-09-09
 
 ### Added
@@ -70,5 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/LuxAnimi/MailGrail/releases/tag/v0.1.0

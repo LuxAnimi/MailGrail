@@ -86,7 +86,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
         </ul>
       </Text>
 
-      <Button href={mg.render("inviteUrl") as unknown as string} target="_blank" rel="noreferrer">
+      <Button href={mg.render("inviteUrl")} target="_blank" rel="noreferrer">
         Accept Invitation
       </Button>
 

@@ -72,7 +72,10 @@ type PathValue<T, P extends string, D extends Depth = 4> =
 
 //------------------------------------------------------------------------------
 type Renderable = string | number | boolean | null | undefined | Date;
-type Boolish = boolean | null | undefined;
+// What `when` / `unless` may test. Every engine checks truthiness, and an
+// omitted optional is normalized to "", so a string doubles as a presence
+// test. Numbers stay out on purpose: `when("count")` would read 0 as absent.
+type Conditionable = boolean | string | null | undefined;
 type IsScopeable<V> = V extends Primitive
   ? false
   : V extends Date
@@ -98,10 +101,10 @@ type RenderablePath<T, D extends Depth = 4> =
       : never
     : never;
 
-type BooleanPath<T, D extends Depth = 4> =
+type ConditionPath<T, D extends Depth = 4> =
   RootPath<T, D> extends infer P
     ? P extends string
-      ? KeepIf<T, P, D, Boolish>
+      ? KeepIf<T, P, D, Conditionable>
       : never
     : never;
 
@@ -144,16 +147,16 @@ type RenderCap<T, R, D extends Depth> = {
 };
 
 //------------------------------------------------------------------------------
-type WhenCap<T, D extends Depth> = [BooleanPath<T, D>] extends [never]
+type WhenCap<T, D extends Depth> = [ConditionPath<T, D>] extends [never]
   ? unknown
   : {
-      when: <P extends BooleanPath<T, D>>(
+      when: <P extends ConditionPath<T, D>>(
         path: P,
         render: () => ReactNode,
         otherwise?: () => ReactNode,
       ) => ReactNode;
 
-      unless: <P extends BooleanPath<T, D>>(
+      unless: <P extends ConditionPath<T, D>>(
         path: P,
         render: () => ReactNode,
         otherwise?: () => ReactNode,
@@ -204,9 +207,12 @@ export type TemplateContext<T, R, D extends Depth = 4> = RenderCap<T, R, D> &
   WithCap<T, R, D>;
 
 //------------------------------------------------------------------------------
+// `render` returns the placeholder string the engine substitutes later, so it
+// is typed as exactly that. A string is still a valid ReactNode for children,
+// and unlike ReactNode it also fits string props such as `href`.
 export type RenderTemplateContext<T, D extends Depth = 4> = TemplateContext<
   T,
-  ReactNode,
+  string,
   D
 >;
 //------------------------------------------------------------------------------
@@ -217,7 +223,7 @@ export type HtmlTemplateContext<T, D extends Depth = 4> = RenderTemplateContext<
 //------------------------------------------------------------------------------
 export type PreviewTemplateContext<T, D extends Depth = 4> = TemplateContext<
   T,
-  ReactNode,
+  string,
   D
 >;
 

@@ -175,9 +175,12 @@ Installing and building are different phases. This belongs to the second one.
 Handlebars, or Mustache) at runtime, so it belongs in `dependencies`, not
 `devDependencies`. MailGrail, React and MJML can all stay dev-only.
 
-**The output is ESM.** The generated `.js` uses `import` and `export`, so a
-CommonJS backend cannot `require()` it. Either set `"type": "module"` in the
-package that imports it, or reach it with a dynamic `import()`.
+**The output is ESM, and says so.** The generated `.js` uses `import` and
+`export`, and the `package.json` that `mailgrail build` writes into the output
+directory marks it as a module — so it loads as ESM even inside a
+`"type": "commonjs"` package, and on the Node versions MailGrail supports a
+CommonJS backend can `require()` it directly. If you replace that
+`package.json` with your own, keep `"type": "module"` in it.
 
 **The `.ejs` file does not need to ship.** The generated `.js` inlines its own
 template; the standalone template file is there for reading and debugging.

@@ -33,7 +33,7 @@ export async function emitScaffold({ repo, out, check }) {
   const scaffold = await loadManifest(path.join(repo, PKG, "src/scaffold.ts"));
 
   const files = templates.getTemplates(DOCUMENTED);
-  const additions = scaffold.packageAdditions(DOCUMENTED.typescript);
+  const additions = scaffold.packageAdditions(DOCUMENTED.typescript, DOCUMENTED.sourceDir);
 
   // The JavaScript variant differs in more than the extension -- index and the
   // template lose their type imports -- so capture the filenames for it too.
@@ -62,6 +62,7 @@ export async function emitScaffold({ repo, out, check }) {
         `${DOCUMENTED.sourceDir}/WelcomeEmail.tsx`,
         `${DOCUMENTED.sourceDir}/components/BaseLayout.tsx`,
         `${DOCUMENTED.sourceDir}/components/theme.ts`,
+        `${DOCUMENTED.sourceDir}/tsconfig.json`,
       ],
     ),
   );

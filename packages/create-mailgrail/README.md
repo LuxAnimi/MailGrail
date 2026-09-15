@@ -26,8 +26,9 @@ It runs **inside an existing project** and will not create one: if there is no
 ## What it does
 
 - Adds `@faire/mjml-react`, `react` and `ejs` to `dependencies`, and `@luxanimi/mailgrail`
-  (plus `@types/react` on a TypeScript project) to `devDependencies`
-- Adds two scripts — `preview-emails` and `build-emails`
+  (plus `@types/react` and `typescript` on a TypeScript project) to `devDependencies`
+- Adds two scripts — `preview-emails` and `build-emails` — and, on a TypeScript
+  project, `typecheck-emails`
 - Writes a `mailgrail.config.ts`
 - Scaffolds a starter template with a layout and a theme you can edit:
 
@@ -38,6 +39,7 @@ emails-src/
   components/
     BaseLayout.tsx
     theme.ts
+  tsconfig.json     # TypeScript projects only; used by typecheck-emails
 ```
 
 - Installs dependencies with whichever package manager you invoked it through

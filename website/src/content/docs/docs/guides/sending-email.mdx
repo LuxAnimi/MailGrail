@@ -110,7 +110,7 @@ a rendered email and a recipient:
 
 ```ts
 type Rendered = {
-  sender: string;
+  sender?: string; // absent when the template declares none
   subject: string;
   text: string;
   html: string;

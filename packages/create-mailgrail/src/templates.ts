@@ -1,3 +1,4 @@
+import path from "path";
 import type { ScaffoldOptions } from "./prompts.js";
 
 //------------------------------------------------------------------------------
@@ -239,6 +240,36 @@ export const spacing = {
   xl: 48,
 };
 `;
+
+  // tsconfig -- TypeScript projects only
+  //
+  // mailgrail loads templates through esbuild, which strips types without
+  // checking them, so nothing else ever runs tsc over this directory. It lives
+  // in the source directory rather than the project root so it can never
+  // collide with an existing tsconfig.json, and editors apply it to these files
+  // because it is the nearest one. "Bundler" resolution models esbuild, which
+  // is what actually resolves these imports.
+  if (ts) {
+    const config = path.posix.relative(sourceDir, `mailgrail.config.${ext}`);
+    files[`${sourceDir}/tsconfig.json`] =
+      JSON.stringify(
+        {
+          compilerOptions: {
+            target: "ES2022",
+            module: "ESNext",
+            moduleResolution: "Bundler",
+            jsx: "react-jsx",
+            strict: true,
+            isolatedModules: true,
+            skipLibCheck: true,
+            noEmit: true,
+          },
+          include: ["**/*.ts", "**/*.tsx", config],
+        },
+        null,
+        2,
+      ) + "\n";
+  }
 
   return files;
 }

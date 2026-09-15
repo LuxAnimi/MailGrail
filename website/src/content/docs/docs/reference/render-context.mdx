@@ -28,7 +28,7 @@ so these pages are also an integration test.
 :::tip[Paths are typed]
 Every path argument is checked against your schema. TypeScript errors on a path
 that does not exist, and on the wrong method for a type — `mg.each` on a
-non-array, `mg.when` on a non-boolean.
+non-array, `mg.when` on a number.
 :::
 
 ## `mg.render(path)`
@@ -38,6 +38,8 @@ non-array, `mg.when` on a non-boolean.
 ## `mg.when(path, render, otherwise?)`
 
 <LiveProof id="when" />
+
+<LiveProof id="when-optional" />
 
 ## `mg.unless(path, render, otherwise?)`
 

@@ -1,7 +1,10 @@
 //------------------------------------------------------------------------------
-// Package facts the site quotes: version, supported Node, repository links,
-// and the install commands. Read from package.json so a release cannot leave
-// the site advertising an old version.
+// Package facts the site quotes: supported Node, repository links, and the
+// install commands. Read from package.json so the site cannot drift from it.
+//
+// The version is not here. It changes on every release, so a committed copy
+// failed `--check` after each `npm version`; the site reads it straight from
+// package.json instead (website/src/lib/version.ts).
 //------------------------------------------------------------------------------
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -35,7 +38,6 @@ export async function emitMeta({ repo, out, check }) {
 
   const meta = {
     name: pkg.name,
-    version: pkg.version,
     description: pkg.description,
     license: pkg.license,
     author: typeof pkg.author === "string" ? pkg.author : (pkg.author?.name ?? null),

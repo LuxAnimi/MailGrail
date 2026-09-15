@@ -121,15 +121,18 @@ const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
           <MjmlText>
             [{mg.render("username")}][{mg.render("nickname")}][{mg.render("team")}][{mg.render("role")}]
           </MjmlText>
+          {mg.when("nickname", () => (
+            <MjmlText>has-nickname</MjmlText>
+          ))}
         </MjmlColumn>
       </MjmlSection>
     </MjmlBody>
   </Mjml>
 );
 
+// No sender: the emitted type and the module must both leave it out.
 export const OptionsEmail: TemplateDefinition<typeof paramsSchema> = {
   name: "options-email",
-  sender: "hello@example.com",
   params: paramsSchema,
   htmlTemplate,
   subjectTemplate: (params: Params) => \`Hi \${params.username}\`,
@@ -156,8 +159,10 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     projectDir = tmp;
 
     // Pack the real thing. `npm pack` does not re-trigger prepublishOnly.
-    const packed = JSON.parse(npm(["pack", "--json", "--pack-destination", tmp], repoRoot));
-    const tarball = path.join(tmp, packed[0].filename);
+    npm(["pack", "--pack-destination", tmp], repoRoot);
+    const tarballs = fs.readdirSync(tmp).filter((f) => f.endsWith(".tgz"));
+    assert.equal(tarballs.length, 1, `expected one tarball in ${tmp}, found: [${tarballs.join(", ")}]`);
+    const tarball = path.join(tmp, tarballs[0]);
 
     fs.writeFileSync(
       path.join(tmp, "package.json"),
@@ -180,6 +185,47 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     for (const f of ["welcome-email.ejs", "welcome-email.js", "welcome-email.d.ts"]) {
       assert.ok(fs.existsSync(path.join(out, f)), `missing ${f}`);
     }
+  });
+
+  // Regression guard: a relative --configPath reached createRequire as a
+  // relative path, which it rejects, so the build crashed before compiling.
+  test("`--configPath` accepts a relative path", () => {
+    fs.rmSync(path.join(projectDir, OUTPUT_DIR, "welcome-email.js"));
+    npm(["exec", "--", "mailgrail", "build", "--configPath", "mailgrail.config.ts"], projectDir);
+    assert.ok(fs.existsSync(path.join(projectDir, OUTPUT_DIR, "welcome-email.js")));
+  });
+
+  test("outputDir gets a package.json, and a hand-written one is kept", () => {
+    const pkgPath = path.join(projectDir, OUTPUT_DIR, "package.json");
+    const emitted = fs.readFileSync(pkgPath, "utf8");
+    const pkg = JSON.parse(emitted);
+
+    assert.equal(pkg.type, "module");
+    assert.deepEqual(pkg.exports["./*"], { types: "./*.d.ts", default: "./*.js" });
+
+    const handWritten = JSON.stringify({ name: "@acme/emails", type: "module" });
+    fs.writeFileSync(pkgPath, handWritten);
+    try {
+      npm(["exec", "--", "mailgrail", "build"], projectDir);
+      assert.equal(fs.readFileSync(pkgPath, "utf8"), handWritten);
+    } finally {
+      fs.writeFileSync(pkgPath, emitted);
+    }
+  });
+
+  // Regression guard: the .d.ts always declared `sender: string`, while a
+  // template without one returned `sender: undefined` at runtime.
+  test("sender is typed as what the module actually returns", async () => {
+    const out = path.join(projectDir, OUTPUT_DIR);
+
+    const welcome = fs.readFileSync(path.join(out, "welcome-email.d.ts"), "utf8");
+    assert.match(welcome, /sender: "hello@example\.com";/);
+
+    const options = fs.readFileSync(path.join(out, "options-email.d.ts"), "utf8");
+    assert.doesNotMatch(options, /sender/);
+
+    const mod = await import(pathToFileURL(path.join(out, "options-email.js")).href);
+    assert.ok(!("sender" in mod.renderOptionsEmail({ username: "Alice" })));
   });
 
   test("no temp codegen file is left in the source directory", () => {
@@ -250,6 +296,46 @@ export const conf = defineConfig({ sourceDir: "templates" });
 `,
     );
 
+    // Strict-mode regressions a consumer hits while writing a template, not
+    // while importing one. A plain <a> rather than an MJML component, so the
+    // check does not also depend on @faire/mjml-react's own declarations.
+    fs.writeFileSync(
+      path.join(projectDir, "consumer-template.tsx"),
+      `import type { ReactElement } from "react";
+import { t, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
+import { renderWelcomeEmail } from "./${OUTPUT_DIR}/welcome-email.js";
+import { renderOptionsEmail } from "./${OUTPUT_DIR}/options-email.js";
+
+const schema = t.object({
+  url: t.string(),
+  nickname: t.optional(t.string()),
+  count: t.number(),
+  links: t.array(t.string()),
+});
+type P = Infer<typeof schema>;
+
+export const template = (mg: RenderTemplateContext<P>): ReactElement => (
+  <div>
+    <a href={mg.render("url")}>render fits a string attribute</a>
+    {mg.each("links", (link) => <a href={link.render()}>so does an item</a>)}
+    {mg.when("nickname", () => <p>Hi {mg.render("nickname")}</p>)}
+    {/* @ts-expect-error -- a number is not a condition: 0 would read as absent */}
+    {mg.when("count", () => <p>never</p>)}
+  </div>
+);
+
+export const sender: "hello@example.com" = renderWelcomeEmail({
+  username: "a",
+  isAdmin: false,
+  items: [],
+}).sender;
+
+// @ts-expect-error -- options-email declares no sender, and returns none
+renderOptionsEmail({ username: "a" }).sender;
+`,
+    );
+
     fs.writeFileSync(
       path.join(projectDir, "tsconfig.json"),
       JSON.stringify(
@@ -263,7 +349,7 @@ export const conf = defineConfig({ sourceDir: "templates" });
             noEmit: true,
             skipLibCheck: false,
           },
-          include: ["consumer.ts", `${OUTPUT_DIR}/**/*.d.ts`],
+          include: ["consumer.ts", "consumer-template.tsx", `${OUTPUT_DIR}/**/*.d.ts`],
         },
         null,
         2,
@@ -320,6 +406,10 @@ export const conf = defineConfig({ sourceDir: "templates" });
       team: "no team", // default(optional(...)) composes to the same thing
       role: "user", // default supplies its value
     });
+
+    // `when` on an optional string is a presence test
+    assert.match(mod.renderOptionsEmail({ username: "Alice", nickname: "Al" }).html, /has-nickname/);
+    assert.doesNotMatch(mod.renderOptionsEmail({ username: "Alice" }).html, /has-nickname/);
   });
 
   // Templating engines are optional peer dependencies, resolved from the

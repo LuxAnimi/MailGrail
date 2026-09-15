@@ -94,6 +94,14 @@ export function emitDts(template: TemplateDefinition<any>): string {
   const fnName = `render${pascal(template.name)}`;
   const paramsType = emitObjectType(template.params);
 
+  // The sender is fixed at build time, so type it as the literal. A template
+  // without one gets no `sender` key at all -- matching the emitted module,
+  // which leaves it out rather than returning undefined behind a `string`.
+  const sender =
+    template.sender === undefined
+      ? ""
+      : `  sender: ${JSON.stringify(template.sender)};\n`;
+
   return `
 export type ${typeName} = ${paramsType};
 
@@ -102,8 +110,7 @@ export declare function ${fnName}(
 ): {
   name: "${template.name}";
   subject: string;
-  sender: string;
-  html: string;
+${sender}  html: string;
   text: string;
 };
 `.trimStart();
