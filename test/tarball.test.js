@@ -1,177 +1,24 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-//------------------------------------------------------------------------------
-// Packs the real tarball and installs it into a throwaway project.
-//
-// This is the only place the install-shaped failures are visible: running from
-// the repo hides missing runtime dependencies, unresolvable published `.d.ts`
-// specifiers, and anything that assumes a default `sourceDir`.
-//
-// Set MAILGRAIL_SKIP_TARBALL_TEST=1 to skip (it runs a real `npm install`).
-//------------------------------------------------------------------------------
-const SKIP = process.env.MAILGRAIL_SKIP_TARBALL_TEST === "1";
-const repoRoot = path.resolve(import.meta.dirname, "..");
-
-// A deliberately non-default source directory: `templates`, not `emails`.
-const SOURCE_DIR = "templates";
-const OUTPUT_DIR = "out";
+import {
+  OUTPUT_DIR,
+  SKIP,
+  SOURCE_DIR,
+  createFixtureProject,
+  npm,
+  writeFixture,
+} from "./helpers/tarball-project.js";
 
 let projectDir;
 
-// `npm publish --dry-run` exports its own flags to lifecycle scripts as
-// npm_config_*, so the `npm pack` below inherits dry-run: it still reports a
-// filename in its JSON but writes no tarball, and the install then fails on a
-// file that never existed. Standalone `npm test` is unaffected, which is what
-// makes it confusing -- the suite only breaks when run through a publish, which
-// is precisely when you are relying on it.
-const npm = (args, cwd) => {
-  const env = { ...process.env };
-  delete env["npm_config_dry_run"];
-  return execFileSync("npm", args, { cwd, encoding: "utf8", stdio: "pipe", env });
-};
-
-function writeFixture(dir, engine) {
-  fs.mkdirSync(path.join(dir, SOURCE_DIR), { recursive: true });
-
-  fs.writeFileSync(
-    path.join(dir, "mailgrail.config.ts"),
-    `import { defineConfig } from "@luxanimi/mailgrail";
-
-export default defineConfig({
-  sourceDir: ${JSON.stringify(SOURCE_DIR)},
-  outputDir: ${JSON.stringify(OUTPUT_DIR)},
-  templatingEngine: ${JSON.stringify(engine)},
-  previewPort: 7913,
-});
-`,
-  );
-
-  fs.writeFileSync(
-    path.join(dir, SOURCE_DIR, "WelcomeEmail.tsx"),
-    `import type { ReactElement } from "react";
-import { Mjml, MjmlBody, MjmlSection, MjmlColumn, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
-import type { Infer } from "@luxanimi/mailgrail/dsl";
-
-const paramsSchema = t.object({
-  username: t.string(),
-  isAdmin: t.boolean(),
-  items: t.array(t.object({ name: t.string() })),
-});
-
-type Params = Infer<typeof paramsSchema>;
-
-const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
-  <Mjml>
-    <MjmlBody>
-      <MjmlSection>
-        <MjmlColumn>
-          <MjmlText>Welcome, {mg.render("username")}!</MjmlText>
-          {mg.when("isAdmin", () => (
-            <MjmlText>You are an admin</MjmlText>
-          ))}
-          {mg.each("items", (item) => (
-            <MjmlText>{item.render("name")}</MjmlText>
-          ))}
-        </MjmlColumn>
-      </MjmlSection>
-    </MjmlBody>
-  </Mjml>
-);
-
-export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
-  name: "welcome-email",
-  sender: "hello@example.com",
-  params: paramsSchema,
-  htmlTemplate,
-  subjectTemplate: (params: Params) => \`Welcome, \${params.username}!\`,
-  textTemplate: (params: Params) => \`Welcome, \${params.username}!\`,
-};
-`,
-  );
-
-  fs.writeFileSync(
-    path.join(dir, SOURCE_DIR, "OptionsEmail.tsx"),
-    `import type { ReactElement } from "react";
-import { Mjml, MjmlBody, MjmlSection, MjmlColumn, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
-import type { Infer } from "@luxanimi/mailgrail/dsl";
-
-const paramsSchema = t.object({
-  username: t.string(),
-  nickname: t.optional(t.string()),
-  role: t.default(t.string(), "user"),
-  // the nested spelling must stay equivalent to the flat one
-  team: t.default(t.optional(t.string()), "no team"),
-});
-
-type Params = Infer<typeof paramsSchema>;
-
-const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
-  <Mjml>
-    <MjmlBody>
-      <MjmlSection>
-        <MjmlColumn>
-          <MjmlText>
-            [{mg.render("username")}][{mg.render("nickname")}][{mg.render("team")}][{mg.render("role")}]
-          </MjmlText>
-          {mg.when("nickname", () => (
-            <MjmlText>has-nickname</MjmlText>
-          ))}
-        </MjmlColumn>
-      </MjmlSection>
-    </MjmlBody>
-  </Mjml>
-);
-
-// No sender: the emitted type and the module must both leave it out.
-export const OptionsEmail: TemplateDefinition<typeof paramsSchema> = {
-  name: "options-email",
-  params: paramsSchema,
-  htmlTemplate,
-  subjectTemplate: (params: Params) => \`Hi \${params.username}\`,
-  textTemplate: (params: Params) => \`Hi \${params.username}\`,
-};
-`,
-  );
-
-  fs.writeFileSync(
-    path.join(dir, SOURCE_DIR, "index.ts"),
-    `import type { TemplateDefinition } from "@luxanimi/mailgrail";
-import type { Schema } from "@luxanimi/mailgrail/dsl";
-import { WelcomeEmail } from "./WelcomeEmail";
-import { OptionsEmail } from "./OptionsEmail";
-
-export const templates: TemplateDefinition<Schema<any>>[] = [WelcomeEmail, OptionsEmail];
-`,
-  );
-}
-
 describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
   before(() => {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "mailgrail-smoke-"));
-    projectDir = tmp;
-
-    // Pack the real thing. `npm pack` does not re-trigger prepublishOnly.
-    npm(["pack", "--pack-destination", tmp], repoRoot);
-    const tarballs = fs.readdirSync(tmp).filter((f) => f.endsWith(".tgz"));
-    assert.equal(tarballs.length, 1, `expected one tarball in ${tmp}, found: [${tarballs.join(", ")}]`);
-    const tarball = path.join(tmp, tarballs[0]);
-
-    fs.writeFileSync(
-      path.join(tmp, "package.json"),
-      JSON.stringify({ name: "smoke-fixture", version: "1.0.0", private: true, type: "module" }, null, 2),
-    );
-
-    writeFixture(tmp, "EJS");
-
-    npm(["install", tarball, "@faire/mjml-react@^4.0.0", "react@^19", "ejs@^5", "typescript@^6", "@types/react@^19"], tmp);
+    projectDir = createFixtureProject();
   });
 
   after(() => {
@@ -201,6 +48,7 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     const pkg = JSON.parse(emitted);
 
     assert.equal(pkg.type, "module");
+    assert.deepEqual(pkg.exports["."], { types: "./index.d.ts", default: "./index.js" });
     assert.deepEqual(pkg.exports["./*"], { types: "./*.d.ts", default: "./*.js" });
 
     const handWritten = JSON.stringify({ name: "@acme/emails", type: "module" });
@@ -228,6 +76,115 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     assert.ok(!("sender" in mod.renderOptionsEmail({ username: "Alice" })));
   });
 
+  // 0.2.0: subject and text compile through the render context, so a branch is
+  // part of the emitted template rather than a decision made once at build
+  // time. Before, both received placeholder strings and every branch was taken.
+  test("subject and text compile branches and loops, not build-time results", async () => {
+    const mod = await import(
+      pathToFileURL(path.join(projectDir, OUTPUT_DIR, "welcome-email.js")).href
+    );
+
+    const admin = mod.renderWelcomeEmail({
+      username: "Alice",
+      isAdmin: true,
+      items: [{ name: "Widget" }, { name: "Gadget" }],
+    });
+    const plain = mod.renderWelcomeEmail({
+      username: "Bob",
+      isAdmin: false,
+      items: [],
+    });
+
+    // One compiled template, two different emails.
+    assert.match(admin.text, /You are an admin\./);
+    assert.doesNotMatch(plain.text, /You are an admin\./);
+    assert.match(admin.text, /- Widget\n?- Gadget|- Widget[\s\S]*- Gadget/);
+    assert.doesNotMatch(plain.text, /- /);
+    assert.equal(plain.subject, "Welcome, Bob!");
+
+    // And the template itself is engine syntax, not a rendered value.
+    const source = fs.readFileSync(
+      path.join(projectDir, OUTPUT_DIR, "welcome-email.js"),
+      "utf8",
+    );
+    assert.match(source, /const textTemplate = ".*<% if \(isAdmin\)/);
+  });
+
+  test("the generated index re-exports every template and a typed map", async () => {
+    const out = path.join(projectDir, OUTPUT_DIR);
+
+    const mod = await import(pathToFileURL(path.join(out, "index.js")).href);
+
+    assert.equal(typeof mod.renderWelcomeEmail, "function");
+    assert.equal(typeof mod.renderOptionsEmail, "function");
+    assert.deepEqual(Object.keys(mod.templates), ["welcome-email", "options-email"]);
+    assert.equal(mod.templates["welcome-email"], mod.renderWelcomeEmail);
+    assert.ok(Object.isFrozen(mod.templates));
+
+    const dts = fs.readFileSync(path.join(out, "index.d.ts"), "utf8");
+    assert.match(dts, /readonly "welcome-email": typeof renderWelcomeEmail;/);
+    assert.match(dts, /export type TemplateName = keyof typeof templates;/);
+  });
+
+  // The naming rule is mailgrail's, so a name it cannot express has to fail
+  // here rather than emit two templates into one file.
+  test("template names that collide fail the build", () => {
+    const indexFile = path.join(projectDir, SOURCE_DIR, "index.ts");
+    const original = fs.readFileSync(indexFile, "utf8");
+    const extra = path.join(projectDir, SOURCE_DIR, "Collide.tsx");
+
+    fs.writeFileSync(
+      extra,
+      `import type { ReactElement } from "react";
+import { Mjml, MjmlBody, MjmlSection, MjmlColumn, MjmlText } from "@faire/mjml-react";
+import { t, type TemplateDefinition, type RenderTemplateContext, type TextTemplateContext } from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
+
+const paramsSchema = t.object({ username: t.string() });
+type Params = Infer<typeof paramsSchema>;
+
+// "welcomeEmail" and "welcome-email" both compile to renderWelcomeEmail.
+export const Collide: TemplateDefinition<typeof paramsSchema> = {
+  name: "welcomeEmail",
+  params: paramsSchema,
+  htmlTemplate: (mg: RenderTemplateContext<Params>): ReactElement => (
+    <Mjml><MjmlBody><MjmlSection><MjmlColumn><MjmlText>{mg.render("username")}</MjmlText></MjmlColumn></MjmlSection></MjmlBody></Mjml>
+  ),
+  subjectTemplate: (mg: TextTemplateContext<Params>) => mg.render("username"),
+  textTemplate: (mg: TextTemplateContext<Params>) => mg.render("username"),
+};
+`,
+    );
+
+    fs.writeFileSync(
+      indexFile,
+      original
+        .replace(
+          'import { OptionsEmail } from "./OptionsEmail";',
+          'import { OptionsEmail } from "./OptionsEmail";\nimport { Collide } from "./Collide";',
+        )
+        .replace("[WelcomeEmail, OptionsEmail]", "[WelcomeEmail, OptionsEmail, Collide]"),
+    );
+
+    try {
+      let failed = false;
+      let output = "";
+
+      try {
+        npm(["exec", "--", "mailgrail", "build"], projectDir);
+      } catch (err) {
+        failed = true;
+        output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+      }
+
+      assert.ok(failed, "build should fail on colliding template names");
+      assert.match(output, /both compile to `renderWelcomeEmail`/);
+    } finally {
+      fs.writeFileSync(indexFile, original);
+      fs.rmSync(extra, { force: true });
+    }
+  });
+
   test("no temp codegen file is left in the source directory", () => {
     const stray = fs
       .readdirSync(path.join(projectDir, SOURCE_DIR))
@@ -250,6 +207,13 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     assert.equal(email.sender, "hello@example.com");
     assert.equal(email.subject, "Welcome, Alice!");
     assert.match(email.html, /Alice/);
+
+    // The text body branches and iterates through the context, so what ships
+    // is a template the engine fills in per email -- not a decision made once
+    // at build time.
+    assert.match(email.text, /Welcome, Alice! You are an admin\./);
+    assert.match(email.text, /- Widget/);
+    assert.match(email.text, /- Gadget/);
     // the array-of-objects path must address the field, not the whole item
     assert.match(email.html, /Widget/);
     assert.match(email.html, /Gadget/);
@@ -282,6 +246,116 @@ describe("published tarball", { skip: SKIP, timeout: 600_000 }, () => {
     assert.match(dts, /team\?: string;/); // default(optional(...)) composes
   });
 
+  test("`moduleFormat: cjs` emits CommonJS a backend can require()", () => {
+    const config = path.join(projectDir, "mailgrail.config.ts");
+    const original = fs.readFileSync(config, "utf8");
+    const cjsDir = "out-cjs";
+
+    const withCjs = original
+      .replace(/outputDir: "[^"]*"/, `outputDir: "${cjsDir}"`)
+      .replace("});", '  moduleFormat: "cjs",\n});');
+
+    try {
+      fs.writeFileSync(config, withCjs);
+      npm(["exec", "--", "mailgrail", "build"], projectDir);
+
+      const out = path.join(projectDir, cjsDir);
+      const pkg = JSON.parse(fs.readFileSync(path.join(out, "package.json"), "utf8"));
+      assert.equal(pkg.type, "commonjs");
+
+      const js = fs.readFileSync(path.join(out, "welcome-email.js"), "utf8");
+      assert.match(js, /const ejs = require\("ejs"\);/);
+      assert.match(js, /exports\.renderWelcomeEmail = renderWelcomeEmail;/);
+
+      fs.writeFileSync(
+        path.join(projectDir, "cjs-consumer.cjs"),
+        `const { templates, renderWelcomeEmail } = require("./${cjsDir}/index.js");
+const email = renderWelcomeEmail({ username: "Alice", isAdmin: false, items: [] });
+if (email.subject !== "Welcome, Alice!") throw new Error("subject: " + email.subject);
+if (typeof templates["welcome-email"] !== "function") throw new Error("no map entry");
+`,
+      );
+
+      npm(["exec", "--", "node", "cjs-consumer.cjs"], projectDir);
+
+      // The emitted package.json says commonjs. Building the same directory as
+      // ESM would leave modules Node refuses to load, so it has to fail.
+      fs.writeFileSync(
+        config,
+        original.replace(/outputDir: "[^"]*"/, `outputDir: "${cjsDir}"`),
+      );
+
+      let failed = false;
+      let output = "";
+      try {
+        npm(["exec", "--", "mailgrail", "build"], projectDir);
+      } catch (err) {
+        failed = true;
+        output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+      }
+
+      assert.ok(failed, "a type mismatch should fail the build");
+      assert.match(output, /moduleFormat is "esm"/);
+      assert.match(output, /delete the file and build again/);
+    } finally {
+      fs.writeFileSync(config, original);
+      fs.rmSync(path.join(projectDir, cjsDir), { recursive: true, force: true });
+      fs.rmSync(path.join(projectDir, "cjs-consumer.cjs"), { force: true });
+      npm(["exec", "--", "mailgrail", "build"], projectDir);
+    }
+  });
+
+  // Node >= 20.19 can require() ESM, and the package's export conditions have
+  // to let it rather than answering ERR_PACKAGE_PATH_NOT_EXPORTED.
+  test("the package entry points load under require()", () => {
+    fs.writeFileSync(
+      path.join(projectDir, "require-entries.cjs"),
+      `const mg = require("@luxanimi/mailgrail");
+const dsl = require("@luxanimi/mailgrail/dsl");
+if (typeof mg.defineConfig !== "function") throw new Error("defineConfig missing");
+if (typeof dsl.t.string !== "function") throw new Error("t.string missing");
+`,
+    );
+
+    npm(["exec", "--", "node", "require-entries.cjs"], projectDir);
+  });
+
+  // Next.js and friends still resolve types the old way, which ignores
+  // `exports` entirely: typesVersions is the only thing that answers them.
+  test("the subpath types resolve under the older node resolution", () => {
+    fs.writeFileSync(
+      path.join(projectDir, "node10.ts"),
+      `import type { Infer, Schema } from "@luxanimi/mailgrail/dsl";
+import type { TemplateDefinition } from "@luxanimi/mailgrail/types";
+
+export type Params = Infer<Schema<{ username: string }>>;
+export type Def = TemplateDefinition<Schema<any>>;
+`,
+    );
+
+    fs.writeFileSync(
+      path.join(projectDir, "tsconfig.node10.json"),
+      JSON.stringify(
+        {
+          compilerOptions: {
+            module: "commonjs",
+            moduleResolution: "node",
+            target: "ES2022",
+            strict: true,
+            noEmit: true,
+            skipLibCheck: true,
+            ignoreDeprecations: "6.0",
+          },
+          include: ["node10.ts"],
+        },
+        null,
+        2,
+      ),
+    );
+
+    npm(["exec", "--", "tsc", "--noEmit", "-p", "tsconfig.node10.json"], projectDir);
+  });
+
   test("published types resolve for a consumer", () => {
     fs.writeFileSync(
       path.join(projectDir, "consumer.ts"),
@@ -302,7 +376,7 @@ export const conf = defineConfig({ sourceDir: "templates" });
     fs.writeFileSync(
       path.join(projectDir, "consumer-template.tsx"),
       `import type { ReactElement } from "react";
-import { t, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import { t, type RenderTemplateContext, type TextTemplateContext } from "@luxanimi/mailgrail";
 import type { Infer } from "@luxanimi/mailgrail/dsl";
 import { renderWelcomeEmail } from "./${OUTPUT_DIR}/welcome-email.js";
 import { renderOptionsEmail } from "./${OUTPUT_DIR}/options-email.js";
@@ -324,6 +398,12 @@ export const template = (mg: RenderTemplateContext<P>): ReactElement => (
     {mg.when("count", () => <p>never</p>)}
   </div>
 );
+
+export const subject = (mg: TextTemplateContext<P>): string =>
+  \`Hi \${mg.render("nickname")}\` + mg.when("nickname", () => "!", () => "");
+
+// @ts-expect-error -- subject and text receive a context, not the parameters
+export const oldStyle: (mg: TextTemplateContext<P>) => string = (p: P) => p.url;
 
 export const sender: "hello@example.com" = renderWelcomeEmail({
   username: "a",
@@ -460,7 +540,13 @@ renderOptionsEmail({ username: "a" }).sender;
   // scanner used to choke on the plugin-provided virtual modules.
   test("`mailgrail preview` serves the app and its virtual modules", async () => {
     const port = 7913;
-    const child = spawn("npm", ["exec", "--", "mailgrail", "preview"], {
+    // The installed bin, run directly rather than through `npm exec`: on CI,
+    // npm exits on SIGTERM without passing it on, and the orphaned server keeps
+    // the port and keeps writing into node_modules.
+    const bin = path.join(
+      projectDir, "node_modules", "@luxanimi", "mailgrail", "lib", "bin", "mailgrail.js",
+    );
+    const child = spawn(process.execPath, [bin, "preview"], {
       cwd: projectDir,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -488,6 +574,10 @@ renderOptionsEmail({ username: "a" }).sender;
       assert.ok(index, `preview server never came up. log:\n${log}`);
       assert.equal(index.status, 200);
 
+      // Whose preview this is, in the tab strip. The fixture package is named
+      // "smoke-fixture".
+      assert.match(await index.text(), /<title>smoke-fixture · MailGrail<\/title>/);
+
       for (const id of ["virtual:mailgrailconfig", "virtual:mailgrailtemplates"]) {
         const res = await get(`http://localhost:${port}/@id/${id}`);
         assert.ok(res && res.status === 200, `${id} did not resolve`);
@@ -495,7 +585,15 @@ renderOptionsEmail({ username: "a" }).sender;
 
       assert.ok(!/Could not resolve/.test(log), `vite reported a resolve error:\n${log}`);
     } finally {
-      child.kill("SIGTERM");
+      // SIGTERM is a request, not an event: Vite closes gracefully, and until
+      // it has, the port is held and its dep cache is still being written.
+      if (child.exitCode === null && child.signalCode === null) {
+        const exited = new Promise((resolve) => child.once("exit", resolve));
+        child.kill("SIGTERM");
+        const timer = setTimeout(() => child.kill("SIGKILL"), 5000);
+        await exited;
+        clearTimeout(timer);
+      }
     }
   });
 
@@ -512,5 +610,9 @@ renderOptionsEmail({ username: "a" }).sender;
     const out = path.join(projectDir, OUTPUT_DIR);
     assert.ok(fs.existsSync(path.join(out, "welcome-email.js")));
     assert.ok(!fs.existsSync(path.join(out, "welcome-email.d.ts")));
+
+    // The index is the artifact that matters; only its types are optional.
+    assert.ok(fs.existsSync(path.join(out, "index.js")));
+    assert.ok(!fs.existsSync(path.join(out, "index.d.ts")));
   });
 });

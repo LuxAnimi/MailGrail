@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { renderToMjml } from "@faire/mjml-react/utils/renderToMjml";
+// `renderToMjml` is a one-line wrapper around this, and importing it here
+// would pull @faire/mjml-react into the preview app's own bundle -- which has
+// to stay free of anything React-versioned, since the app now renders with the
+// project's React rather than one of its own.
+import { renderToStaticMarkup } from "react-dom/server";
 import mjml2html from "mjml-browser";
 import { DeviceDesktopIcon, DeviceMobileIcon, NoteIcon, type Icon } from "@primer/octicons-react";
 
@@ -7,7 +11,11 @@ import { DeviceDesktopIcon, DeviceMobileIcon, NoteIcon, type Icon } from "@prime
 import { PreviewMode } from "@/preview-app/enums";
 
 //------------------------------------------------------------------------------
-import { makeTemplatePreviewContext } from "@/cli/rendering/schema-previewing";
+import {
+  makeTemplatePreviewContext,
+  makeTextPreviewContext,
+} from "@/cli/rendering/schema-previewing";
+import { guardContext } from "@/cli/rendering/context-guard";
 import { makePlaceholderData } from "@/cli/rendering/schema-placeholder";
 import { ParamsForm } from "@/preview-app/components/ParamsForm";
 
@@ -168,6 +176,29 @@ export const Content = ({
 };
 
 //------------------------------------------------------------------------------
+// The subject and text bodies take the same kind of context as the HTML, in a
+// string-composing form. A template still written against the old params API
+// throws here; show that message in the pane rather than blanking the preview,
+// since it is exactly what the build will say.
+//------------------------------------------------------------------------------
+function renderTextPart(
+  template: TemplateDefinition<Schema<any>>,
+  part: "subjectTemplate" | "textTemplate",
+  params: any,
+): string {
+  try {
+    return template[part](
+      guardContext(makeTextPreviewContext(params), {
+        template: template.name,
+        part,
+      }),
+    );
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 const TemplatePreviewSubject = ({
   template,
@@ -175,7 +206,11 @@ const TemplatePreviewSubject = ({
 }: {
   template: TemplateDefinition<Schema<any>>;
   params: any;
-}) => useMemo(() => template.subjectTemplate(params), [template, params]);
+}) =>
+  useMemo(
+    () => renderTextPart(template, "subjectTemplate", params),
+    [template, params],
+  );
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -189,13 +224,20 @@ const TemplatePreviewText = ({
   //----------------------------------------------------------------------------
   // Memos
   const textRender = useMemo(
-    () => template.textTemplate(params),
+    () => renderTextPart(template, "textTemplate", params),
     [template, params],
   );
 
   //----------------------------------------------------------------------------
   // Render
-  return <div className="templatePreview">{textRender}</div>;
+  //
+  // pre-wrap because this is the plain-text part: its newlines are the layout,
+  // and HTML would otherwise collapse them.
+  return (
+    <div className="templatePreview" style={{ whiteSpace: "pre-wrap" }}>
+      {textRender}
+    </div>
+  );
 };
 
 //------------------------------------------------------------------------------
@@ -216,7 +258,7 @@ const TemplatePreviewHTML = ({
   //----------------------------------------------------------------------------
   useEffect(() => {
     const doc = template.htmlTemplate(makeTemplatePreviewContext(params));
-    mjml2html(renderToMjml(doc)).then((result) => {
+    mjml2html(renderToStaticMarkup(doc)).then((result) => {
       setHtml(result.html);
     });
   }, [template, params]);

@@ -30,6 +30,7 @@ export type PackageAdditions = {
 export function packageAdditions(
   ts: boolean,
   sourceDir: string,
+  reactMajor: ReactMajor = 19,
 ): PackageAdditions {
   return {
     scripts: {
@@ -51,15 +52,45 @@ export function packageAdditions(
     // is why it is a real dependency rather than a dev one.
     dependencies: {
       "@faire/mjml-react": "^4.0.0",
-      react: "^19.0.0",
+      react: `^${reactMajor}.0.0`,
+      // react-dom is not optional: rendering a template to MJML goes through
+      // react-dom/server, and it was previously left to arrive as somebody
+      // else's peer dependency, at whatever major npm felt like.
+      "react-dom": `^${reactMajor}.0.0`,
       ejs: "^5.0.2",
     },
 
     devDependencies: {
       "@luxanimi/mailgrail": "latest",
-      ...(ts ? { "@types/react": "^19.0.0", typescript: "^6.0.0" } : {}),
+      ...(ts
+        ? { "@types/react": `^${reactMajor}.0.0`, typescript: "^6.0.0" }
+        : {}),
     },
   };
+}
+
+//------------------------------------------------------------------------------
+// MailGrail supports React 18 and 19. A project that already has one keeps it:
+// bumping someone's React major to scaffold an email template would be a rude
+// thing for a scaffolder to do, and 19 is only the default for a project that
+// has no opinion yet.
+//------------------------------------------------------------------------------
+export type ReactMajor = 18 | 19;
+
+export function detectReactMajor(projectDir: string): ReactMajor {
+  const pkgPath = path.join(projectDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
+
+  const range =
+    pkg.dependencies?.["react"] ??
+    pkg.devDependencies?.["react"] ??
+    (pkg["peerDependencies"] as Record<string, string> | undefined)?.["react"];
+
+  // Any of "^18.2.0", "18.x", ">=18 <19", "~18.0.0" -- the first number is the
+  // major in every spelling that matters here.
+  const major = Number.parseInt(String(range ?? "").replace(/^[^0-9]*/, ""), 10);
+
+  return major === 18 ? 18 : 19;
 }
 
 //------------------------------------------------------------------------------
@@ -71,7 +102,11 @@ function updatePackageJson(
   const pkgPath = path.join(projectDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
 
-  const additions = packageAdditions(ts, sourceDir);
+  const additions = packageAdditions(
+    ts,
+    sourceDir,
+    detectReactMajor(projectDir),
+  );
 
   for (const section of ["scripts", "dependencies", "devDependencies"] as const) {
     const existing = (pkg[section] ??= {});

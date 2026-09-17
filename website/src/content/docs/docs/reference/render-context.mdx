@@ -7,10 +7,10 @@ sidebar:
 
 import LiveProof from "../../../../components/docs/LiveProof.astro";
 
-`htmlTemplate` receives a render context — `mg` — instead of raw parameters.
-That indirection is what lets MailGrail see which parameters you used and emit
-the matching placeholders, rather than substituting values it would then have
-to reverse-engineer.
+Every template function receives a render context — `mg` — instead of raw
+parameters. That indirection is what lets MailGrail see which parameters you
+used and emit the matching placeholders, rather than substituting values it
+would then have to reverse-engineer.
 
 ```tsx
 const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
@@ -71,6 +71,27 @@ mg.each("schedule", (day) =>
 ## `mg.with(path, (scoped) => …)`
 
 <LiveProof id="with" />
+
+## Subjects and text bodies
+
+`subjectTemplate` and `textTemplate` take the same context, typed
+`TextTemplateContext<Params>`. The only difference is what it composes: the
+helpers and their callbacks return strings rather than markup.
+
+```ts
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Hi ${mg.render("username")}` +
+  mg.each("items", (item) => `\n- ${item.render("name")}`) +
+  mg.when("isPro", () => "\n\nThanks for subscribing.", () => "");
+```
+
+Values are not escaped there — a plain-text body wants `&`, not `&amp;` — and
+newlines survive into the output on all three engines.
+
+What you cannot do is transform a value the context hands back.
+`mg.render("total")` is a placeholder the engine fills in when the email is
+sent, so `.toFixed(2)` has nothing to work on. The build fails rather than ship
+the mangled placeholder; pass the value in already formatted instead.
 
 ## Why not just pass the values?
 

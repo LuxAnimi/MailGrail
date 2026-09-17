@@ -3,7 +3,9 @@
 
 declare module "virtual:mailgrailconfig" {
   import type { MailgrailResolvedConfig } from "@/config/types";
+  import type { ProjectInfo } from "@/config/types";
   const config: MailgrailResolvedConfig;
+  export const project: ProjectInfo;
   export default config;
 }
 

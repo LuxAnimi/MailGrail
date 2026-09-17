@@ -182,6 +182,10 @@ directory marks it as a module — so it loads as ESM even inside a
 CommonJS backend can `require()` it directly. If you replace that
 `package.json` with your own, keep `"type": "module"` in it.
 
+If that still does not suit — an older Node, or tooling that refuses ESM —
+set [`moduleFormat: "cjs"`](/MailGrail/docs/reference/output#moduleformat--esm-or-commonjs)
+and the output is written as CommonJS instead.
+
 **The `.ejs` file does not need to ship.** The generated `.js` inlines its own
 template; the standalone template file is there for reading and debugging.
 

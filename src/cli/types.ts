@@ -125,19 +125,24 @@ type ScopeablePath<T, D extends Depth = 4> =
     : never;
 
 //------------------------------------------------------------------------------
-type ObjectItemContext<TObj, R, D extends Depth> = TemplateContext<TObj, R, D>;
+type ObjectItemContext<TObj, R, D extends Depth, N> = TemplateContext<
+  TObj,
+  R,
+  D,
+  N
+>;
 
 //------------------------------------------------------------------------------
-type ItemContext<T, R, D extends Depth = 4> =
+type ItemContext<T, R, D extends Depth = 4, N = ReactNode> =
   // nested array item
   T extends readonly any[]
-    ? ArrayItemContext<T, R, D>
+    ? ArrayItemContext<T, R, D, N>
     : // renderable primitive
       T extends Renderable
       ? PrimitiveItemContext
       : // scopeable object
         T extends object
-        ? ObjectItemContext<T, R, D>
+        ? ObjectItemContext<T, R, D, N>
         : // fallback (shouldn’t happen much)
           unknown;
 
@@ -147,45 +152,43 @@ type RenderCap<T, R, D extends Depth> = {
 };
 
 //------------------------------------------------------------------------------
-type WhenCap<T, D extends Depth> = [ConditionPath<T, D>] extends [never]
+type WhenCap<T, D extends Depth, N> = [ConditionPath<T, D>] extends [never]
   ? unknown
   : {
       when: <P extends ConditionPath<T, D>>(
         path: P,
-        render: () => ReactNode,
-        otherwise?: () => ReactNode,
-      ) => ReactNode;
+        render: () => N,
+        otherwise?: () => N,
+      ) => N;
 
       unless: <P extends ConditionPath<T, D>>(
         path: P,
-        render: () => ReactNode,
-        otherwise?: () => ReactNode,
-      ) => ReactNode;
+        render: () => N,
+        otherwise?: () => N,
+      ) => N;
     };
 
 //------------------------------------------------------------------------------
-type EachCap<T, R, D extends Depth> = [IterablePath<T, D>] extends [never]
+type EachCap<T, R, D extends Depth, N> = [IterablePath<T, D>] extends [never]
   ? unknown
   : {
       each: <P extends IterablePath<T, D>>(
         path: P,
         render: (
-          item: ItemContext<Elem<PathValue<T, P, D>>, R, D>,
+          item: ItemContext<Elem<PathValue<T, P, D>>, R, D, N>,
           index: number,
-        ) => ReactNode,
-      ) => ReactNode;
+        ) => N,
+      ) => N;
     };
 
 //------------------------------------------------------------------------------
-type WithCap<T, R, D extends Depth> = [ScopeablePath<T, D>] extends [never]
+type WithCap<T, R, D extends Depth, N> = [ScopeablePath<T, D>] extends [never]
   ? unknown
   : {
       with: <P extends ScopeablePath<T, D>>(
         path: P,
-        render: (
-          scoped: TemplateContext<PathValue<T, P, D>, R, D>,
-        ) => ReactNode,
-      ) => ReactNode;
+        render: (scoped: TemplateContext<PathValue<T, P, D>, R, D, N>) => N,
+      ) => N;
     };
 
 //------------------------------------------------------------------------------
@@ -194,17 +197,25 @@ type PrimitiveItemContext = {
 };
 
 //------------------------------------------------------------------------------
-type ArrayItemContext<TArr extends readonly any[], R, D extends Depth> = {
+type ArrayItemContext<TArr extends readonly any[], R, D extends Depth, N> = {
   each: (
-    render: (item: ItemContext<Elem<TArr>, R, D>, index: number) => ReactNode,
-  ) => ReactNode;
+    render: (item: ItemContext<Elem<TArr>, R, D, N>, index: number) => N,
+  ) => N;
 };
 
 //------------------------------------------------------------------------------
-export type TemplateContext<T, R, D extends Depth = 4> = RenderCap<T, R, D> &
-  WhenCap<T, D> &
-  EachCap<T, R, D> &
-  WithCap<T, R, D>;
+// `R` is what `render` returns, `N` what the block helpers take and return.
+// They differ by output kind: an HTML template composes React nodes, while a
+// subject or text body composes plain strings.
+export type TemplateContext<
+  T,
+  R,
+  D extends Depth = 4,
+  N = ReactNode,
+> = RenderCap<T, R, D> &
+  WhenCap<T, D, N> &
+  EachCap<T, R, D, N> &
+  WithCap<T, R, D, N>;
 
 //------------------------------------------------------------------------------
 // `render` returns the placeholder string the engine substitutes later, so it
@@ -228,10 +239,22 @@ export type PreviewTemplateContext<T, D extends Depth = 4> = TemplateContext<
 >;
 
 //------------------------------------------------------------------------------
+// The context for `subjectTemplate` and `textTemplate`. Same paths and the same
+// helpers as the HTML one, composing strings instead of React nodes: these are
+// compiled to engine templates too, so their branches and loops have to be
+// expressed through `mg` rather than in JavaScript.
+export type TextTemplateContext<T, D extends Depth = 4> = TemplateContext<
+  T,
+  string,
+  D,
+  string
+>;
+
+//------------------------------------------------------------------------------
 export interface TemplateDefinition<S extends Schema<any>> {
   name: string;
-  subjectTemplate: (params: Infer<S>) => string;
-  textTemplate: (params: Infer<S>) => string;
+  subjectTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
+  textTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
   htmlTemplate:
     | ((mg: PreviewTemplateContext<Infer<S>>) => ReactElement)
     | ((mg: RenderTemplateContext<Infer<S>>) => ReactElement);

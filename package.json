@@ -1,6 +1,6 @@
 {
   "name": "@luxanimi/mailgrail",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
   "author": {
     "name": "LuxAnimi",
@@ -34,17 +34,27 @@
   "exports": {
     ".": {
       "types": "./lib/src/config/index.d.ts",
-      "import": "./lib/src/config/index.js"
+      "default": "./lib/src/config/index.js"
     },
     "./dsl": {
       "types": "./lib/src/dsl/index.d.ts",
-      "import": "./lib/src/dsl/index.js"
+      "default": "./lib/src/dsl/index.js"
     },
     "./types": {
       "types": "./lib/src/cli/types.d.ts",
-      "import": "./lib/src/cli/types.js"
+      "default": "./lib/src/cli/types.js"
     },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "dsl": [
+        "./lib/src/dsl/index.d.ts"
+      ],
+      "types": [
+        "./lib/src/cli/types.d.ts"
+      ]
+    }
   },
   "bin": {
     "mailgrail": "./lib/bin/mailgrail.js"
@@ -89,7 +99,8 @@
     "ejs": "^5.0.0 || ^6.0.0",
     "handlebars": "^4.7.0",
     "mustache": "^4.2.0",
-    "react": "^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
     "ejs": {

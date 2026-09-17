@@ -87,6 +87,101 @@ function normalizeExpr(schema: AnySchema, access: string, depth = 0): string {
 }
 
 //------------------------------------------------------------------------------
+// Template names -> emitted identifiers and filenames
+//
+// Planned in one pass before anything is compiled, so a name that cannot work
+// fails the build with every other file untouched rather than half-written.
+// The checks are all about collisions the emitted code cannot express: two
+// templates sharing a render function name, or two files a case-insensitive
+// filesystem would fold into one.
+//------------------------------------------------------------------------------
+export type TemplateEntry = {
+  /** The template's own name, as written in the definition. */
+  name: string;
+  /** Base filename, without extension. */
+  file: string;
+  /** Exported render function. */
+  fnName: string;
+  /** Exported params type. */
+  typeName: string;
+};
+
+const RESERVED_NAMES = new Set(["index"]);
+
+export function planTemplateEntries(
+  templates: { name: unknown }[],
+): TemplateEntry[] {
+  const entries: TemplateEntry[] = [];
+  const byFn = new Map<string, string>();
+  const byFile = new Map<string, string>();
+
+  for (const template of templates) {
+    const name = template.name;
+
+    if (typeof name !== "string" || name.trim() === "") {
+      throw new Error(
+        `A template has no name: every template needs a non-empty \`name\`, ` +
+          `which becomes its filename and its exported function.`,
+      );
+    }
+
+    if (/[\\/]/.test(name) || name.startsWith(".")) {
+      throw new Error(
+        `Template name ${JSON.stringify(name)} cannot be a path: it is used ` +
+          `as a filename in the output directory.`,
+      );
+    }
+
+    if (RESERVED_NAMES.has(name.toLowerCase())) {
+      throw new Error(
+        `Template name ${JSON.stringify(name)} is reserved: the build writes ` +
+          `its own index.js and index.d.ts alongside the templates.`,
+      );
+    }
+
+    const fnName = `render${pascal(name)}`;
+
+    if (!IDENTIFIER.test(fnName)) {
+      throw new Error(
+        `Template name ${JSON.stringify(name)} gives the render function ` +
+          `\`${fnName}\`, which is not a valid identifier. Use letters, ` +
+          `digits, "-" or "_", and do not start with a digit.`,
+      );
+    }
+
+    const fnClash = byFn.get(fnName);
+    if (fnClash !== undefined) {
+      throw new Error(
+        `Templates ${JSON.stringify(fnClash)} and ${JSON.stringify(name)} ` +
+          `both compile to \`${fnName}\`. Rename one of them.`,
+      );
+    }
+
+    const lower = name.toLowerCase();
+    const fileClash = byFile.get(lower);
+    if (fileClash !== undefined) {
+      throw new Error(
+        `Templates ${JSON.stringify(fileClash)} and ${JSON.stringify(name)} ` +
+          `differ only in case, so they would be the same file on macOS and ` +
+          `Windows. Rename one of them.`,
+      );
+    }
+
+    byFn.set(fnName, name);
+    byFile.set(lower, name);
+
+    entries.push({
+      name,
+      file: name,
+      fnName,
+      typeName: `${pascal(name)}Params`,
+    });
+  }
+
+  return entries;
+}
+
+//------------------------------------------------------------------------------
 // Emit DTS
 //------------------------------------------------------------------------------
 export function emitDts(template: TemplateDefinition<any>): string {
@@ -108,7 +203,7 @@ export type ${typeName} = ${paramsType};
 export declare function ${fnName}(
   params: ${typeName}
 ): {
-  name: "${template.name}";
+  name: ${JSON.stringify(template.name)};
   subject: string;
 ${sender}  html: string;
   text: string;

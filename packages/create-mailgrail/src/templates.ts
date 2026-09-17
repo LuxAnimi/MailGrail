@@ -38,7 +38,12 @@ export const templates = [WelcomeEmail];
   files[`${sourceDir}/WelcomeEmail.${extx}`] = ts
     ? `import type { ReactElement } from "react";
 import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import {
+  t,
+  type TemplateDefinition,
+  type RenderTemplateContext,
+  type TextTemplateContext,
+} from "@luxanimi/mailgrail";
 import type { Infer } from "@luxanimi/mailgrail/dsl";
 import BaseLayout from "./components/BaseLayout.js";
 
@@ -65,11 +70,11 @@ const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
   </BaseLayout>
 );
 
-const subjectTemplate = (params: Params): string =>
-  \`Welcome, \${params.username}!\`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  \`Welcome, \${mg.render("username")}!\`;
 
-const textTemplate = (params: Params): string =>
-  \`Welcome, \${params.username}! Get started: \${params.ctaUrl}\`;
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  \`Welcome, \${mg.render("username")}! Get started: \${mg.render("ctaUrl")}\`;
 
 export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
   name: "welcome-email",
@@ -105,10 +110,10 @@ const htmlTemplate = (mg) => (
   </BaseLayout>
 );
 
-const subjectTemplate = (params) => \`Welcome, \${params.username}!\`;
+const subjectTemplate = (mg) => \`Welcome, \${mg.render("username")}!\`;
 
-const textTemplate = (params) =>
-  \`Welcome, \${params.username}! Get started: \${params.ctaUrl}\`;
+const textTemplate = (mg) =>
+  \`Welcome, \${mg.render("username")}! Get started: \${mg.render("ctaUrl")}\`;
 
 export const WelcomeEmail = {
   name: "welcome-email",

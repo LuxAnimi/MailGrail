@@ -34,11 +34,13 @@ Run this inside an existing project. It will add MailGrail to your `package.json
 
 ```sh
 npm install --save-dev @luxanimi/mailgrail
-npm install @faire/mjml-react react ejs
+npm install @faire/mjml-react react react-dom ejs
 ```
 
-`@faire/mjml-react` and `react` are MailGrail's peer dependencies — your template
-files import them directly, and MailGrail resolves them from your project.
+`@faire/mjml-react`, `react` and `react-dom` are MailGrail's peer dependencies —
+your template files import them directly, and MailGrail resolves them from your
+project. React 18 and 19 are both supported; the two React packages must be the
+same major, since rendering a template to MJML goes through `react-dom/server`.
 
 `ejs` is the **templating engine**, imported by the *compiled output* rather than
 by MailGrail itself. Engines are declared as optional peer dependencies, so npm
@@ -77,7 +79,12 @@ A template is a plain object exported from a `.tsx` file. It declares its parame
 ```tsx
 import type { ReactElement } from "react";
 import { MjmlSection, MjmlColumn, MjmlText, MjmlButton } from "@faire/mjml-react";
-import { t, type TemplateDefinition, type RenderTemplateContext } from "@luxanimi/mailgrail";
+import {
+  t,
+  type TemplateDefinition,
+  type RenderTemplateContext,
+  type TextTemplateContext,
+} from "@luxanimi/mailgrail";
 import type { Infer } from "@luxanimi/mailgrail/dsl";
 import BaseLayout from "./components/BaseLayout";
 
@@ -102,12 +109,15 @@ const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
   </BaseLayout>
 );
 
-// 3. Write the subject and plain-text version
-const subjectTemplate = (params: Params): string =>
-  `Welcome, ${params.username}!`;
+// 3. Write the subject and plain-text version — the same context, composing
+//    strings instead of markup
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome, ${mg.render("username")}!`;
 
-const textTemplate = (params: Params): string =>
-  `Welcome, ${params.username}! Confirm your account: ${params.confirmationUrl}`;
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome, ${mg.render("username")}! Confirm your account: ${mg.render(
+    "confirmationUrl",
+  )}`;
 
 // 4. Export the template definition
 export const ConfirmEmail: TemplateDefinition<typeof paramsSchema> = {
@@ -240,7 +250,7 @@ nickname: t.optional(t.string())
 // omitted → renders nothing
 ```
 
-Use `mg.when` to conditionally render based on an optional boolean, or guard with a null check in `subjectTemplate` and `textTemplate`.
+Use `mg.when` to render only when the value is there. It works on an optional string as a presence test, and in `subjectTemplate` and `textTemplate` as well as in the markup.
 
 ### `t.default(schema, value)`
 
@@ -516,14 +526,21 @@ export default defineConfig({
 
 ## Output format
 
-Running `mailgrail build` produces three files per template. For a template named `"confirm-email"`:
+Running `mailgrail build` produces three files per template, plus an index and a
+`package.json` for the directory. For a template named `"confirm-email"`:
 
 ```
 emails-dist/
   confirm-email.ejs     ← full HTML with EJS placeholders
   confirm-email.js      ← render function (ESM + ejs)
   confirm-email.d.ts    ← TypeScript types
+  index.js              ← every render function, and a typed map of them
+  index.d.ts            ← its types
+  package.json          ← how Node should read all of the above
 ```
+
+Set `moduleFormat: "cjs"` and the modules are written with `require` and
+`exports` instead, with a `package.json` declaring `"type": "commonjs"`.
 
 The template file's extension follows `templatingEngine` (`.ejs`, `.hbs` or
 `.mustache`). It is written for readability and debugging — the generated `.js`
@@ -578,6 +595,10 @@ It never touches one that already exists, so edit it freely:
 {
   "type": "module",
   "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./*": {
       "types": "./*.d.ts",
       "default": "./*.js"
@@ -586,11 +607,13 @@ It never touches one that already exists, so edit it freely:
 }
 ```
 
-`"type": "module"` makes the output load as ESM whatever the surrounding package
-declares. The wildcard `exports` is for when the directory becomes a package of
-its own: give it a `name`, depend on it as a workspace or `file:` dependency, and
-`import { renderConfirmEmail } from "@acme/emails/confirm-email"` resolves, types
-included. Relative imports need none of that.
+`"type"` makes the output load as the format it was written in, whatever the
+surrounding package declares — and the build fails if an existing `package.json`
+here contradicts `moduleFormat`, since Node would refuse to load the files at
+all. The `exports` map is for when the directory becomes a package of its own:
+give it a `name`, depend on it as a workspace or `file:` dependency, and both
+`@acme/emails` and `@acme/emails/confirm-email` resolve, types included.
+Relative imports need none of that.
 
 ### Using the output in your backend
 
@@ -643,7 +666,7 @@ It asks a few questions:
 ```
 
 Then it:
-- Adds `mailgrail`, `@faire/mjml-react`, `react` and `ejs` to your `package.json`
+- Adds `mailgrail`, `@faire/mjml-react`, `react`, `react-dom` and `ejs` to your `package.json`, matching the React major already there
 - Adds `preview-emails` and `build-emails` scripts to your `package.json` (plus `typecheck-emails` on a TypeScript project)
 - Creates `mailgrail.config.ts`
 - Scaffolds a starter template in `emails/`:

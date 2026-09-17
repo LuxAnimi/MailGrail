@@ -5,19 +5,22 @@ sidebar:
   order: 5
 ---
 
-`mailgrail build` writes three files per template. For a template named
-`"confirm-email"` with the default EJS engine:
+`mailgrail build` writes three files per template, plus an index and a
+`package.json` for the directory. For a template named `"confirm-email"` with
+the default EJS engine:
 
 ```
 emails-dist/
   confirm-email.ejs     full HTML with placeholders
   confirm-email.js      the render function
   confirm-email.d.ts    the parameter types
+  index.js              every render function, and a map of them
+  index.d.ts            its types
+  package.json          how Node should read all of the above
 ```
 
 The template file's extension follows `templatingEngine` — `.ejs`, `.hbs` or
-`.mustache`. The first build also writes a [`package.json`](#packagejson) beside
-them.
+`.mustache`.
 
 ## The template file
 
@@ -78,6 +81,56 @@ Two things worth noticing. The only import is your engine — no React, no MJML,
 no bundler, no mailgrail. And the input is normalized before it reaches the
 engine, which is what makes a missing optional render as nothing instead of
 throwing.
+
+## `index.js` — everything, by name
+
+```js title="emails-dist/index.js"
+import { renderConfirmEmail } from "./confirm-email.js";
+import { renderOrderConfirmation } from "./order-confirmation.js";
+
+export { renderConfirmEmail, renderOrderConfirmation };
+
+export const templates = Object.freeze({
+  "confirm-email": renderConfirmEmail,
+  "order-confirmation": renderOrderConfirmation,
+});
+```
+
+The map is there so you do not have to hand-write the rule that turns
+`confirm-email` into `renderConfirmEmail`. Restating it in application code is
+exactly the sort of thing that goes stale the day a template is renamed:
+
+```ts
+import { templates, type TemplateName } from "./emails-dist/index.js";
+
+export function send(name: TemplateName, params: never) {
+  const email = templates[name](params);
+  // …
+}
+```
+
+Importing one template directly stays the leaner option — the index loads and
+prepares all of them.
+
+## `moduleFormat` — ESM or CommonJS
+
+The output is ESM by default. A CommonJS backend that cannot import it can ask
+for the other shape:
+
+```ts title="mailgrail.config.ts"
+export default defineConfig({
+  moduleFormat: "cjs",
+});
+```
+
+Then the modules `require` their engine and assign to `exports`, and the
+emitted `package.json` says `"type": "commonjs"`. The `.d.ts` files are the
+same either way.
+
+The two have to agree: if a `package.json` already in `outputDir` declares a
+`type` that contradicts `moduleFormat`, the build stops and says so, because
+Node would refuse to load what it was about to write. Switching format means
+deleting that file, or editing its `type` yourself.
 
 ## `package.json`
 

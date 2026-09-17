@@ -11,7 +11,11 @@ import Strong from "./components/Strong";
 import Text from "./components/Text";
 
 //------------------------------------------------------------------------------
-import type { HtmlTemplateContext, TemplateDefinition } from "../../src/cli/types";
+import type {
+  HtmlTemplateContext,
+  TemplateDefinition,
+  TextTemplateContext,
+} from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
@@ -36,12 +40,14 @@ const paramsSchema = t.object({
 type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
-const subjectTemplate = (params: Params): string =>
-  `Your mailgrail order #${params.orderNumber} is confirmed`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Your mailgrail order #${mg.render("orderNumber")} is confirmed`;
 
 //------------------------------------------------------------------------------
-const textTemplate = (params: Params): string =>
-  `Order #${params.orderNumber} confirmed. Total: $${params.total}. View it at https://mailgrail.com/orders`;
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Order #${mg.render("orderNumber")} confirmed. Total: $${mg.render(
+    "total",
+  )}. View it at https://mailgrail.com/orders`;
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (

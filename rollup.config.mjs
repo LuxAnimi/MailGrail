@@ -26,10 +26,11 @@ export default  [{
     sourcemap: false,
   },
 
-  external: [
-    "virtual:mailgrailtemplates",
-    "virtual:mailgrailconfig"
-  ],
+  // React stays out of the bundle so the preview renders the project's own
+  // templates with the project's own React. Bundling 19 here meant a React 18
+  // project's elements were rejected by a renderer it never installed.
+  external: (id) =>
+    id.startsWith("virtual:") || /^(react|react-dom)(\/.*)?$/.test(id),
 
   plugins: [
     resolve({ browser: true, extensions: [".js", ".ts", ".tsx"] }),

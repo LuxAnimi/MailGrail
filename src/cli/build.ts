@@ -29,7 +29,13 @@ export async function runBuild(argv: string[]) {
 
   // Awaited so failures reach the CLI's error handler instead of surfacing as
   // an unhandled rejection, and so the command does not report before it is done.
-  await buildTemplates(config);
+  const warnings = await buildTemplates(config);
 
   console.log("Done.");
+
+  // After "Done.", because none of these stopped the build: they are things
+  // about the output directory that only its owner can settle.
+  for (const warning of warnings) {
+    console.warn(`\n${warning}`);
+  }
 }

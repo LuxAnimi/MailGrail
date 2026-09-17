@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 
 //------------------------------------------------------------------------------
-import config from "virtual:mailgrailconfig";
+import config, { project } from "virtual:mailgrailconfig";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types";
@@ -26,11 +26,19 @@ export const Sidebar = ({
         {!config.hideAppLogo && (
           <img src="/preview-app/assets/mailgrail_main-transparent.png" />
         )}
-        {!config.hideAppName && <h1 className="title">MailGrail</h1>}
+        {/* The project's own name, so it is obvious which preview this is.
+            The logo stays MailGrail's -- a package.json has no logo. */}
+        {!config.hideAppName && (
+          <h1 className="title">{project.name ?? "MailGrail"}</h1>
+        )}
         {!config.hideAppDescription && (
           <p className="subtitle">
-            Fast email template iteration, <br />
-            even faster integration
+            {project.description ?? (
+              <>
+                Fast email template iteration, <br />
+                even faster integration
+              </>
+            )}
           </p>
         )}
       </div>

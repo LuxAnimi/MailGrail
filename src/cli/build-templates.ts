@@ -11,82 +11,29 @@ import mjml2html from "mjml";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "./types.js";
-import { createTemplateCompiler } from "./rendering/schema-rendering.js";
+import {
+  createTemplateCompiler,
+  createTextTemplateCompiler,
+  findLeakedTokens,
+} from "./rendering/schema-rendering.js";
 import type { TemplatingEngine } from "./rendering/schema-rendering.js";
-import { emitDts, emitNormalizer, pascal } from "./emit-types.js";
+import { guardContext } from "./rendering/context-guard.js";
+import { assertReactPair } from "./react-preflight.js";
+import { getLibraryDir } from "./utils.js";
+import { emitDts, planTemplateEntries } from "./emit-types.js";
+import type { TemplateEntry } from "./emit-types.js";
+import { ENGINES, resolveEngine, resolveModuleFormat } from "./engines.js";
+import type { EngineSpec, ModuleFormat } from "./engines.js";
+import {
+  checkOutputPackageJson,
+  emitIndexDts,
+  emitIndexJs,
+  emitTemplateModule,
+  outputPackageJson,
+} from "./emit-module.js";
 
 //------------------------------------------------------------------------------
 globalThis.React = await import("react");
-
-//------------------------------------------------------------------------------
-// Engine descriptors
-//
-// Each supported templating engine differs in three ways: the extension of the
-// emitted template file, the placeholder syntax used for the (non-HTML) subject
-// and text bodies, and the runtime import + call used by the emitted `.js`.
-//------------------------------------------------------------------------------
-type EngineSpec = {
-  /** Extension of the emitted template artifact. */
-  ext: string;
-  /**
-   * Placeholder for a top-level param in the subject/text bodies. These are
-   * plain text, not HTML, so the *unescaped* form of each engine is used.
-   */
-  placeholder: (key: string) => string;
-  /** Bare module specifier the emitted `.js` imports at runtime. */
-  module: string;
-  /** Default-import binding name used in the emitted `.js`. */
-  binding: string;
-  /**
-   * Module-level statement that does the engine's parse/compile work once, for
-   * the template held in `tmpl`. Whatever it needs to keep, it keeps in `name`.
-   */
-  precompile: (name: string, tmpl: string) => string;
-  /** Expression rendering that prepared template against `params`. */
-  render: (name: string, tmpl: string) => string;
-};
-
-const ENGINES: Record<TemplatingEngine, EngineSpec> = {
-  ejs: {
-    ext: "ejs",
-    placeholder: (key) => `<%- ${key} %>`,
-    module: "ejs",
-    binding: "ejs",
-    precompile: (name, tmpl) => `const ${name} = ejs.compile(${tmpl});`,
-    render: (name) => `${name}(params)`,
-  },
-  handlebars: {
-    ext: "hbs",
-    placeholder: (key) => `{{{${key}}}}`,
-    module: "handlebars",
-    binding: "Handlebars",
-    precompile: (name, tmpl) => `const ${name} = Handlebars.compile(${tmpl});`,
-    render: (name) => `${name}(params)`,
-  },
-  mustache: {
-    ext: "mustache",
-    placeholder: (key) => `{{& ${key}}}`,
-    module: "mustache",
-    binding: "Mustache",
-    // Mustache has no compiled-function form; `parse` fills its internal cache
-    // so `render` does not re-tokenise on every call.
-    precompile: (_name, tmpl) => `Mustache.parse(${tmpl});`,
-    render: (_name, tmpl) => `Mustache.render(${tmpl}, params)`,
-  },
-};
-
-function resolveEngine(config: MailgrailResolvedConfig): TemplatingEngine {
-  const engine = config.templatingEngine.toLowerCase() as TemplatingEngine;
-
-  if (!(engine in ENGINES)) {
-    throw new Error(
-      `Unknown templatingEngine ${JSON.stringify(config.templatingEngine)}. ` +
-        `Expected one of: EJS, Handlebars, Mustache.`,
-    );
-  }
-
-  return engine;
-}
 
 //------------------------------------------------------------------------------
 // The generated modules import their engine from the *consumer's* project, not
@@ -115,73 +62,130 @@ function assertEngineInstalled(
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-export async function buildTemplates(config: MailgrailResolvedConfig) {
-  await ensureDir(config.outputDir);
-  await writeOutputPackageJson(config);
-
+export async function buildTemplates(
+  config: MailgrailResolvedConfig,
+): Promise<string[]> {
   const engine = resolveEngine(config);
+  const format = resolveModuleFormat(config);
   const spec = ENGINES[engine];
 
   assertEngineInstalled(spec, config);
 
+  // The templates are rendered with the project's React, so check there is one
+  // and only one before esbuild hands them over.
+  assertReactPair(config.baseDir, getLibraryDir());
+
   const templates = await loadTemplates(config.sourceDir);
 
-  for (const template of templates) {
-    const html = await compileHtml(template, engine);
-    const text = compileText(template, spec);
-    const subject = compileSubject(template, spec);
+  // Names are planned before anything is compiled, so a name that cannot be an
+  // identifier -- or that collides with another template's -- fails with the
+  // output directory untouched rather than half-written.
+  const entries = planTemplateEntries(templates);
 
+  const compiled: {
+    template: TemplateDefinition<any>;
+    entry: TemplateEntry;
+    html: string;
+    text: string;
+    subject: string;
+  }[] = [];
+
+  for (const [index, template] of templates.entries()) {
+    compiled.push({
+      template,
+      entry: entries[index]!,
+      html: await compileHtml(template, engine),
+      text: compileTextPart(template, engine, "textTemplate"),
+      subject: compileTextPart(template, engine, "subjectTemplate"),
+    });
+  }
+
+  await ensureDir(config.outputDir);
+  const warnings = await reconcileOutputPackageJson(config, format);
+
+  for (const { template, entry, html, text, subject } of compiled) {
     // The template artifact is written for readability/debugging; the emitted
-    // `.js` inlines the same string so it runs under plain Node with no
+    // module inlines the same string so it runs under plain Node with no
     // bundler or text loader involved.
     await fs.writeFile(
-      path.join(config.outputDir, `${template.name}.${spec.ext}`),
+      path.join(config.outputDir, `${entry.file}.${spec.ext}`),
       html,
       "utf8",
     );
 
     await fs.writeFile(
-      path.join(config.outputDir, `${template.name}.js`),
-      emitJs(template, spec, html, text, subject),
+      path.join(config.outputDir, `${entry.file}.js`),
+      emitTemplateModule({ template, entry, spec, format, html, text, subject }),
       "utf8",
     );
 
     if (config.typescript) {
       await fs.writeFile(
-        path.join(config.outputDir, `${template.name}.d.ts`),
+        path.join(config.outputDir, `${entry.file}.d.ts`),
         emitDts(template),
         "utf8",
       );
     }
   }
+
+  await fs.writeFile(
+    path.join(config.outputDir, "index.js"),
+    emitIndexJs(entries, format),
+    "utf8",
+  );
+
+  if (config.typescript) {
+    await fs.writeFile(
+      path.join(config.outputDir, "index.d.ts"),
+      emitIndexDts(entries),
+      "utf8",
+    );
+  }
+
+  return warnings;
 }
 
 //------------------------------------------------------------------------------
-// A minimal package.json for outputDir, written only when there is none.
+// The package.json beside the output: written when there is none, and only
+// checked when there is.
 //
-// `"type": "module"` makes the emitted ESM load as ESM whatever the enclosing
-// package declares. The wildcard `exports` is the non-obvious step between a
-// successful build and importing the output as a package of its own. The name
-// that package gets is the project's call, so none is written -- and an
-// existing file is never touched, since a hand-written one is a decision
-// already made. `wx` makes that check and the write a single operation.
+// A hand-written one is a decision already made, so it is never rewritten. It
+// still decides how Node reads every file this build writes, so a `type` that
+// contradicts `moduleFormat` is fatal: the modules would not load at all. A
+// missing "." export only warns -- everything still works through relative
+// imports, and files written by earlier versions have no "." at all.
 //------------------------------------------------------------------------------
-async function writeOutputPackageJson(config: MailgrailResolvedConfig) {
-  const target = config.typescript
-    ? { types: "./*.d.ts", default: "./*.js" }
-    : "./*.js";
-
-  const pkg = { type: "module", exports: { "./*": target } };
+async function reconcileOutputPackageJson(
+  config: MailgrailResolvedConfig,
+  format: ModuleFormat,
+): Promise<string[]> {
+  const file = path.join(config.outputDir, "package.json");
+  const pkg = outputPackageJson(format, config.typescript);
 
   try {
-    await fs.writeFile(
-      path.join(config.outputDir, "package.json"),
-      JSON.stringify(pkg, null, 2) + "\n",
-      { encoding: "utf8", flag: "wx" },
-    );
+    // `wx` makes "is it there?" and "write it" a single operation.
+    await fs.writeFile(file, JSON.stringify(pkg, null, 2) + "\n", {
+      encoding: "utf8",
+      flag: "wx",
+    });
+    return [];
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
   }
+
+  const raw = await fs.readFile(file, "utf8");
+
+  let existing: Record<string, unknown>;
+  try {
+    existing = JSON.parse(raw) as Record<string, unknown>;
+  } catch (err) {
+    throw new Error(
+      `${file} is not valid JSON, so the compiled output cannot be loaded: ` +
+        `${(err as Error).message}`,
+    );
+  }
+
+  return checkOutputPackageJson({ file, format, existing, expected: pkg });
 }
 
 //------------------------------------------------------------------------------
@@ -226,7 +230,16 @@ async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
       platform: "node",
       format: "esm",
       sourcemap: false,
-      external: ["@faire/mjml-react"],
+      // React is left to the runtime import so the templates render with the
+      // project's copy -- bundling it here would hand renderToStaticMarkup
+      // elements made by a different React than the one it was loaded from.
+      external: [
+        "@faire/mjml-react",
+        "react",
+        "react/*",
+        "react-dom",
+        "react-dom/*",
+      ],
     });
 
     const mod = await import(pathToFileURL(tmpFile).href);
@@ -259,7 +272,9 @@ async function compileHtml(
   // The template emits opaque tokens rather than engine syntax, so that React
   // and MJML cannot escape or discard it. The tokens are promoted to <mj-raw>
   // where MJML needs that, and swapped for real syntax once the HTML exists.
-  const doc = template.htmlTemplate(ctx);
+  const doc = template.htmlTemplate(
+    guardContext(ctx, { template: template.name, part: "htmlTemplate" }),
+  );
   const mjml = prepareMjml(renderToMjml(doc));
 
   const { html, errors } = await mjml2html(mjml, { minify: false });
@@ -271,87 +286,61 @@ async function compileHtml(
     );
   }
 
-  return substitute(html);
+  return assertNoLeakedTokens(substitute(html), template.name, "htmlTemplate");
+}
+
+//------------------------------------------------------------------------------
+// A marker that survived substitution means the template transformed what
+// `mg.render()` gave it -- `.toUpperCase()`, `.slice()`, a number coerced. The
+// value it stood for is gone, so stop rather than ship an email with
+// MAILGRAILX0XTOKEN where a name should be.
+//------------------------------------------------------------------------------
+function assertNoLeakedTokens(
+  out: string,
+  name: string,
+  part: "htmlTemplate" | "subjectTemplate" | "textTemplate",
+): string {
+  const leaked = findLeakedTokens(out);
+
+  if (leaked) {
+    throw new Error(
+      `${name}: ${part} changed a value it got from mg.render(), leaving ` +
+        `${leaked} in the output.\n` +
+        `The context returns a placeholder the engine fills in when the email ` +
+        `is sent, so it cannot be transformed at build time. Pass the value ` +
+        `in already formatted instead.`,
+    );
+  }
+
+  return out;
 }
 
 //------------------------------------------------------------------------------
 // Compile subject/text → template source
 //
-// Both are plain text rather than HTML, so each engine's unescaped placeholder
-// is used; escaping here would turn an `&` in a param into `&amp;`.
+// Same context as the HTML, composing strings instead of React nodes: these are
+// compiled to engine templates too, so a branch or a loop has to go through
+// `mg` to survive into the output. Nothing is escaped -- this is plain text,
+// where `&amp;` would be a bug.
 //------------------------------------------------------------------------------
-function paramsProxy(spec: EngineSpec) {
-  return new Proxy(
-    {},
-    {
-      get(_, key) {
-        return spec.placeholder(String(key));
-      },
-    },
+function compileTextPart(
+  template: TemplateDefinition<any>,
+  engine: TemplatingEngine,
+  part: "subjectTemplate" | "textTemplate",
+): string {
+  const { ctx, substitute } = createTextTemplateCompiler<any>({ engine });
+
+  const out = template[part](
+    guardContext(ctx, { template: template.name, part }),
   );
-}
 
-function compileText(
-  template: TemplateDefinition<any>,
-  spec: EngineSpec,
-): string {
-  return template.textTemplate(paramsProxy(spec));
-}
+  if (typeof out !== "string") {
+    throw new Error(
+      `${template.name}: ${part} must return a string, got ${typeof out}.`,
+    );
+  }
 
-function compileSubject(
-  template: TemplateDefinition<any>,
-  spec: EngineSpec,
-): string {
-  return template.subjectTemplate(paramsProxy(spec));
-}
-
-//------------------------------------------------------------------------------
-// Emit JS wrapper
-//------------------------------------------------------------------------------
-function emitJs(
-  template: TemplateDefinition<any>,
-  spec: EngineSpec,
-  html: string,
-  text: string,
-  subject: string,
-): string {
-  const fnName = `render${pascal(template.name)}`;
-
-  // Left out, rather than emitted as `sender: undefined`, when the template has
-  // none -- so the returned object matches its .d.ts (see emitDts).
-  const sender =
-    template.sender === undefined
-      ? ""
-      : `    sender: ${JSON.stringify(template.sender)},\n`;
-
-  // Each template is prepared once, when the module is first imported, rather
-  // than on every call. Engines differ in how much that saves -- Handlebars was
-  // re-compiling the whole document per render, EJS re-parsing it -- but none of
-  // them should be doing it per message, and the template cannot change at
-  // runtime, so there is nothing to invalidate.
-  return `
-import ${spec.binding} from ${JSON.stringify(spec.module)};
-
-const htmlTemplate = ${JSON.stringify(html)};
-const textTemplate = ${JSON.stringify(text)};
-const subjectTemplate = ${JSON.stringify(subject)};
-
-${spec.precompile("renderHtml", "htmlTemplate")}
-${spec.precompile("renderText", "textTemplate")}
-${spec.precompile("renderSubject", "subjectTemplate")}
-
-${emitNormalizer(template.params)}
-export function ${fnName}(input) {
-  const params = normalizeParams(input);
-
-  return {
-    name: ${JSON.stringify(template.name)},
-${sender}    subject: ${spec.render("renderSubject", "subjectTemplate")},
-    text: ${spec.render("renderText", "textTemplate")},
-    html: ${spec.render("renderHtml", "htmlTemplate")},
-  };
-}
-`.trimStart();
+  return assertNoLeakedTokens(substitute(out), template.name, part);
 }
 
 //------------------------------------------------------------------------------

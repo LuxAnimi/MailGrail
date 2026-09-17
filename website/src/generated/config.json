@@ -9,7 +9,7 @@
     },
     {
       "default": "./emails-dist",
-      "description": "Three files per template land here: the readable template, the render function, and its type declarations. Commit them or generate them in CI, whichever suits — they are the artifact your backend imports.",
+      "description": "Three files per template land here: the readable template, the render function, and its type declarations, plus an `index` re-exporting all of them and a `package.json`. Commit them or generate them in CI, whichever suits — they are the artifact your backend imports.",
       "id": "outputDir",
       "summary": "Where compiled output is written, relative to the config file.",
       "type": "string"
@@ -34,6 +34,13 @@
       "id": "templatingEngine",
       "summary": "Which engine the compiled output targets.",
       "type": "\"EJS\" | \"Handlebars\" | \"Mustache\""
+    },
+    {
+      "default": "esm",
+      "description": "`esm` emits `import`/`export`, `cjs` emits `require`/`exports` for a CommonJS backend. The `package.json` written beside the output declares the matching `type`, and the build fails if a `package.json` already there contradicts it — the two disagreeing is what makes Node refuse to load the files at all.",
+      "id": "moduleFormat",
+      "summary": "Module system the compiled output is written in.",
+      "type": "\"esm\" | \"cjs\""
     },
     {
       "default": false,

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createElement, Fragment } from "react";
 
 //------------------------------------------------------------------------------
-import type { RenderTemplateContext } from "../types.js";
+import type { RenderTemplateContext, TextTemplateContext } from "../types.js";
 
 //------------------------------------------------------------------------------
 export type TemplatingEngine = "ejs" | "handlebars" | "mustache";
@@ -22,6 +22,31 @@ export type TemplatingEngine = "ejs" | "handlebars" | "mustache";
 //------------------------------------------------------------------------------
 const tokenFor = (index: number) => `MAILGRAILx${index}xTOKEN`;
 const TOKEN_RE = /MAILGRAILx(\d+)xTOKEN/g;
+
+//------------------------------------------------------------------------------
+// A token that survived substitution means the template transformed the string
+// it was handed -- `mg.render("x").toUpperCase()` mangles the token's case, so
+// it no longer matches. The value would be silently dropped from the email, so
+// the build fails instead.
+//------------------------------------------------------------------------------
+const LEAKED_RE = /MAILGRAIL[xX]\d+[xX]TOKEN/i;
+
+export function findLeakedTokens(output: string): string | null {
+  return output.match(LEAKED_RE)?.[0] ?? null;
+}
+
+//------------------------------------------------------------------------------
+// Handlebars and Mustache drop a line that holds nothing but a block tag, while
+// EJS keeps it. That is invisible in HTML and changes the shape of a plain-text
+// body, so text templates opt out of it: Handlebars has a compile flag, and
+// Mustache, which has none, gets a variable tag in front of every block tag so
+// the line is no longer "standalone". An undefined name renders as nothing.
+//------------------------------------------------------------------------------
+export const TEXT_COMPILE_OPTIONS = {
+  handlebars: { ignoreStandalone: true },
+} as const;
+
+const MUSTACHE_WS_SENTINEL = "{{&__mailgrail_ws}}";
 
 //------------------------------------------------------------------------------
 // MJML elements whose content is passed straight through as HTML. A marker
@@ -66,10 +91,14 @@ export function createTemplateCompiler<T>(opts: {
   rootVar?: string;
   unescaped?: boolean;
   guardArrays?: boolean; // guard array iteration as (expr || [])
+  mode?: "html" | "text"; // html composes React nodes, text composes strings
 }): TemplateCompiler<T> {
   const engine = opts.engine;
   const rootVar = opts.rootVar ?? "";
-  const unescaped = opts.unescaped ?? false;
+  const isText = (opts.mode ?? "html") === "text";
+  // Text is not HTML: escaping it would turn an apostrophe into &#39; in a
+  // plain-text body.
+  const unescaped = opts.unescaped ?? isText;
   const guardArrays = opts.guardArrays ?? true;
 
   let id = 0;
@@ -82,7 +111,11 @@ export function createTemplateCompiler<T>(opts: {
 
   const mark = (syntax: string, isStructural: boolean): string => {
     const index = fragments.length;
-    fragments.push(syntax);
+    fragments.push(
+      isStructural && isText && engine === "mustache"
+        ? MUSTACHE_WS_SENTINEL + syntax
+        : syntax,
+    );
     if (isStructural) structural.add(index);
     return tokenFor(index);
   };
@@ -106,11 +139,11 @@ export function createTemplateCompiler<T>(opts: {
         return `${tag} ${exprOrPath} %>`;
       }
       case "handlebars": {
-        if (isCurrent) return `{{this}}`;
+        if (isCurrent) return unescaped ? `{{{this}}}` : `{{this}}`;
         return unescaped ? `{{{${exprOrPath}}}}` : `{{${exprOrPath}}}`;
       }
       case "mustache": {
-        if (isCurrent) return `{{.}}`;
+        if (isCurrent) return unescaped ? `{{& .}}` : `{{.}}`;
         return unescaped ? `{{& ${exprOrPath}}}` : `{{${exprOrPath}}}`;
       }
     }
@@ -198,6 +231,23 @@ export function createTemplateCompiler<T>(opts: {
   const frag = (...nodes: ReactNode[]): ReactNode =>
     createElement(Fragment, null, ...nodes);
 
+  // The one place the two modes really differ: JSX children are composed by
+  // React, and a text body by concatenation. A callback that returns markup in
+  // a text template would otherwise concatenate as "[object Object]".
+  const joinText = (...nodes: unknown[]): string =>
+    nodes
+      .map((node) => {
+        if (typeof node === "string") return node;
+        throw new Error(
+          `A subject or text callback returned ${
+            node === undefined ? "nothing" : typeof node
+          }; these compose plain strings, so every branch has to return one.`,
+        );
+      })
+      .join("");
+
+  const combine: (...nodes: any[]) => any = isText ? joinText : frag;
+
   //----------------------------------------------------------------------------
   // Create a context whose "base" is either:
   // - EJS: JS expression string (e.g. "params.user")
@@ -219,8 +269,8 @@ export function createTemplateCompiler<T>(opts: {
     ) => {
       const parts = ifParts(exprOrPathFor(path));
       return otherwise
-        ? frag(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
-        : frag(block(parts.open), render(), block(parts.close));
+        ? combine(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
+        : combine(block(parts.open), render(), block(parts.close));
     };
 
     ctx.unless = (
@@ -230,8 +280,8 @@ export function createTemplateCompiler<T>(opts: {
     ) => {
       const parts = unlessParts(exprOrPathFor(path));
       return otherwise
-        ? frag(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
-        : frag(block(parts.open), render(), block(parts.close));
+        ? combine(block(parts.open), render(), block(parts.alt), otherwise(), block(parts.close))
+        : combine(block(parts.open), render(), block(parts.close));
     };
 
     ctx.each = (
@@ -252,7 +302,7 @@ export function createTemplateCompiler<T>(opts: {
       );
 
       const parts = eachParts(arr, itemVar, idxVar);
-      return frag(block(parts.open), render(itemCtx, 0), block(parts.close));
+      return combine(block(parts.open), render(itemCtx, 0), block(parts.close));
     };
 
     ctx.with = (path: string, render: (scope: any) => ReactNode) => {
@@ -263,7 +313,7 @@ export function createTemplateCompiler<T>(opts: {
       const scopedCtx = make(isEjs ? scopeVar : "");
 
       const parts = withParts(obj, scopeVar);
-      return frag(block(parts.open), render(scopedCtx), block(parts.close));
+      return combine(block(parts.open), render(scopedCtx), block(parts.close));
     };
 
     return ctx as RenderTemplateContext<T>;
@@ -290,14 +340,14 @@ export function createTemplateCompiler<T>(opts: {
         const innerIdxVar = next("i");
         const innerCtx = makeItemContext(innerItemVar, innerItemVar);
         const parts = eachParts(arrExpr, innerItemVar, innerIdxVar);
-        return frag(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
+        return combine(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
       }
 
       // HB: {{#each this}}, Mustache: {{#.}}
       const arrRef = engine === "handlebars" ? "this" : ".";
       const innerCtx = makeItemContext("", undefined);
       const parts = eachParts(arrRef, "", "");
-      return frag(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
+      return combine(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
     };
 
     // An item context serves several documented shapes at once, so `render`
@@ -368,11 +418,62 @@ export function createTemplateCompiler<T>(opts: {
   };
 
   //----------------------------------------------------------------------------
-  const substitute = (html: string): string =>
+  // In HTML the text around the tokens came from React and MJML, so a stray
+  // delimiter in it is already escaped. A text template *is* the template, so a
+  // literal delimiter someone wrote would be read as engine syntax.
+  //----------------------------------------------------------------------------
+  const escapeStatic = (text: string): string => {
+    switch (engine) {
+      case "ejs":
+        return text.replace(/<%/g, "<%%");
+      case "handlebars":
+        return text.replace(/\{\{/g, "\\{{");
+      case "mustache":
+        if (text.includes("{{")) {
+          throw new Error(
+            `Mustache has no escape for a literal "{{", and a subject or text ` +
+              `template contains one:\n\n  ${text.trim().slice(0, 80)}\n\n` +
+              `Pass it in as a parameter, or use EJS or Handlebars.`,
+          );
+        }
+        return text;
+    }
+  };
+
+  //----------------------------------------------------------------------------
+  const substituteHtml = (html: string): string =>
     html.replace(TOKEN_RE, (token, index) => {
       const syntax = fragments[Number(index)];
       return syntax === undefined ? token : syntax;
     });
+
+  //----------------------------------------------------------------------------
+  const substituteText = (text: string): string => {
+    const re = new RegExp(TOKEN_RE.source, "g");
+
+    let out = "";
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = re.exec(text)) !== null) {
+      let stat = escapeStatic(text.slice(cursor, match.index));
+
+      // Static text ending in an odd number of backslashes would escape the
+      // Handlebars tag about to be emitted, printing it instead of the value.
+      // One more backslash escapes the backslash itself.
+      if (engine === "handlebars" && /(^|[^\\])(\\\\)*\\$/.test(stat)) {
+        stat += "\\";
+      }
+
+      const syntax = fragments[Number(match[1])];
+      out += stat + (syntax === undefined ? match[0] : syntax);
+      cursor = match.index + match[0].length;
+    }
+
+    return out + escapeStatic(text.slice(cursor));
+  };
+
+  const substitute = isText ? substituteText : substituteHtml;
 
   //----------------------------------------------------------------------------
   // Root base:
@@ -381,4 +482,32 @@ export function createTemplateCompiler<T>(opts: {
   const rootBase = engine === "ejs" ? rootVar : "";
 
   return { ctx: make(rootBase), prepareMjml, substitute };
+}
+
+//------------------------------------------------------------------------------
+export type TextTemplateCompiler<T> = {
+  /** Context handed to the template's `subjectTemplate` / `textTemplate`. */
+  ctx: TextTemplateContext<T>;
+
+  /** Replaces every marker in the returned string with engine syntax. */
+  substitute: (text: string) => string;
+};
+
+//------------------------------------------------------------------------------
+// The subject and the text body are compiled the same way as the HTML: the
+// context emits tokens, the template composes them, and the engine syntax is
+// substituted at the end. There is no React and no MJML in between, so the
+// pieces are joined as strings and nothing is escaped.
+//------------------------------------------------------------------------------
+export function createTextTemplateCompiler<T>(opts: {
+  engine: TemplatingEngine;
+  rootVar?: string;
+  guardArrays?: boolean;
+}): TextTemplateCompiler<T> {
+  const { ctx, substitute } = createTemplateCompiler<T>({
+    ...opts,
+    mode: "text",
+  });
+
+  return { ctx: ctx as unknown as TextTemplateContext<T>, substitute };
 }

@@ -13,4 +13,5 @@ export type {
   TemplateDefinition,
   RenderTemplateContext,
   HtmlTemplateContext,
+  TextTemplateContext,
 } from "../cli/types.js";

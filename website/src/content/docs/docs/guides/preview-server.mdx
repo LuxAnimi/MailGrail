@@ -13,6 +13,14 @@ npx mailgrail preview
 The preview server renders every template in your source directory with data
 generated from its own schema, and reloads when you save.
 
+If `previewPort` is already taken — another project's preview, usually — it
+moves to the next free port and says so, rather than leaving you to wonder why
+the page you had open has not changed:
+
+```
+Port 7777 is in use — preview is running on http://127.0.0.1:7778
+```
+
 ## What you see
 
 A sidebar lists your templates. Selecting one renders it as a real email —
@@ -56,8 +64,10 @@ imports is invisible to both the preview and the build.
 
 ## Configuring the chrome
 
-The preview header shows your project's name, description and logo, read from
-your `package.json`. Any of them can be hidden:
+The preview header shows your project's `name` and `description`, read from the
+nearest `package.json`, next to MailGrail's own logo. The browser tab takes that
+name too, so two previews side by side are tellable apart. Any of the three can
+be hidden:
 
 ```ts title="mailgrail.config.ts"
 export default defineConfig({

@@ -12,7 +12,11 @@ import Strong from "./components/Strong";
 import Text from "./components/Text";
 
 //------------------------------------------------------------------------------
-import type { HtmlTemplateContext, TemplateDefinition } from "../../src/cli/types";
+import type {
+  HtmlTemplateContext,
+  TemplateDefinition,
+  TextTemplateContext,
+} from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, spacing } from "./theme";
@@ -32,12 +36,21 @@ const paramsSchema = t.object({
 type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
-const subjectTemplate = (params: Params): string =>
-  `Welcome to mailgrail, ${params.username}!`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome to mailgrail, ${mg.render("username")}!`;
 
 //------------------------------------------------------------------------------
-const textTemplate = (params: Params): string =>
-  `Welcome, ${params.username}! You are on the ${params.plan} plan. Get started at https://mailgrail.com`;
+// Branching goes through `mg` here for the same reason it does in the HTML:
+// what ships is a template the engine fills in per email, so a plain `if` would
+// pick its branch once, at build time, for everyone.
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome, ${mg.render("username")}! ` +
+  mg.when(
+    "isPro",
+    () => `You are on Pro.`,
+    () => `You are on the ${mg.render("plan")} plan.`,
+  ) +
+  ` Get started at https://mailgrail.com`;
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (

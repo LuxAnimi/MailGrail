@@ -17,8 +17,8 @@ interface TemplateDefinition<S extends Schema<any>> {
   name: string;
   params: S;
   htmlTemplate: (mg: RenderTemplateContext<Infer<S>>) => ReactElement;
-  subjectTemplate: (params: Infer<S>) => string;
-  textTemplate: (params: Infer<S>) => string;
+  subjectTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
+  textTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
   sender?: string;
 }
 ```
@@ -28,30 +28,49 @@ interface TemplateDefinition<S extends Schema<any>> {
 | `name` | Output filenames and the exported function name. `confirm-email` gives `confirm-email.js` exporting `renderConfirmEmail`. |
 | `params` | The schema. Types the other three fields, generates preview data, emits the `.d.ts`. |
 | `htmlTemplate` | Receives the render context. Returns MJML as React elements. |
-| `subjectTemplate` | Receives plain parameters. Returns a string. |
-| `textTemplate` | Receives plain parameters. Returns the plain-text part. |
+| `subjectTemplate` | Receives a render context that composes strings. Returns the subject line. |
+| `textTemplate` | Receives the same context. Returns the plain-text part. |
 | `sender` | Optional default `from` address, passed through to the output and typed there as the literal. Leave it out and the output has no `sender` at all. |
 
-## Why two different argument types
+## One context, two kinds of output
 
-`htmlTemplate` gets a render context; `subjectTemplate` and `textTemplate` get
-plain parameters. That asymmetry is deliberate.
+All three template functions receive the same kind of context. `htmlTemplate`
+composes React elements with it; `subjectTemplate` and `textTemplate` compose
+strings.
 
-The HTML is compiled to a *template* — MailGrail needs to know which parameters
-you touched so it can emit placeholders, and the context is how it finds out.
-The subject and text are short strings where the engine's own interpolation is
-enough, so they take the values directly and let you use ordinary template
-literals, conditionals and formatting.
-
-The practical consequence: in `subjectTemplate` and `textTemplate` you handle
-optional values yourself.
+The reason is the same in all three cases: what ships is a *template*, not a
+rendered email. MailGrail has to know which parameters you touched so it can
+emit placeholders the engine fills in per recipient, and the context is how it
+finds out. A plain JavaScript conditional cannot do that — it runs once, at
+build time, and bakes one branch into the template everybody receives.
 
 ```ts
-const subjectTemplate = (params: Params): string =>
-  params.nickname
-    ? `Welcome back, ${params.nickname}!`
-    : `Welcome, ${params.username}!`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  mg.when(
+    "nickname",
+    () => `Welcome back, ${mg.render("nickname")}!`,
+    () => `Welcome, ${mg.render("username")}!`,
+  );
 ```
+
+Everything in the [render context](/MailGrail/docs/reference/render-context)
+works here — `render`, `when`, `unless`, `each`, `with` — with the callbacks
+returning strings instead of markup.
+
+Three things differ from the HTML side:
+
+- **Nothing is escaped.** This is plain text, where `&amp;` in a subject line
+  would be a bug.
+- **Newlines are yours.** They survive into the output on all three engines.
+- **You cannot transform what the context hands back.** `mg.render("total")`
+  returns a placeholder, not the value, so `.toFixed(2)` has nothing to work
+  on. The build stops rather than ship a mangled placeholder — pass the value
+  in already formatted instead.
+
+:::caution[Mustache]
+A literal `{{` in a subject or text template fails the build: Mustache has no
+escape for it. EJS and Handlebars escape theirs for you.
+:::
 
 ## A real one
 

@@ -60,16 +60,23 @@ with `MjmlColumn` inside it.
 
 ## 3. Write the subject and text
 
-These two receive **plain parameters**, not a render context, because they are
-strings rather than markup:
+These receive the same kind of context as the markup, composing strings rather
+than elements — they are compiled to templates too:
 
 ```tsx title="emails/ConfirmEmail.tsx"
-const subjectTemplate = (params: Params): string =>
-  `Welcome, ${params.username}!`;
+import type { TextTemplateContext } from "@luxanimi/mailgrail";
 
-const textTemplate = (params: Params): string =>
-  `Welcome, ${params.username}! Confirm your account: ${params.confirmationUrl}`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome, ${mg.render("username")}!`;
+
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `Welcome, ${mg.render("username")}! Confirm your account: ${mg.render(
+    "confirmationUrl",
+  )}`;
 ```
+
+Branch with `mg.when` and iterate with `mg.each`, exactly as in the markup. A
+plain `if` here would pick its branch once, at build time, for every recipient.
 
 A plain-text part is not optional in practice. Some clients prefer it, some
 spam filters expect it, and it is what shows in a notification preview.

@@ -1,0 +1,92 @@
+---
+title: Adding it to an existing app
+description: The four places a real codebase pushes back, and what to do about each.
+sidebar:
+  order: 6
+---
+
+Scaffolding into an empty project is uneventful. Scaffolding into an app that
+already has a `tsconfig.json`, an ESLint config, a bundler and a backend is
+where the friction is — and all of it comes from the same fact: the templates
+are a small, separate program that happens to live in your repository.
+
+MailGrail never edits those configs for you. Below is what each one wants.
+
+## Your root `tsconfig.json`
+
+The scaffolder writes a `tsconfig.json` **inside** the source directory, and
+`typecheck-emails` runs `tsc -p emails-src`. That config uses `Bundler`
+resolution, because the templates are loaded by esbuild — which resolves
+extensionless relative imports, exactly as the generated entry point expects.
+
+If your root config also covers that directory, the templates get checked a
+second time under settings meant for your app. Exclude them:
+
+```json title="tsconfig.json"
+{
+  "exclude": ["emails-src"]
+}
+```
+
+Editors pick up the nearest config, so they use the right one either way.
+
+## Your ESLint config
+
+The templates are JSX that renders to email, not to a browser: no hooks, no
+accessibility semantics, `<MjmlColumn>` where a `<div>` would be. Rules written
+for your app will object. Either ignore the directory:
+
+```js title="eslint.config.js"
+export default [{ ignores: ["emails-src"] }];
+```
+
+or give it a block of its own, with the React rules you actually want there.
+
+## Older TypeScript resolution
+
+Next.js and other setups still use `moduleResolution: "node"`, which ignores the
+`exports` field entirely. MailGrail ships `typesVersions` so the subpaths
+resolve there too:
+
+```ts
+import type { Infer } from "@luxanimi/mailgrail/dsl";
+import type { TemplateDefinition } from "@luxanimi/mailgrail/types";
+```
+
+Both work under `node`, `node16`, `nodenext` and `bundler`.
+
+## A CommonJS backend
+
+The compiled output is ESM by default, and the `package.json` written beside it
+says so — which is what lets a `"type": "commonjs"` project `require()` it on
+the Node versions MailGrail supports:
+
+```js
+const { renderConfirmEmail } = require("./emails-dist/confirm-email.js");
+```
+
+Two cases still need something more:
+
+- **TypeScript on `module: "node16"`.** It refuses to value-import an ESM module
+  from CommonJS (TS1479). Use `nodenext` or `bundler`, import only types, or
+  take the next option.
+- **Older Node, or tooling that will not load ESM at all.** Set
+  [`moduleFormat: "cjs"`](/MailGrail/docs/reference/output#moduleformat--esm-or-commonjs);
+  the output is written with `require` and `exports` instead.
+
+## One more thing that catches people
+
+`emails-dist/` does not exist on a fresh clone, and the `.d.ts` files in it are
+an input to `tsc`. Whatever runs your typecheck has to build the emails first:
+
+```json title="package.json"
+{
+  "scripts": {
+    "typecheck": "mailgrail build && tsc --noEmit"
+  }
+}
+```
+
+That decision — build in CI, or commit the output — is
+[its own page](/MailGrail/docs/getting-started/build-integration), and worth
+making deliberately.

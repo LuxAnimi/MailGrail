@@ -30,7 +30,8 @@ export const configDocs: ConfigDoc[] = [
     summary: "Where compiled output is written, relative to the config file.",
     description:
       "Three files per template land here: the readable template, the render " +
-      "function, and its type declarations. Commit them or generate them in CI, " +
+      "function, and its type declarations, plus an `index` re-exporting all of " +
+      "them and a `package.json`. Commit them or generate them in CI, " +
       "whichever suits — they are the artifact your backend imports.",
   },
   {
@@ -55,6 +56,17 @@ export const configDocs: ConfigDoc[] = [
       "`.js` imports at run time. `mailgrail build` checks that engine is " +
       "installed and fails with an actionable message if it is not, so a missing " +
       "engine surfaces at build time rather than when an email is sent.",
+  },
+  {
+    id: "moduleFormat",
+    type: '"esm" | "cjs"',
+    summary: "Module system the compiled output is written in.",
+    description:
+      "`esm` emits `import`/`export`, `cjs` emits `require`/`exports` for a " +
+      "CommonJS backend. The `package.json` written beside the output declares " +
+      "the matching `type`, and the build fails if a `package.json` already " +
+      "there contradicts it — the two disagreeing is what makes Node refuse to " +
+      "load the files at all.",
   },
   {
     id: "hideAppName",

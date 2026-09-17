@@ -37,8 +37,11 @@ want different directories, change them consistently in step 3 and step 4.
 
 <ScaffoldPackage mode="install" />
 
-`@faire/mjml-react` and `react` are peer dependencies: your template files import
-them directly and MailGrail resolves them from your project.
+`@faire/mjml-react`, `react` and `react-dom` are peer dependencies: your template
+files import them directly and MailGrail resolves them from your project. React
+18 and 19 are both supported, and the two React packages have to be the same
+major — rendering a template to MJML goes through `react-dom/server`, and
+elements made by one React are rejected by another's renderer.
 
 `ejs` is different — it is imported by the **compiled output**, not by MailGrail,
 which is what lets that output run without MailGrail installed. This is the step

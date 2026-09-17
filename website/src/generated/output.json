@@ -76,6 +76,10 @@
     "export function renderOrderConfirmation(input)"
   ],
   "files": {
+    "index": [
+      "index.d.ts",
+      "index.js"
+    ],
     "order-confirmation": [
       "order-confirmation.d.ts",
       "order-confirmation.ejs",

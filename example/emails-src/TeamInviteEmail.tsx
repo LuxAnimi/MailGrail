@@ -11,7 +11,11 @@ import Strong from "./components/Strong";
 import Text from "./components/Text";
 
 //------------------------------------------------------------------------------
-import type { HtmlTemplateContext, TemplateDefinition } from "../../src/cli/types";
+import type {
+  HtmlTemplateContext,
+  TemplateDefinition,
+  TextTemplateContext,
+} from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
@@ -32,12 +36,16 @@ const paramsSchema = t.object({
 type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
-const subjectTemplate = (params: Params): string =>
-  `${params.invitedBy.name} invited you to join mailgrail`;
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  `${mg.render("invitedBy.name")} invited you to join mailgrail`;
 
 //------------------------------------------------------------------------------
-const textTemplate = (params: Params): string =>
-  `You've been invited by ${params.invitedBy.name} (${params.invitedBy.email}). Accept at ${params.inviteUrl}. Expires in ${params.expiresIn} days.`;
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  `You've been invited by ${mg.render("invitedBy.name")} (${mg.render(
+    "invitedBy.email",
+  )}). Accept at ${mg.render("inviteUrl")}. Expires in ${mg.render(
+    "expiresIn",
+  )} days.`;
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (

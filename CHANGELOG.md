@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-17
+
+### Breaking
+
+- `subjectTemplate` and `textTemplate` now receive a render context instead of
+  the parameters: `(mg) => \`Welcome, ${mg.render("username")}!\``. They used to
+  be handed placeholder strings, so a conditional, a nested path, an array or a
+  string method silently compiled to the wrong thing -- the bundled team-invite
+  subject shipped as `undefined invited you to join mailgrail`. Branch with
+  `mg.when` / `mg.unless` and iterate with `mg.each`, exactly as in
+  `htmlTemplate`
+- Reading a parameter straight off the context (`mg.username`), or transforming
+  a value it returned (`mg.render("total").toUpperCase()`), now fails the build
+  instead of emitting a broken template
+- `react-dom` is a required peer dependency. It was always needed -- rendering a
+  template to MJML goes through `react-dom/server` -- but arrived only as
+  somebody else's transitive peer
+- The build fails on template names that cannot be expressed in the output:
+  two names compiling to the same `renderX`, names differing only in case, a
+  name that is not a valid identifier, and the reserved name `index`
+- The build fails when a `package.json` already in `outputDir` declares a `type`
+  that contradicts `moduleFormat`; the emitted modules would not load at all
+- Package entry points resolve through a `default` condition rather than
+  `import`, so `require()` reaches them on Node >= 20.19
+
+### Added
+
+- React 18 support: `react` and `react-dom` peers are now `^18 || ^19`. The
+  preview app no longer bundles a React of its own, so it renders templates with
+  the project's copy; build and preview both fail early, and clearly, when react
+  and react-dom mismatch or two copies are reachable
+- `moduleFormat: "esm" | "cjs"` — `cjs` emits `require`/`exports` modules and a
+  `package.json` declaring `"type": "commonjs"`
+- `mailgrail build` writes `index.js` and `index.d.ts` into `outputDir`,
+  re-exporting every render function plus a typed `templates` map from template
+  name to function, and adds a `"."` entry to the emitted `package.json`
+- `TextTemplateContext<T>` — the context type for subject and text templates
+- `typesVersions` for `/dsl` and `/types`, so the subpaths resolve under the
+  older `moduleResolution: "node"` that Next.js and similar still use
+- The preview says so when the configured port is taken, instead of moving to
+  the next one silently, and its header and tab title show the project's own
+  name and description from `package.json`
+- create-mailgrail matches the project's React major and adds `react-dom`,
+  points out an existing root `tsconfig.json` or ESLint config that will want a
+  word about the templates directory, and says that `outputDir` exists only
+  after a build
+
+### Fixed
+
+- Items of a primitive array were HTML-escaped in unescaped contexts
+- The preview-server docs described a header reading the project's
+  `package.json`, which the preview did not do until now
+
+
 ## [0.1.1] - 2026-09-15
 
 ### Added
@@ -100,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/LuxAnimi/MailGrail/releases/tag/v0.1.0

@@ -3,6 +3,7 @@ import { collectPrompts } from "./prompts.js";
 import { scaffold } from "./scaffold.js";
 import { install, detectPackageManager } from "./install.js";
 import { printHandoff } from "./handoff.js";
+import { existingProjectAdvice } from "./advice.js";
 
 //------------------------------------------------------------------------------
 // Keep this in step with `engines` here and in mailgrail itself. The guard used
@@ -71,9 +72,20 @@ async function main() {
     "",
     `  Templates:  ${options.sourceDir}/`,
     `  Output:     ${options.outputDir}/`,
+    "",
+    // The one that bites on a clean clone: the emitted .d.ts is an input to
+    // tsc, so typechecking before a build fails on imports that are fine.
+    `  ${options.outputDir}/ exists only after a build — run`,
+    `  ${run} build-emails before tsc on a fresh clone.`,
   ].join("\n");
 
   note(nextSteps, "Next steps");
+
+  // Neither of these is edited for them: both are decisions the project has
+  // already made, and both will otherwise surprise someone later.
+  for (const advice of existingProjectAdvice(options)) {
+    note(advice.lines.join("\n"), advice.title);
+  }
 
   printHandoff();
   outro("Happy emailing!");

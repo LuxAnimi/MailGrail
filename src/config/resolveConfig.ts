@@ -21,6 +21,7 @@ export function resolveConfig(
     configPath: configPath,
     previewPort: userConfig.previewPort ?? 7777,
     templatingEngine: userConfig.templatingEngine ?? "EJS",
+    moduleFormat: userConfig.moduleFormat ?? "esm",
     typescript: userConfig.typescript ?? true,
     hideAppLogo: userConfig.hideAppLogo ?? false,
     hideAppName: userConfig.hideAppName ?? false,
