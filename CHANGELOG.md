@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-24
+
+### Added
+
+- `appName` and `appDescription` config options set the preview sidebar's
+  title and subtitle, overriding the values read from `package.json`
+- The preview sidebar links to the documentation in its footer
+- `create-mailgrail` asks which languages to build. Listing any localizes the
+  starter template, writes a translation catalog per language and adds an
+  `extract-emails` script
+- The example project is localized in English, French and Spanish, showing
+  plurals, currency formatting, rich-text tags and a translated shared footer
+
+### Changed
+
+- The splash-screen logo renders in a single uniform shade of gray
+- The preview's Populate panel starts closed, leaving the email the full width
+
+### Fixed
+
+- `create-mailgrail` JavaScript projects failed to build: the starter files
+  imported `.js` paths for `.jsx` files, which esbuild does not resolve
+- The HTML preview no longer flashes white or jumps back to the top while
+  params are edited
+
 ## [0.3.0] - 2026-09-24
 
 ### Added
@@ -203,7 +228,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...v0.1.1
