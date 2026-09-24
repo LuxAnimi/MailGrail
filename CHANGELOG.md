@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-24
+
 ### Added
 
 - Localization. List `locales` in the config and each template is built once
@@ -38,11 +40,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (text or attribute) was evaluated against the params, and a `{` placed right
   before a value turned it into an unescaped triple-stache. Static braces next to
   delimiters are now written as HTML entities
+- Preview: a clicked template kept a focus ring outside its selected border,
+  drawing two outlines. The ring now shows for keyboard focus only
 
 ### Changed
 
 - A line break or other control character in a rendered subject fails the build
 - Param keys starting with `__mg` are reserved
+- Preview: in the desktop view the email sits in an outlined frame with a soft
+  shadow, so a white email stands apart from the white page around it
+- Preview: the sidebar is at most 20rem wide; a long project description or
+  template name wraps instead of squeezing the preview
+- Example templates: a neutral grey palette whose text colours all read at
+  4.5:1 or better on white, a white body set explicitly, and a light-only
+  `color-scheme`. They were styled for a dark background, and claimed dark-mode
+  support their dark text could not honour
 
 ## [0.2.0] - 2026-09-17
 
@@ -191,7 +203,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/LuxAnimi/MailGrail/releases/tag/v0.1.0

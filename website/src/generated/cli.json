@@ -45,5 +45,5 @@
       "usage": "mailgrail extract [--prune] [options]"
     }
   ],
-  "help": "Usage:\n  mailgrail preview [options]\n  mailgrail build [options]\n\nCommands:\n  preview   Start email preview server\n  build     Build email templates for production"
+  "help": "Usage:\n  mailgrail preview [options]\n  mailgrail build [options]\n  mailgrail extract [--prune] [options]\n\nCommands:\n  preview   Start email preview server\n  build     Build email templates for production\n  extract   Update the translation catalogs from the source messages"
 }
