@@ -145,6 +145,29 @@
             margin-left: 0.4rem;
         }
     }
+
+    // Pinned to the bottom however short the template list is.
+    .footer {
+        flex-shrink: 0;
+        margin-top: auto;
+        padding-top: 1.25rem;
+        font-size: 13px;
+
+        a {
+            color: palette.base-color(9, 0);
+            text-decoration: none;
+
+            &:hover {
+                color: palette.base-color(e, 0);
+                text-decoration: underline;
+            }
+
+            &:focus-visible {
+                outline: 2px solid palette.base-color(a, f);
+                outline-offset: 2px;
+            }
+        }
+    }
 }
 
 .content {
@@ -175,9 +198,10 @@
 
         .splash-logo {
             width: 220px;
-            // The card is light, so the mark has to go darker, not lighter.
-            // The old filter inverted it, which left it almost invisible.
-            filter: grayscale(1) opacity(0.16);
+            // Flatten every opaque pixel to black, then fade it, so the mark
+            // reads as a single uniform gray silhouette on the light card.
+            // (grayscale() kept each colour's luminance, giving several greys.)
+            filter: brightness(0) opacity(0.12);
             user-select: none;
             pointer-events: none;
         }

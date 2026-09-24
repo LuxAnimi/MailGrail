@@ -8,6 +8,10 @@ import type { TemplateDefinition } from "@/cli/types";
 import type { Schema } from "@/dsl/schemas";
 
 //------------------------------------------------------------------------------
+const DOCS_URL =
+  "https://luxanimi.github.io/MailGrail/docs/getting-started/introduction/";
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 export const Sidebar = ({
   templates,
@@ -98,6 +102,11 @@ export const Sidebar = ({
           />
         ))}
       </nav>
+      <footer className="footer">
+        <a href={DOCS_URL} target="_blank" rel="noreferrer">
+          Documentation ↗
+        </a>
+      </footer>
     </div>
   );
 };

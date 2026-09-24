@@ -84,6 +84,18 @@ export default defineConfig({
 Useful when you are screen-sharing a client's templates and would rather not
 show the surrounding project.
 
+To show something other than what `package.json` says, set the title and
+description directly:
+
+```ts title="mailgrail.config.ts"
+export default defineConfig({
+  appName: "Acme transactional emails",
+  appDescription: "Order, account and billing notifications",
+});
+```
+
+The sidebar footer links to this documentation.
+
 ## What the preview does not do
 
 It does not send anything, and it is not a rendering-compatibility test. Email

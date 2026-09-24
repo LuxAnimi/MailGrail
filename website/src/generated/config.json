@@ -64,6 +64,20 @@
       "type": "boolean"
     },
     {
+      "default": null,
+      "description": "Defaults to the `name` in the nearest `package.json`. Ignored when `hideAppName` is set.",
+      "id": "appName",
+      "summary": "Title shown in the preview sidebar and browser tab.",
+      "type": "string"
+    },
+    {
+      "default": null,
+      "description": "Defaults to the `description` in the nearest `package.json`. Ignored when `hideAppDescription` is set.",
+      "id": "appDescription",
+      "summary": "Subtitle shown under the title in the preview sidebar.",
+      "type": "string"
+    },
+    {
       "default": [],
       "description": "Each template is built once per locale. Leave it unset and localization is off: the build emits one unlocalized set, exactly as without it. Tags are canonicalized, so `en_us` and `en-US` name the same locale. The **Localization** guide walks through a full setup.",
       "id": "locales",

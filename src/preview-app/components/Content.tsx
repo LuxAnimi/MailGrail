@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // `renderToMjml` is a one-line wrapper around this, and importing it here
 // would pull @faire/mjml-react into the preview app's own bundle -- which has
 // to stay free of anything React-versioned, since the app now renders with the
@@ -52,7 +52,7 @@ export const Content = ({
   // State
   const [mode] = useState<PreviewMode>(PreviewMode.html);
   const [localeChoice, setLocaleChoice] = useState<string>();
-  const [paramsCollapsed, setParamsCollapsed] = useState(false);
+  const [paramsCollapsed, setParamsCollapsed] = useState(true);
   const [viewport, setViewport] = useState<ViewportPreset>(VIEWPORTS[0]);
   const [paramOverrides, setParamOverrides] = useState<
     { templateName: string; params: any } | undefined
@@ -310,30 +310,97 @@ const TemplatePreviewHTML = ({
     }
   }, [template, params, i18n]);
 
+  // Renders are async, so a slow one can finish after a newer one; only the
+  // latest is applied.
   useEffect(() => {
     if ("error" in prepared) return;
+    let cancelled = false;
     mjml2html(prepared.mjml).then((result) => {
-      setHtml(result.html);
+      if (!cancelled) setHtml(result.html);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [prepared]);
 
-  const srcDoc =
+  const markup =
     "error" in prepared
       ? `<pre style="white-space: pre-wrap; font-family: monospace">${escapeHtml(prepared.error)}</pre>`
       : html;
 
   //----------------------------------------------------------------------------
+  // The render is written into the frame's existing document rather than
+  // passed as `srcDoc`. A new `srcDoc` is a navigation: the frame blanked to
+  // white while the new page loaded, images were fetched again and the scroll
+  // jumped back to the top -- on every keystroke in the params form.
+  //
+  // Until the frame has loaded, its contentDocument is the browser's transient
+  // initial one -- possibly without even an <html> -- and is about to be
+  // replaced. So only the loaded srcdoc document is written to, and `onLoad`
+  // does the first write.
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const writeMarkup = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc || doc.URL !== "about:srcdoc" || !doc.documentElement) return;
+    if (markup !== undefined) writeDocument(doc, markup);
+  }, [markup]);
+
+  useEffect(writeMarkup, [writeMarkup]);
+
+  //----------------------------------------------------------------------------
+  // allow-same-origin is what lets this page write into the frame. Scripts in
+  // the email still cannot run: allow-scripts stays off.
   return (
     <div className={`templatePreview${viewport.width !== null ? " templatePreview--viewport" : ""}`}>
       <iframe
+        ref={iframeRef}
         title="Email preview"
-        srcDoc={srcDoc}
-        sandbox=""
+        srcDoc={BLANK_DOCUMENT}
+        sandbox="allow-same-origin"
+        onLoad={writeMarkup}
         style={viewport.width !== null ? { width: viewport.width } : undefined}
       />
     </div>
   );
 };
+
+//------------------------------------------------------------------------------
+// With a doctype, so the frame is in standards mode like the compiled email.
+// A document's mode is fixed when it loads, so writing a doctype later would
+// not change it.
+const BLANK_DOCUMENT = "<!doctype html><html><head></head><body></body></html>";
+
+//------------------------------------------------------------------------------
+// Replaces a live document's contents in place, `<html lang dir>` included, so
+// a right-to-left locale still previews right to left. Parsing with DOMParser
+// first keeps the `<html>` attributes, which setting innerHTML alone would
+// drop.
+function writeDocument(doc: Document, markup: string) {
+  const parsed = new DOMParser().parseFromString(markup, "text/html");
+  const source = parsed.documentElement;
+  const target = doc.documentElement;
+
+  for (const name of target.getAttributeNames()) {
+    if (!source.hasAttribute(name)) target.removeAttribute(name);
+  }
+  for (const name of source.getAttributeNames()) {
+    target.setAttribute(name, source.getAttribute(name)!);
+  }
+
+  // Restored explicitly: while the old body is swapped out, the page is
+  // briefly empty and the browser can clamp the scroll to zero.
+  const scroller = doc.scrollingElement;
+  const top = scroller?.scrollTop ?? 0;
+  const left = scroller?.scrollLeft ?? 0;
+
+  target.innerHTML = source.innerHTML;
+
+  if (scroller) {
+    scroller.scrollTop = top;
+    scroller.scrollLeft = left;
+  }
+}
 
 //------------------------------------------------------------------------------
 const escapeHtml = (text: string): string =>

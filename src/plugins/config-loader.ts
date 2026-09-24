@@ -16,7 +16,12 @@ const escapeHtml = (text: string): string =>
 //------------------------------------------------------------------------------
 export function MailgrailConfigPlugin(config: MailgrailResolvedConfig): Plugin {
   // Read once, when the server starts. A config change restarts it anyway.
-  const project = readProjectInfo(config.baseDir);
+  // The config's own name and description win over package.json's.
+  const packageInfo = readProjectInfo(config.baseDir);
+  const project = {
+    name: config.appName ?? packageInfo.name,
+    description: config.appDescription ?? packageInfo.description,
+  };
 
   return {
     name: "mailgrail:config",

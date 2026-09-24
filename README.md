@@ -643,6 +643,8 @@ export default defineConfig({
 | `hideAppName` | `boolean` | `false` | Hide the project name in the preview UI |
 | `hideAppDescription` | `boolean` | `false` | Hide the description in the preview UI |
 | `hideAppLogo` | `boolean` | `false` | Hide the logo in the preview UI |
+| `appName` | `string` | `package.json` `name` | Title shown in the preview sidebar and browser tab |
+| `appDescription` | `string` | `package.json` `description` | Subtitle shown in the preview sidebar |
 | `locales` | `string[]` | — | BCP 47 tags to build. Unset: one unlocalized build, as before. See [Localization](#localization) |
 | `defaultLocale` | `string` | `locales[0]` | The locale whose text is written in code, and the fallback |
 | `localesDir` | `string` | `"<sourceDir>/locales"` | Where the `<locale>.json` catalogs live |

@@ -84,6 +84,22 @@ export const configDocs: ConfigDoc[] = [
     summary: "Hide the logo in the preview UI.",
   },
   {
+    id: "appName",
+    type: "string",
+    summary: "Title shown in the preview sidebar and browser tab.",
+    description:
+      "Defaults to the `name` in the nearest `package.json`. Ignored when " +
+      "`hideAppName` is set.",
+  },
+  {
+    id: "appDescription",
+    type: "string",
+    summary: "Subtitle shown under the title in the preview sidebar.",
+    description:
+      "Defaults to the `description` in the nearest `package.json`. Ignored " +
+      "when `hideAppDescription` is set.",
+  },
+  {
     id: "locales",
     type: "string[]",
     summary: "The locales to build, as BCP 47 tags.",

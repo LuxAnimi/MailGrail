@@ -34,6 +34,9 @@ export function resolveConfig(
     hideAppLogo: userConfig.hideAppLogo ?? false,
     hideAppName: userConfig.hideAppName ?? false,
     hideAppDescription: userConfig.hideAppDescription ?? false,
+    // null means "use the project's package.json", see readProjectInfo.
+    appName: userConfig.appName ?? null,
+    appDescription: userConfig.appDescription ?? null,
     locales,
     defaultLocale,
     localesDir: userConfig.localesDir
