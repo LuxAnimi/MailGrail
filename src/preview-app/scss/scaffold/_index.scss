@@ -11,7 +11,9 @@
 @mixin clickable-button() {
     @include theme.clickable-button-neutral();
     &:hover { @include theme.clickable-button-hover(); }
-    &:focus { @include theme.clickable-button-focus(); }
+    // Keyboard focus only: a clicked button keeps focus, and its ring doubled the
+    // border of the selected one.
+    &:focus-visible { @include theme.clickable-button-focus(); }
     &:active { @include theme.clickable-button-active(); }
     &.active { @include theme.clickable-button-active(); }
 }

@@ -1,18 +1,25 @@
+// Neutral greys only. Every text colour meant for the white body reads at 4.5:1
+// or better against it (WCAG AA); the rest are for the dark header and buttons.
 export const colors = {
-  bg: { ground: "#080a12", overground: "white" },
+  bg: { ground: "#0a0a0a", overground: "white", email: "#ffffff" },
   accent: {
+    // The brand yellow, for dark backgrounds: on white it reads at 1.5:1.
     500: "#FFC800",
-    reverse: "#C98B04",
+    // The same hue, dark enough to be text on white (5.5:1).
+    text: "#8a6100",
   },
   content: {
-    primary: "#e3e5ed",
-    secondary: "#c9cff2",
-    tertiary: "#606897",
-    quaternary: "#474c66",
-    primaryDark: "#161927",
+    // Headings, figures and emphasis (18.9:1).
+    primary: "#111111",
+    // Body copy (10.4:1).
+    secondary: "#404040",
+    // Quiet copy: footnotes, secondary details (5.7:1).
+    tertiary: "#666666",
+    // Text on the dark header.
+    onDark: "#f5f5f5",
     white: "#fff",
   },
-  border: { secondary: "#C9CFF2" },
+  border: { secondary: "#e0e0e0" },
 };
 
 export const fontSize = {

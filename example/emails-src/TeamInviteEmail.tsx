@@ -56,7 +56,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
       {mg.with("invitedBy", (sender) => (
         <MainText>
           {sender.render("name")}{" "}
-          <span style={{ color: colors.content.quaternary }}>
+          <span style={{ color: colors.content.tertiary }}>
             ({sender.render("email")})
           </span>
           <br />
@@ -67,7 +67,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
       {mg.when("isAdmin", () => (
         <Text
           align="center"
-          color={colors.accent[500]}
+          color={colors.accent.text}
           fontSize={fontSize.sm}
           fontWeight={fontWeight.bold}
           paddingTop={spacing.s5}
@@ -79,7 +79,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
 
       <Text
         align="left"
-        color={colors.content.tertiary}
+        color={colors.content.secondary}
         fontSize={fontSize.sm}
         paddingTop={spacing.s5}
         paddingLeft={spacing.s7}
@@ -100,13 +100,13 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
 
       <Text
         align="center"
-        color={colors.content.quaternary}
+        color={colors.content.tertiary}
         fontSize={fontSize.xs}
         paddingTop={spacing.s6}
         paddingBottom={spacing.s4}
       >
         This invitation expires in{" "}
-        <Strong color={colors.content.tertiary}>
+        <Strong>
           {mg.render("expiresIn")} days
         </Strong>
         .

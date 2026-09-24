@@ -5,7 +5,7 @@ import { fontSize, spacing, colors } from "../theme";
 type MainTextProps = React.ComponentProps<typeof Text>;
 
 const defaultProps = {
-    color: colors.content.quaternary,
+    color: colors.content.secondary,
     fontSize: fontSize.sm,
     paddingTop: spacing.s2,
     paddingBottom: spacing.s4,

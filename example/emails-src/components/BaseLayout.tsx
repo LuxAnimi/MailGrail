@@ -12,7 +12,7 @@ import {
 } from "@faire/mjml-react";
 import Header from "./Header";
 import Footer from "./Footer";
-import { themeDefaults } from "../theme";
+import { colors, themeDefaults } from "../theme";
 
 type BaseLayoutProps = {
     width?: number;
@@ -29,9 +29,11 @@ export default function BaseLayout({ width, children, style }: BaseLayoutProps) 
                     <MjmlAll {...themeDefaults} />
                 </MjmlAttributes>
                 <MjmlStyle>{`
+                /* The templates are designed for light only: claiming dark support
+                   would let clients put their dark text on a dark background. */
                 :root {
-                  color-scheme: light dark;
-                  supported-color-schemes: light dark;
+                  color-scheme: light;
+                  supported-color-schemes: light;
                 }
 
                 body {
@@ -48,7 +50,9 @@ export default function BaseLayout({ width, children, style }: BaseLayoutProps) 
               `}</MjmlStyle>
             </MjmlHead>
 
-            <MjmlBody width={width}>
+            {/* Set explicitly: a transparent body shows whatever is behind it, such
+                as a dark-mode canvas. */}
+            <MjmlBody width={width} backgroundColor={colors.bg.email}>
                 <MjmlWrapper>
                     <Header />
                     <MjmlSection>{children}</MjmlSection>

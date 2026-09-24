@@ -9,7 +9,7 @@ export default function Footer() {
       <MjmlGroup>
         <MjmlColumn width="100%">
           <Text
-            color={colors.content.quaternary}
+            color={colors.content.tertiary}
             fontSize={fontSize.xs}
             align="center"
             paddingBottom={spacing.s8}
@@ -19,7 +19,7 @@ export default function Footer() {
               Need help? Contact us at{" "}
               <a
                 href={`mailto:${metadata.contact_email}`}
-                style={{ color: colors.accent[500] }}
+                style={{ color: colors.accent.text }}
               >
                 {metadata.contact_email}
               </a>

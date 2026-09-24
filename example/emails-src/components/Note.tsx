@@ -17,7 +17,7 @@ const defaultProps = {
 // notes that should read as a pair from drifting into different weights of the
 // same idea.
 const accentProps = {
-    color: colors.accent[500],
+    color: colors.accent.text,
     fontWeight: fontWeight.bold,
 };
 

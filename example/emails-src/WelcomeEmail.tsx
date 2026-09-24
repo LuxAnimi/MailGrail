@@ -82,13 +82,13 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
 
       <Text
         align="center"
-        color={colors.content.quaternary}
+        color={colors.content.tertiary}
         fontSize={fontSize.xs}
         paddingTop={spacing.s8}
         paddingBottom={spacing.s4}
       >
         Your referral code:{" "}
-        <strong style={{ color: colors.content.tertiary, letterSpacing: "0.08em" }}>
+        <strong style={{ color: colors.content.primary, letterSpacing: "0.08em" }}>
           {mg.render("referralCode")}
         </strong>
         <br />

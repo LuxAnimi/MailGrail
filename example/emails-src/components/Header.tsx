@@ -18,7 +18,7 @@ export default function Header() {
             fontSize={fontSize.lg}
             fontWeight={fontWeight.bold}
             fontFamily={fontFamily.mono}
-            color={colors.content.primary}
+            color={colors.content.onDark}
           >
             mailgrail
           </Text>

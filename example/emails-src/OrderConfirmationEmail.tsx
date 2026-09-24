@@ -76,7 +76,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
             {mg.each("items", (item, index) => (
               <tr
                 key={index}
-                style={{ borderBottom: `1px solid ${colors.content.quaternary}` }}
+                style={{ borderBottom: `1px solid ${colors.border.secondary}` }}
               >
                 <td style={{ padding: "10px 0", color: colors.content.primary }}>
                   {item.render("name")}

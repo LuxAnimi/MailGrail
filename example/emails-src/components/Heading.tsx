@@ -10,7 +10,7 @@ const defaultProps = {
     fontWeight: fontWeight.normal,
     lineHeight: lineHeight.tight,
     paddingTop: spacing.s10,
-    color: colors.content.primaryDark,
+    color: colors.content.primary,
     paddingBottom: spacing.s4,
 };
 

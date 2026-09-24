@@ -11,7 +11,7 @@ type StrongProps = {
 // emphasis is colour as much as weight. That pairing was being written out by
 // hand at every call site, which is how one of them ends up a shade off.
 export default function Strong({
-    color = colors.content.secondary,
+    color = colors.content.primary,
     style,
     children,
     ...props
