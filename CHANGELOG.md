@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `t.date()`
 - Preview: a locale picker, highlighting for untranslated messages, catalog
   hot reload, and an `en-XA` pseudo-locale
+- Optional `category` on `TemplateDefinition`: the preview sidebar groups
+  templates by category into collapsible sections. Preview-only, not emitted
+  into the build output
 
 ### Fixed
 

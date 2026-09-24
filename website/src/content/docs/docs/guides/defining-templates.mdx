@@ -20,6 +20,7 @@ interface TemplateDefinition<S extends Schema<any>> {
   subjectTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
   textTemplate: (mg: TextTemplateContext<Infer<S>>) => string;
   sender?: string;
+  category?: string;
 }
 ```
 
@@ -31,6 +32,7 @@ interface TemplateDefinition<S extends Schema<any>> {
 | `subjectTemplate` | Receives a render context that composes strings. Returns the subject line. |
 | `textTemplate` | Receives the same context. Returns the plain-text part. |
 | `sender` | Optional default `from` address, passed through to the output and typed there as the literal. Leave it out and the output has no `sender` at all. |
+| `category` | Optional. Groups the template under a collapsible heading in the preview sidebar. Preview-only — it is not part of the build output. |
 
 ## One context, two kinds of output
 

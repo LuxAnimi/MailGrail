@@ -28,6 +28,10 @@ compiled through MJML, exactly as `mailgrail build` would — on a light surroun
 rather than the app's dark chrome, because that is how it will arrive in an
 inbox.
 
+Templates that set a `category` are grouped under collapsible headings, in the
+order each category first appears; the rest are listed above the groups. Which
+groups are collapsed is remembered across reloads.
+
 The header shows the resolved `subject` and `sender`, a desktop/mobile toggle
 that reframes the preview at 375px, and a **Populate** control for switching
 between placeholder data and values you type yourself.

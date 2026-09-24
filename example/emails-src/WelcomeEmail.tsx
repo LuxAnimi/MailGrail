@@ -102,6 +102,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
 export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
   name: "welcome",
   sender: "welcome@mailgrail.com",
+  category: "Onboarding",
   subjectTemplate,
   htmlTemplate,
   textTemplate,

@@ -280,6 +280,9 @@ export interface TemplateDefinition<S extends Schema<any>> {
     | ((mg: PreviewTemplateContext<Infer<S>>) => ReactElement)
     | ((mg: RenderTemplateContext<Infer<S>>) => ReactElement);
   sender?: string;
+  // Groups the template under a collapsible heading in the preview sidebar.
+  // Preview-only: it is not emitted into the build output.
+  category?: string;
   params: S;
 }
 

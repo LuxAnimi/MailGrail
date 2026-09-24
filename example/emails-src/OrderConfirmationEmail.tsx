@@ -144,6 +144,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
 export const OrderConfirmationEmail: TemplateDefinition<typeof paramsSchema> = {
   name: "order-confirmation",
   sender: "orders@mailgrail.com",
+  category: "Orders",
   subjectTemplate,
   htmlTemplate,
   textTemplate,
