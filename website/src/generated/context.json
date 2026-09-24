@@ -7,6 +7,7 @@
         "handlebars": "<p>Welcome, {{username}} — invoice {{invoice.number}}</p>",
         "mustache": "<p>Welcome, {{username}} — invoice {{invoice.number}}</p>"
       },
+      "i18n": null,
       "id": "render",
       "parity": true,
       "parityNote": null,
@@ -33,6 +34,7 @@
         "handlebars": "<div>{{#if isPremium}}<p>You have premium access.</p>{{else}}<p>Upgrade to unlock everything.</p>{{/if}}</div>",
         "mustache": "<div>{{#isPremium}}<p>You have premium access.</p>{{/isPremium}}{{^isPremium}}<p>Upgrade to unlock everything.</p>{{/isPremium}}</div>"
       },
+      "i18n": null,
       "id": "when",
       "parity": true,
       "parityNote": null,
@@ -47,7 +49,7 @@
       },
       "summary": "`mg.when(path, render, otherwise?)` renders its first branch when the value is truthy. The `otherwise` branch is optional.",
       "title": "Branching on a boolean",
-      "tsx": "const premiumNotice = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => <p>You have premium access.</p>,\n      () => <p>Upgrade to unlock everything.</p>,\n    )}\n  </div>\n);"
+      "tsx": "const premiumNotice = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"isPremium\",\n      () => (\n        <p>You have premium access.</p>\n      ),\n      () => (\n        <p>Upgrade to unlock everything.</p>\n      ),\n    )}\n  </div>\n);"
     },
     {
       "api": "when",
@@ -56,6 +58,7 @@
         "handlebars": "<div>{{#if nickname}}<p>Hi {{nickname}}!</p>{{else}}<p>Hi there!</p>{{/if}}</div>",
         "mustache": "<div>{{#nickname}}<p>Hi {{nickname}}!</p>{{/nickname}}{{^nickname}}<p>Hi there!</p>{{/nickname}}</div>"
       },
+      "i18n": null,
       "id": "when-optional",
       "parity": true,
       "parityNote": null,
@@ -70,7 +73,7 @@
       },
       "summary": "A string path works too, as a presence test. An omitted `t.optional(t.string())` renders as an empty string, which every engine treats as false. Number paths are rejected: `0` would read as absent.",
       "title": "Testing whether a string is present",
-      "tsx": "const salutation = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"nickname\",\n      () => <p>Hi {mg.render(\"nickname\")}!</p>,\n      () => <p>Hi there!</p>,\n    )}\n  </div>\n);"
+      "tsx": "const salutation = (mg: Ctx) => (\n  <div>\n    {mg.when(\n      \"nickname\",\n      () => (\n        <p>Hi {mg.render(\"nickname\")}!</p>\n      ),\n      () => (\n        <p>Hi there!</p>\n      ),\n    )}\n  </div>\n);"
     },
     {
       "api": "unless",
@@ -79,6 +82,7 @@
         "handlebars": "<div>{{#unless isVerified}}<p>Please confirm your address.</p>{{/unless}}</div>",
         "mustache": "<div>{{^isVerified}}<p>Please confirm your address.</p>{{/isVerified}}</div>"
       },
+      "i18n": null,
       "id": "unless",
       "parity": true,
       "parityNote": null,
@@ -93,7 +97,7 @@
       },
       "summary": "`mg.unless` is the inverse of `mg.when`.",
       "title": "Branching on a falsy value",
-      "tsx": "const verifyBanner = (mg: Ctx) => (\n  <div>{mg.unless(\"isVerified\", () => <p>Please confirm your address.</p>)}</div>\n);"
+      "tsx": "const verifyBanner = (mg: Ctx) => (\n  <div>\n    {mg.unless(\"isVerified\", () => (\n      <p>Please confirm your address.</p>\n    ))}\n  </div>\n);"
     },
     {
       "api": "each",
@@ -102,6 +106,7 @@
         "handlebars": "<ul>{{#each tags}}<li>{{this}}</li>{{/each}}</ul>",
         "mustache": "<ul>{{#tags}}<li>{{.}}</li>{{/tags}}</ul>"
       },
+      "i18n": null,
       "id": "each-primitives",
       "parity": true,
       "parityNote": null,
@@ -128,6 +133,7 @@
         "handlebars": "<table><tbody>{{#each items}}<tr><td>{{name}}</td><td>{{quantity}}</td>{{#if isFulfilled}}<td>Shipped</td>{{else}}<td>Pending</td>{{/if}}</tr>{{/each}}</tbody></table>",
         "mustache": "<table><tbody>{{#items}}<tr><td>{{name}}</td><td>{{quantity}}</td>{{#isFulfilled}}<td>Shipped</td>{{/isFulfilled}}{{^isFulfilled}}<td>Pending</td>{{/isFulfilled}}</tr>{{/items}}</tbody></table>"
       },
+      "i18n": null,
       "id": "each-objects",
       "parity": true,
       "parityNote": null,
@@ -153,7 +159,7 @@
       },
       "summary": "For an array of objects each item is a full context scoped to the element — `render`, `when`, `unless`, `each` and `with` all work on it.",
       "title": "Iterating an array of objects",
-      "tsx": "const orderTable = (mg: Ctx) => (\n  <table>\n    <tbody>\n      {mg.each(\"items\", (item: Ctx, i: number) => (\n        <tr key={i}>\n          <td>{item.render(\"name\")}</td>\n          <td>{item.render(\"quantity\")}</td>\n          {item.when(\n            \"isFulfilled\",\n            () => <td>Shipped</td>,\n            () => <td>Pending</td>,\n          )}\n        </tr>\n      ))}\n    </tbody>\n  </table>\n);"
+      "tsx": "const orderTable = (mg: Ctx) => (\n  <table>\n    <tbody>\n      {mg.each(\"items\", (item: Ctx, i: number) => (\n        <tr key={i}>\n          <td>{item.render(\"name\")}</td>\n          <td>{item.render(\"quantity\")}</td>\n          {item.when(\n            \"isFulfilled\",\n            () => (\n              <td>Shipped</td>\n            ),\n            () => (\n              <td>Pending</td>\n            ),\n          )}\n        </tr>\n      ))}\n    </tbody>\n  </table>\n);"
     },
     {
       "api": "with",
@@ -162,6 +168,7 @@
         "handlebars": "<div>{{#with user}}<p>Hello, {{name}}</p>{{#with plan}}<p>Your {{name}} plan runs to {{expiresAt}}.</p>{{/with}}{{/with}}</div>",
         "mustache": "<div>{{#user}}<p>Hello, {{name}}</p>{{#plan}}<p>Your {{name}} plan runs to {{expiresAt}}.</p>{{/plan}}{{/user}}</div>"
       },
+      "i18n": null,
       "id": "with",
       "parity": true,
       "parityNote": null,
@@ -183,6 +190,92 @@
       "summary": "`mg.with(path, render)` scopes the context so a deep path is written once instead of on every line.",
       "title": "Scoping to a nested object",
       "tsx": "const planSummary = (mg: Ctx) => (\n  <div>\n    {mg.with(\"user\", (user: Ctx) => (\n      <>\n        <p>Hello, {user.render(\"name\")}</p>\n        {user.with(\"plan\", (plan: Ctx) => (\n          <p>\n            Your {plan.render(\"name\")} plan runs to {plan.render(\"expiresAt\")}.\n          </p>\n        ))}\n      </>\n    ))}\n  </div>\n);"
+    },
+    {
+      "api": "t",
+      "compiled": {
+        "ejs": "<p><% if (__mg_d2.one) { %><%= __mg_d2.n %> colis est<% } %><% if (__mg_d2.many) { %><%= __mg_d2.n %> de colis sont<% } %><% if (__mg_d2.other) { %><%= __mg_d2.n %> colis sont<% } %> en route vers <strong><%= address.city %></strong>.</p>",
+        "handlebars": "<p>{{#if __mg_d2.one}}{{__mg_d2.n}} colis est{{/if}}{{#if __mg_d2.many}}{{__mg_d2.n}} de colis sont{{/if}}{{#if __mg_d2.other}}{{__mg_d2.n}} colis sont{{/if}} en route vers <strong>{{address.city}}</strong>.</p>",
+        "mustache": "<p>{{#__mg_d2.one}}{{__mg_d2.n}} colis est{{/__mg_d2.one}}{{#__mg_d2.many}}{{__mg_d2.n}} de colis sont{{/__mg_d2.many}}{{#__mg_d2.other}}{{__mg_d2.n}} colis sont{{/__mg_d2.other}} en route vers <strong>{{address.city}}</strong>.</p>"
+      },
+      "i18n": {
+        "catalog": {
+          "shipping.sent": "{count, plural, one {# colis est} many {# de colis sont} other {# colis sont}} en route vers <b>{city}</b>."
+        },
+        "locale": "fr"
+      },
+      "id": "t",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<p>2 colis sont en route vers <strong>Lyon</strong>.</p>",
+      "rendered": {
+        "ejs": "<p>2 colis sont en route vers <strong>Lyon</strong>.</p>",
+        "handlebars": "<p>2 colis sont en route vers <strong>Lyon</strong>.</p>",
+        "mustache": "<p>2 colis sont en route vers <strong>Lyon</strong>.</p>"
+      },
+      "sample": {
+        "address": {
+          "city": "Lyon"
+        },
+        "parcels": 2
+      },
+      "summary": "`mg.t(message, args)` renders a message from `defineMessages()` in the locale being built. Each argument maps an ICU placeholder to a **param path**, not a value, and each rich-text tag to a function that wraps its contents. Plurals and number or date formats are decided per email, in the email's locale.",
+      "title": "Rendering a localized message",
+      "tsx": "const shipping = defineMessages(\"shipping\", {\n  sent:\n    \"{count, plural, one {# parcel is} other {# parcels are}} on the way \" +\n    \"to <b>{city}</b>.\",\n});\n\nconst shippingNotice = (mg: Ctx) => (\n  <p>\n    {mg.t(shipping.sent, {\n      count: \"parcels\",\n      city: \"address.city\",\n      b: (chunks: ReactNode) => <strong>{chunks}</strong>,\n    })}\n  </p>\n);"
+    },
+    {
+      "api": "locale",
+      "compiled": {
+        "ejs": "<a href=\"https://example.com/fr/help\">Aide et support</a>",
+        "handlebars": "<a href=\"https://example.com/fr/help\">Aide et support</a>",
+        "mustache": "<a href=\"https://example.com/fr/help\">Aide et support</a>"
+      },
+      "i18n": {
+        "catalog": {
+          "support.link": "Aide et support"
+        },
+        "locale": "fr"
+      },
+      "id": "locale",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<a href=\"https://example.com/fr/help\">Aide et support</a>",
+      "rendered": {
+        "ejs": "<a href=\"https://example.com/fr/help\">Aide et support</a>",
+        "handlebars": "<a href=\"https://example.com/fr/help\">Aide et support</a>",
+        "mustache": "<a href=\"https://example.com/fr/help\">Aide et support</a>"
+      },
+      "sample": {},
+      "summary": "`mg.locale` is the canonical tag of the locale this copy of the template is built for -- a plain string at build time, so it can go anywhere, attributes included. Without `locales` in the config it is `und`.",
+      "title": "The locale being built",
+      "tsx": "const support = defineMessages(\"support\", {\n  link: \"Help and support\",\n});\n\nconst helpLink = (mg: Ctx) => (\n  <a href={`https://example.com/${mg.locale}/help`}>{mg.t(support.link)}</a>\n);"
+    },
+    {
+      "api": "dir",
+      "compiled": {
+        "ejs": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>",
+        "handlebars": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>",
+        "mustache": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>"
+      },
+      "i18n": {
+        "catalog": {
+          "orders.shipped": "تم شحن طلبك."
+        },
+        "locale": "ar"
+      },
+      "id": "dir",
+      "parity": true,
+      "parityNote": null,
+      "preview": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>",
+      "rendered": {
+        "ejs": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>",
+        "handlebars": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>",
+        "mustache": "<p dir=\"rtl\" style=\"text-align:right\">تم شحن طلبك.</p>"
+      },
+      "sample": {},
+      "summary": "`mg.dir` is `rtl` for a right-to-left locale such as Arabic or Hebrew and `ltr` otherwise. The `<html>` element already carries it; use it where a layout has to mirror, such as alignment.",
+      "title": "Text direction",
+      "tsx": "const orders = defineMessages(\"orders\", {\n  shipped: \"Your order has shipped.\",\n});\n\nconst shippedBanner = (mg: Ctx) => (\n  <p dir={mg.dir} style={{ textAlign: mg.dir === \"rtl\" ? \"right\" : \"left\" }}>\n    {mg.t(orders.shipped)}\n  </p>\n);"
     }
   ]
 }

@@ -62,6 +62,25 @@ export const dslDocs: DslDoc[] = [
   },
 
   {
+    id: "date",
+    signature: "t.date(): DateSchema",
+    summary: "A point in time: a `Date`, an ISO 8601 string or epoch milliseconds.",
+    description:
+      "Meant for a localized message: `{sentAt, date, long}` or " +
+      "`{sentAt, time, short}` in `mg.t` formats it for the email's locale, in " +
+      "the render call's time zone -- the `timeZone` option, else the config's. " +
+      "`mg.render` prints it exactly as it was passed.",
+    examples: [{ source: `t.object({ sentAt: t.date() })` }],
+    notes: [
+      "The time zone is never the server's. Left to it, the same email would " +
+        "show a different day depending on which machine sent it.",
+      "A value that is not a valid date formats as nothing rather than as " +
+        "`Invalid Date`.",
+    ],
+    seeAlso: ["render-context"],
+  },
+
+  {
     id: "object",
     signature: "t.object(shape): ObjectSchema",
     summary: "A group of named parameters.",

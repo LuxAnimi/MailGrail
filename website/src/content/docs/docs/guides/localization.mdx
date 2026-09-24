@@ -1,0 +1,185 @@
+---
+title: Localization
+description: Building every template once per language, with ICU messages and translation catalogs.
+sidebar:
+  order: 7
+---
+
+MailGrail can build each template once per locale. You write the text once, in
+your default language, as ICU messages; translators fill in a JSON catalog per
+language; the build compiles one copy of the template for each. Plurals and
+number or date formats are decided when the email is rendered, in its own
+locale, with the built-in `Intl` APIs, so the output still needs nothing but
+your templating engine.
+
+## Turning it on
+
+List the locales to build. The first is the default: the language your source
+messages are written in, and the fallback for everything else.
+
+```ts title="mailgrail.config.ts"
+import { defineConfig } from "@luxanimi/mailgrail";
+
+export default defineConfig({
+  sourceDir: "emails-src",
+  outputDir: "emails-dist",
+  locales: ["en", "fr", "de"],
+});
+```
+
+Without `locales`, localization is off and the build emits exactly what it
+always has. The other options — `defaultLocale`, `localesDir`,
+`strictLocales` and `timeZone` — are described in the
+[configuration reference](/MailGrail/docs/reference/config).
+
+## Writing messages
+
+Declare a template's text with `defineMessages()`, then render it with `mg.t()`:
+
+```tsx title="emails-src/OrderShippedEmail.tsx"
+import { defineMessages } from "@luxanimi/mailgrail";
+import { t } from "@luxanimi/mailgrail/dsl";
+
+const messages = defineMessages("order-shipped", {
+  subject: "Your order is on its way",
+  body:
+    "{count, plural, one {# parcel is} other {# parcels are}} on the way " +
+    "to <b>{city}</b>.",
+  eta: "Expected {arrival, date, long}.",
+});
+
+const params = t.object({
+  parcels: t.number(),
+  city: t.string(),
+  arrival: t.date(),
+});
+
+const htmlTemplate = (mg) => (
+  <BaseLayout>
+    <MjmlColumn>
+      <MjmlText>
+        {mg.t(messages.body, {
+          count: "parcels",
+          city: "city",
+          b: (chunks) => <strong>{chunks}</strong>,
+        })}
+      </MjmlText>
+      <MjmlText>{mg.t(messages.eta, { arrival: "arrival" })}</MjmlText>
+    </MjmlColumn>
+  </BaseLayout>
+);
+
+const subjectTemplate = (mg) => mg.t(messages.subject);
+```
+
+The namespace (`"order-shipped"`) and key make each message's id,
+`order-shipped.body`, which is what the catalogs are keyed by.
+
+Each argument of `mg.t` maps a placeholder in the message to a **parameter
+path**, not to a value: `count: "parcels"` means "`{count}` is the `parcels`
+param". The value is only known when the email is sent, and paths are how
+MailGrail compiles placeholders your engine fills in. Rich-text tags such as
+`<b>` map to a function that wraps their contents, so markup comes from your
+template and never from a translation.
+
+`mg.t` works the same in `htmlTemplate`, `subjectTemplate` and `textTemplate`.
+`mg.locale` and `mg.dir` give the locale being built and its text direction;
+the [render context reference](/MailGrail/docs/reference/render-context#mgtmessage-args)
+has each of them compiled through all three engines.
+
+### What a message can contain
+
+Messages are [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/):
+
+| Syntax | Renders |
+|---|---|
+| `{name}` | the value, as text |
+| `{count, plural, one {# item} other {# items}}` | the branch for the number, per the locale's rules; `#` is the number |
+| `{role, select, admin {…} other {…}}` | the branch matching a string |
+| `{total, number}` | the number formatted for the locale |
+| `{sentAt, date, long}` / `{sentAt, time, short}` | a `t.date()` param, formatted in the email's time zone |
+| `<b>…</b>` | whatever the tag's function returns |
+
+Plural rules are the locale's own. English has `one` and `other`, but French
+also has `many`, Polish has `few` and `many`, and Arabic has six categories.
+A translation missing a category its language needs is reported at build time.
+
+## Catalogs
+
+Run `extract` whenever messages change:
+
+```sh
+npx mailgrail extract
+```
+
+It writes `emails-src/locales/<locale>.json` for every locale (see
+`localesDir` to put them elsewhere). A new message is added to each
+translation catalog as an empty string, which means "not translated yet":
+
+```json title="emails-src/locales/fr.json"
+{
+  "order-shipped.body": "",
+  "order-shipped.eta": "Arrivée prévue le {arrival, date, long}.",
+  "order-shipped.subject": "Votre commande est en route"
+}
+```
+
+An existing translation is never overwritten. An entry whose message no longer
+exists stays until you run `extract --prune`, so renaming a key in code cannot
+quietly throw its translations away.
+
+## What the build checks
+
+Every catalog is checked against the source messages when you build:
+
+- **Always an error:** a translation that is not valid ICU, or that uses an
+  argument or tag the source message does not have. It could not be rendered.
+- **A warning, or an error with `strictLocales`:** a missing translation, a
+  missing plural category, or a missing catalog file. The default-locale text
+  stands in until it is fixed, so the email still goes out.
+- **Always a warning:** an entry with no source message (stale), a translation
+  that drops an argument the source uses, and invisible characters such as
+  zero-width spaces.
+
+Leave `strictLocales` off while catalogs are being filled in, and turn it on in
+CI once they are complete.
+
+## Sending in a locale
+
+A localized render function takes an optional second argument:
+
+```ts
+import { renderOrderShipped } from "./emails-dist/order-shipped.js";
+
+const email = renderOrderShipped(
+  { parcels: 2, city: "Lyon", arrival: order.arrivesAt },
+  { locale: user.language, timeZone: user.timeZone },
+);
+
+email.locale; // "fr" -- the locale actually used
+```
+
+`locale` accepts anything you have on hand — a stored preference, a region
+tag like `fr-CA`, a raw `Accept-Language` header — and resolves it to the
+closest locale you built: an exact match first, then the tag with subtags
+dropped from the end, then the default. It never throws; an email in the
+default language beats no email. The result's `locale` says which one was used.
+
+`timeZone` is an IANA zone such as `"America/Montreal"`, and defaults to the
+config's `timeZone`, itself `"UTC"` by default. It is never the server's: left
+to that, the same email would show a different day depending on which machine
+sent it.
+
+The generated `.d.ts` exports a `Locale` type listing the built locales, and
+MailGrail sets `lang` and `dir` on the email's `<html>` element for you.
+
+## Previewing
+
+With `locales` set, the preview gains a locale picker. Text shown in the
+default language for want of a translation is highlighted, catalogs reload on
+save, and the build's catalog warnings and errors are listed above the email.
+
+The picker also offers `en-XA`, a pseudo-locale. It rewrites every translated
+string as accented, lengthened text, so anything still in plain ASCII was never
+passed through `mg.t` — a hardcoded string — and the extra length shows where a
+layout will break once a longer language lands in it.

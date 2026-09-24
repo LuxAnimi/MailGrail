@@ -16,19 +16,45 @@
 //------------------------------------------------------------------------------
 import type { ReactNode } from "react";
 
+import { t } from "../../../src/dsl/index.js";
+import { defineMessages } from "../../../src/i18n/messages.js";
+import type { Schema } from "../../../src/dsl/schemas.js";
+import type { MessageDescriptor } from "../../../src/i18n/messages.js";
+
 /** The render context. Typed against your own schema in a real template. */
 type Ctx = any;
+
+/**
+ * Localization for one fixture. With it, the fixture is built the way a
+ * localized project is -- once per locale, into the real render module -- and
+ * rendered through that module in `locale`, since only the module computes
+ * what plurals and formatting need.
+ */
+export type FixtureI18n = {
+  /** The locales built; the first is the default, the source messages' language. */
+  locales: string[];
+  /** The locale the example is rendered in. */
+  locale: string;
+  /** The template's source messages, as defineMessages() returned them. */
+  messages: MessageDescriptor[];
+  /** Translations, by locale then message id. */
+  catalogs: Record<string, Record<string, string>>;
+  timeZone?: string;
+};
 
 export type ContextFixture = {
   /** Stable id, referenced from MDX and matching the region marker. */
   id: string;
   /** Which `mg.*` method this demonstrates -- coverage is asserted. */
-  api: "render" | "when" | "unless" | "each" | "with";
+  api: "render" | "when" | "unless" | "each" | "with" | "t" | "locale" | "dir";
   title: string;
   summary?: string;
   /** Real values, fed to every engine and to the preview context. */
   sample: Record<string, unknown>;
   build: (mg: Ctx) => ReactNode;
+  /** Required with `i18n`: the render module normalizes params against it. */
+  params?: Schema<any>;
+  i18n?: FixtureI18n;
   /**
    * Set false where preview and build legitimately disagree, with a note
    * explaining why. Everything else must reach parity or generation fails.
@@ -52,8 +78,12 @@ const premiumNotice = (mg: Ctx) => (
   <div>
     {mg.when(
       "isPremium",
-      () => <p>You have premium access.</p>,
-      () => <p>Upgrade to unlock everything.</p>,
+      () => (
+        <p>You have premium access.</p>
+      ),
+      () => (
+        <p>Upgrade to unlock everything.</p>
+      ),
     )}
   </div>
 );
@@ -65,8 +95,12 @@ const salutation = (mg: Ctx) => (
   <div>
     {mg.when(
       "nickname",
-      () => <p>Hi {mg.render("nickname")}!</p>,
-      () => <p>Hi there!</p>,
+      () => (
+        <p>Hi {mg.render("nickname")}!</p>
+      ),
+      () => (
+        <p>Hi there!</p>
+      ),
     )}
   </div>
 );
@@ -75,7 +109,11 @@ const salutation = (mg: Ctx) => (
 //------------------------------------------------------------------------------
 // #region doc:unless
 const verifyBanner = (mg: Ctx) => (
-  <div>{mg.unless("isVerified", () => <p>Please confirm your address.</p>)}</div>
+  <div>
+    {mg.unless("isVerified", () => (
+      <p>Please confirm your address.</p>
+    ))}
+  </div>
 );
 // #endregion doc:unless
 
@@ -101,8 +139,12 @@ const orderTable = (mg: Ctx) => (
           <td>{item.render("quantity")}</td>
           {item.when(
             "isFulfilled",
-            () => <td>Shipped</td>,
-            () => <td>Pending</td>,
+            () => (
+              <td>Shipped</td>
+            ),
+            () => (
+              <td>Pending</td>
+            ),
           )}
         </tr>
       ))}
@@ -128,6 +170,49 @@ const planSummary = (mg: Ctx) => (
   </div>
 );
 // #endregion doc:with
+
+//------------------------------------------------------------------------------
+// #region doc:t
+const shipping = defineMessages("shipping", {
+  sent:
+    "{count, plural, one {# parcel is} other {# parcels are}} on the way " +
+    "to <b>{city}</b>.",
+});
+
+const shippingNotice = (mg: Ctx) => (
+  <p>
+    {mg.t(shipping.sent, {
+      count: "parcels",
+      city: "address.city",
+      b: (chunks: ReactNode) => <strong>{chunks}</strong>,
+    })}
+  </p>
+);
+// #endregion doc:t
+
+//------------------------------------------------------------------------------
+// #region doc:locale
+const support = defineMessages("support", {
+  link: "Help and support",
+});
+
+const helpLink = (mg: Ctx) => (
+  <a href={`https://example.com/${mg.locale}/help`}>{mg.t(support.link)}</a>
+);
+// #endregion doc:locale
+
+//------------------------------------------------------------------------------
+// #region doc:dir
+const orders = defineMessages("orders", {
+  shipped: "Your order has shipped.",
+});
+
+const shippedBanner = (mg: Ctx) => (
+  <p dir={mg.dir} style={{ textAlign: mg.dir === "rtl" ? "right" : "left" }}>
+    {mg.t(orders.shipped)}
+  </p>
+);
+// #endregion doc:dir
 
 //------------------------------------------------------------------------------
 export const fixtures: ContextFixture[] = [
@@ -213,5 +298,74 @@ export const fixtures: ContextFixture[] = [
       user: { name: "Alice", plan: { name: "Pro", expiresAt: "2027-01-31" } },
     },
     build: planSummary,
+  },
+
+  {
+    id: "t",
+    api: "t",
+    title: "Rendering a localized message",
+    summary:
+      "`mg.t(message, args)` renders a message from `defineMessages()` in the " +
+      "locale being built. Each argument maps an ICU placeholder to a **param " +
+      "path**, not a value, and each rich-text tag to a function that wraps its " +
+      "contents. Plurals and number or date formats are decided per email, in " +
+      "the email's locale.",
+    params: t.object({
+      parcels: t.number(),
+      address: t.object({ city: t.string() }),
+    }),
+    sample: { parcels: 2, address: { city: "Lyon" } },
+    i18n: {
+      locales: ["en", "fr"],
+      locale: "fr",
+      messages: [shipping.sent],
+      catalogs: {
+        fr: {
+          "shipping.sent":
+            "{count, plural, one {# colis est} many {# de colis sont} " +
+            "other {# colis sont}} en route " +
+            "vers <b>{city}</b>.",
+        },
+      },
+    },
+    build: shippingNotice,
+  },
+
+  {
+    id: "locale",
+    api: "locale",
+    title: "The locale being built",
+    summary:
+      "`mg.locale` is the canonical tag of the locale this copy of the template " +
+      "is built for -- a plain string at build time, so it can go anywhere, " +
+      "attributes included. Without `locales` in the config it is `und`.",
+    params: t.object({}),
+    sample: {},
+    i18n: {
+      locales: ["en", "fr"],
+      locale: "fr",
+      messages: [support.link],
+      catalogs: { fr: { "support.link": "Aide et support" } },
+    },
+    build: helpLink,
+  },
+
+  {
+    id: "dir",
+    api: "dir",
+    title: "Text direction",
+    summary:
+      "`mg.dir` is `rtl` for a right-to-left locale such as Arabic or Hebrew " +
+      "and `ltr` otherwise. The `<html>` element already carries it; use it " +
+      "where a layout has to mirror, such as alignment.",
+    params: t.object({}),
+    sample: {},
+    i18n: {
+      locales: ["en", "ar"],
+      locale: "ar",
+      messages: [orders.shipped],
+      catalogs: { ar: { "orders.shipped": "تم شحن طلبك." } },
+    },
+    build: shippedBanner,
   },
 ];

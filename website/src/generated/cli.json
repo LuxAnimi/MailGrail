@@ -25,6 +25,24 @@
       "id": "build",
       "summary": "Compile every template for production.",
       "usage": "mailgrail build [options]"
+    },
+    {
+      "description": "Writes `<localesDir>/<locale>.json` for every locale in the config. A new message is added to each translation catalog as an empty string, to be translated; an existing translation is never touched. Needs `locales` in the config.",
+      "flags": [
+        {
+          "default": "false",
+          "flag": "--prune",
+          "summary": "Also remove entries whose message no longer exists. Off by default, so renaming a key in code cannot silently throw its translations away."
+        },
+        {
+          "default": "./mailgrail.config.ts",
+          "flag": "--configPath <path>",
+          "summary": "Path to your config file."
+        }
+      ],
+      "id": "extract",
+      "summary": "Bring the translation catalogs in line with the source messages.",
+      "usage": "mailgrail extract [--prune] [options]"
     }
   ],
   "help": "Usage:\n  mailgrail preview [options]\n  mailgrail build [options]\n\nCommands:\n  preview   Start email preview server\n  build     Build email templates for production"

@@ -43,6 +43,30 @@ const COMMANDS = [
       },
     ],
   },
+  {
+    id: "extract",
+    usage: "mailgrail extract [--prune] [options]",
+    summary: "Bring the translation catalogs in line with the source messages.",
+    description:
+      "Writes `<localesDir>/<locale>.json` for every locale in the config. A " +
+      "new message is added to each translation catalog as an empty string, to " +
+      "be translated; an existing translation is never touched. Needs `locales` " +
+      "in the config.",
+    flags: [
+      {
+        flag: "--prune",
+        default: "false",
+        summary:
+          "Also remove entries whose message no longer exists. Off by default, " +
+          "so renaming a key in code cannot silently throw its translations away.",
+      },
+      {
+        flag: "--configPath <path>",
+        default: "./mailgrail.config.ts",
+        summary: "Path to your config file.",
+      },
+    ],
+  },
 ];
 
 export async function emitCli({ repo, out, check }) {

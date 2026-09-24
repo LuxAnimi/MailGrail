@@ -93,6 +93,31 @@
       "summary": "A true/false parameter, usually used to branch."
     },
     {
+      "call": "t.date",
+      "description": "Meant for a localized message: `{sentAt, date, long}` or `{sentAt, time, short}` in `mg.t` formats it for the email's locale, in the render call's time zone -- the `timeZone` option, else the config's. `mg.render` prints it exactly as it was passed.",
+      "examples": [
+        {
+          "compiled": null,
+          "keys": [
+            "sentAt"
+          ],
+          "label": null,
+          "source": "t.object({ sentAt: t.date() })",
+          "tsType": "{\n  sentAt: Date | string | number;\n}"
+        }
+      ],
+      "id": "date",
+      "notes": [
+        "The time zone is never the server's. Left to it, the same email would show a different day depending on which machine sent it.",
+        "A value that is not a valid date formats as nothing rather than as `Invalid Date`."
+      ],
+      "seeAlso": [
+        "render-context"
+      ],
+      "signature": "t.date(): DateSchema",
+      "summary": "A point in time: a `Date`, an ISO 8601 string or epoch milliseconds."
+    },
+    {
       "call": "t.object",
       "description": "Objects nest freely. Reach for `mg.with` in a template to scope to one and stop repeating the path prefix.",
       "examples": [

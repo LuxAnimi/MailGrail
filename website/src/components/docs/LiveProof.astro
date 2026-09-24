@@ -103,6 +103,13 @@ const uid = `lp-${id}`;
         )
       }
     </div>
+    {
+      fixture.i18n && (
+        <p class="proof__locale">
+          Rendered in <code>{fixture.i18n.locale}</code>
+        </p>
+      )
+    }
     <Code code={pretty(fixture.preview)} lang="html" theme="github-dark" />
 
     <details class="proof__data">
@@ -113,6 +120,18 @@ const uid = `lp-${id}`;
         theme="github-dark"
       />
     </details>
+    {
+      fixture.i18n?.catalog && (
+        <details class="proof__data">
+          <summary>{`Catalog used (${fixture.i18n.locale}.json)`}</summary>
+          <Code
+            code={JSON.stringify(fixture.i18n.catalog, null, 2)}
+            lang="json"
+            theme="github-dark"
+          />
+        </details>
+      )
+    }
   </div>
 </div>
 
@@ -232,6 +251,18 @@ const uid = `lp-${id}`;
 
   .proof__data {
     border-top: 1px solid var(--mg-rule);
+  }
+
+  .proof__locale {
+    margin: 0;
+    padding: 0.5rem 0.85rem 0;
+    font-size: 0.75rem;
+    color: var(--mg-dim);
+  }
+
+  .proof__locale code {
+    font-family: var(--mg-mono);
+    color: var(--mg-envelope);
   }
 
   .proof__data summary {

@@ -83,4 +83,54 @@ export const configDocs: ConfigDoc[] = [
     type: "boolean",
     summary: "Hide the logo in the preview UI.",
   },
+  {
+    id: "locales",
+    type: "string[]",
+    summary: "The locales to build, as BCP 47 tags.",
+    description:
+      "Each template is built once per locale. Leave it unset and localization " +
+      "is off: the build emits one unlocalized set, exactly as without it. Tags " +
+      "are canonicalized, so `en_us` and `en-US` name the same locale. The " +
+      "**Localization** guide walks through a full setup.",
+  },
+  {
+    id: "defaultLocale",
+    type: "string",
+    summary: "The locale the source messages are written in.",
+    description:
+      "Defaults to the first of `locales`, and must be one of them. It is the " +
+      "language `defineMessages()` is written in, what a missing translation " +
+      "falls back to, and what a render function uses when asked for a locale " +
+      "it was not built for. Setting it without `locales` fails the build.",
+  },
+  {
+    id: "localesDir",
+    type: "string",
+    summary: "Where the translation catalogs live, relative to the config file.",
+    description:
+      "Defaults to a `locales` folder inside `sourceDir`. It holds one " +
+      "`<locale>.json` per locale, which `mailgrail extract` creates and keeps " +
+      "in line with the source messages.",
+  },
+  {
+    id: "strictLocales",
+    type: "boolean",
+    summary: "Fail the build on incomplete translations.",
+    description:
+      "A missing translation, or a missing catalog file, normally warns, and " +
+      "the default-locale text stands in for it. With this on, it fails the " +
+      "build instead; turn it on in CI once your catalogs are complete. Broken " +
+      "translations -- a message that does not parse, or uses an argument the " +
+      "source does not have -- fail the build either way, and stale entries " +
+      "only ever warn.",
+  },
+  {
+    id: "timeZone",
+    type: "string",
+    summary: "The IANA time zone dates are formatted in.",
+    description:
+      "The default for every render function; a call can override it with " +
+      "`{ timeZone }`. The build fails on a zone the running Node does not " +
+      "know, rather than letting the first email that formats a date throw.",
+  },
 ];
