@@ -35,7 +35,7 @@
       {
         "excerpt": "<div>Welcome aboard.</div>\n<div>Hey <%= username %>, your account is ready.<br/>Signed in as <%= email %>.</div>\n<% if (isPro) { %>\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n<% } else { %>\n<div>You are on the <strong><%= plan %></strong> plan.</div>\n<% } %>",
         "ext": "ejs",
-        "file": "welcome.ejs",
+        "file": "welcome.en.ejs",
         "id": "EJS",
         "imports": [
           "import ejs from \"ejs\";"
@@ -47,7 +47,7 @@
       {
         "excerpt": "<div>Welcome aboard.</div>\n<div>Hey {{username}}, your account is ready.<br/>Signed in as {{email}}.</div>\n{{#if isPro}}\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n{{else}}\n<div>You are on the <strong>{{plan}}</strong> plan.</div>\n{{/if}}",
         "ext": "hbs",
-        "file": "welcome.hbs",
+        "file": "welcome.en.hbs",
         "id": "Handlebars",
         "imports": [
           "import Handlebars from \"handlebars\";"
@@ -59,7 +59,7 @@
       {
         "excerpt": "<div>Welcome aboard.</div>\n<div>Hey {{username}}, your account is ready.<br/>Signed in as {{email}}.</div>\n{{#isPro}}\n<div>★ Pro plan — unlimited projects &amp; priority support</div>\n{{/isPro}}{{^isPro}}\n<div>You are on the <strong>{{plan}}</strong> plan.</div>\n{{/isPro}}",
         "ext": "mustache",
-        "file": "welcome.mustache",
+        "file": "welcome.en.mustache",
         "id": "Mustache",
         "imports": [
           "import Mustache from \"mustache\";"
@@ -71,9 +71,9 @@
     ],
     "template": "welcome"
   },
-  "dts": "export type OrderConfirmationParams = {\n  orderNumber: string;\n  items: {\n    name: string;\n    quantity: number;\n    price: number;\n  }[];\n  couponCode?: string;\n  total: number;\n};\n\nexport declare function renderOrderConfirmation(\n  params: OrderConfirmationParams\n): {\n  name: \"order-confirmation\";\n  subject: string;\n  sender: \"orders@mailgrail.com\";\n  html: string;\n  text: string;\n};",
+  "dts": "export type OrderConfirmationParams = {\n  orderNumber: string;\n  items: {\n    name: string;\n    quantity: number;\n    price: number;\n  }[];\n  couponCode?: string;\n  total: number;\n};\n\nexport type Locale = \"en\" | \"fr\" | \"es\";\n\nexport interface RenderOptions {\n  /**\n   * The locale to render in. Anything is accepted -- a user preference, an\n   * Accept-Language value -- and resolved to the closest built locale, falling\n   * back to the default. The result's `locale` says which one was used.\n   */\n  locale?: Locale | (string & {});\n  /** IANA time zone for dates, e.g. \"America/Montreal\". */\n  timeZone?: string;\n}\n\nexport declare function renderOrderConfirmation(\n  params: OrderConfirmationParams,\n  options?: RenderOptions\n): {\n  name: \"order-confirmation\";\n  locale: Locale;\n  subject: string;\n  sender: \"orders@mailgrail.com\";\n  html: string;\n  text: string;\n};",
   "exported": [
-    "export function renderOrderConfirmation(input)"
+    "export function renderOrderConfirmation(input, options)"
   ],
   "files": {
     "index": [
@@ -82,7 +82,9 @@
     ],
     "order-confirmation": [
       "order-confirmation.d.ts",
-      "order-confirmation.ejs",
+      "order-confirmation.en.ejs",
+      "order-confirmation.es.ejs",
+      "order-confirmation.fr.ejs",
       "order-confirmation.js"
     ],
     "package.json": [
@@ -90,12 +92,16 @@
     ],
     "team-invite": [
       "team-invite.d.ts",
-      "team-invite.ejs",
+      "team-invite.en.ejs",
+      "team-invite.es.ejs",
+      "team-invite.fr.ejs",
       "team-invite.js"
     ],
     "welcome": [
       "welcome.d.ts",
-      "welcome.ejs",
+      "welcome.en.ejs",
+      "welcome.es.ejs",
+      "welcome.fr.ejs",
       "welcome.js"
     ]
   },

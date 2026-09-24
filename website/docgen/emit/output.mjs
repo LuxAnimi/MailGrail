@@ -242,10 +242,12 @@ export async function emitOutput({ repo, out, check, lib }) {
         templatingEngine: engine.id,
       });
 
-      const compiled = await readFile(
-        path.join(engineDir, `${CONTRAST.template}.${engine.ext}`),
-        "utf8",
-      );
+      // A localized build writes one file per locale; quote the default
+      // locale's, which is the text the template source is written in.
+      const file = config.defaultLocale
+        ? `${CONTRAST.template}.${config.defaultLocale}.${engine.ext}`
+        : `${CONTRAST.template}.${engine.ext}`;
+      const compiled = await readFile(path.join(engineDir, file), "utf8");
       const runtime = await readFile(
         path.join(engineDir, `${CONTRAST.template}.js`),
         "utf8",
@@ -262,7 +264,7 @@ export async function emitOutput({ repo, out, check, lib }) {
       contrast.push({
         id: engine.id,
         ext: engine.ext,
-        file: `${CONTRAST.template}.${engine.ext}`,
+        file,
         excerpt,
         lines: compiled.split("\n").length,
         imports: runtime.match(/^import .+$/gm) ?? [],
@@ -317,7 +319,10 @@ export async function emitOutput({ repo, out, check, lib }) {
 
   const byTemplate = {};
   for (const file of files) {
-    const name = file.replace(/\.(d\.ts|js|ejs|hbs|mustache)$/, "");
+    // `welcome.fr.ejs` belongs to `welcome` like `welcome.ejs` does.
+    const name = file
+      .replace(/\.(d\.ts|js)$/, "")
+      .replace(/(\.[a-z]{2,3}(-[A-Za-z0-9]+)*)?\.(ejs|hbs|mustache)$/, "");
     (byTemplate[name] ??= []).push(file);
   }
 

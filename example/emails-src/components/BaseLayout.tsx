@@ -13,14 +13,17 @@ import {
 import Header from "./Header";
 import Footer from "./Footer";
 import { colors, themeDefaults } from "../theme";
+import type { Translator } from "./types";
 
 type BaseLayoutProps = {
+    /** The template's `mg`, so the shared footer is translated too. */
+    mg: Translator;
     width?: number;
     style?: string;
     children: React.ReactNode;
 };
 
-export default function BaseLayout({ width, children, style }: BaseLayoutProps) {
+export default function BaseLayout({ mg, width, children, style }: BaseLayoutProps) {
     return (
         <Mjml>
             <MjmlHead>
@@ -56,7 +59,7 @@ export default function BaseLayout({ width, children, style }: BaseLayoutProps) 
                 <MjmlWrapper>
                     <Header />
                     <MjmlSection>{children}</MjmlSection>
-                    <Footer />
+                    <Footer mg={mg} />
                 </MjmlWrapper>
             </MjmlBody>
         </Mjml>

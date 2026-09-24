@@ -18,8 +18,27 @@ import type {
   TextTemplateContext,
 } from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
+import { defineMessages } from "../../src/config/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, spacing } from "./theme";
+
+//------------------------------------------------------------------------------
+// The English text. French and Spanish are in ./locales/<locale>.json, kept in
+// line with these by `mailgrail extract`.
+const messages = defineMessages("welcome", {
+  subject: "Welcome to mailgrail, {username}!",
+  heading: "Welcome aboard.",
+  greeting: "Hey {username}, your account is ready.",
+  signedInAs: "Signed in as {email}.",
+  pro: "★ Pro plan — unlimited projects & priority support",
+  plan: "You are on the <b>{plan}</b> plan.",
+  cta: "Open mailgrail",
+  referral: "Your referral code: <code>{referralCode}</code>",
+  referralHint: "Share it with a friend to earn free credits.",
+  textWelcome: "Welcome, {username}!",
+  textPro: "You are on Pro.",
+  textStart: "Get started at https://mailgrail.com",
+});
 
 //------------------------------------------------------------------------------
 // #region doc:welcome-schema
@@ -37,47 +56,53 @@ type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
 const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
-  `Welcome to mailgrail, ${mg.render("username")}!`;
+  mg.t(messages.subject, { username: "username" });
 
 //------------------------------------------------------------------------------
 // Branching goes through `mg` here for the same reason it does in the HTML:
 // what ships is a template the engine fills in per email, so a plain `if` would
 // pick its branch once, at build time, for everyone.
+// Tags work here too, and plain text simply keeps what they wrap.
 const textTemplate = (mg: TextTemplateContext<Params>): string =>
-  `Welcome, ${mg.render("username")}! ` +
+  mg.t(messages.textWelcome, { username: "username" }) +
+  " " +
   mg.when(
     "isPro",
-    () => `You are on Pro.`,
-    () => `You are on the ${mg.render("plan")} plan.`,
+    () => mg.t(messages.textPro),
+    () => mg.t(messages.plan, { plan: "plan", b: (chunks) => chunks }),
   ) +
-  ` Get started at https://mailgrail.com`;
+  " " +
+  mg.t(messages.textStart);
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
-  <BaseLayout width={600}>
+  <BaseLayout mg={mg} width={600}>
     <MjmlColumn>
       {/* #region doc:welcome-body */}
-      <Heading>Welcome aboard.</Heading>
+      <Heading>{mg.t(messages.heading)}</Heading>
 
       <MainText>
-        Hey {mg.render("username")}, your account is ready.
+        {mg.t(messages.greeting, { username: "username" })}
         <br />
-        Signed in as {mg.render("email")}.
+        {mg.t(messages.signedInAs, { email: "email" })}
       </MainText>
 
       {mg.when(
         "isPro",
-        () => <Note accent>★ Pro plan — unlimited projects &amp; priority support</Note>,
+        () => <Note accent>{mg.t(messages.pro)}</Note>,
         () => (
           <Note>
-            You are on the <Strong>{mg.render("plan")}</Strong> plan.
+            {mg.t(messages.plan, {
+              plan: "plan",
+              b: (chunks) => <Strong>{chunks}</Strong>,
+            })}
           </Note>
         ),
       )}
       {/* #endregion doc:welcome-body */}
 
       <Button href="https://mailgrail.com/app" target="_blank" rel="noreferrer">
-        Open mailgrail
+        {mg.t(messages.cta)}
       </Button>
 
       <Text
@@ -87,12 +112,16 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
         paddingTop={spacing.s8}
         paddingBottom={spacing.s4}
       >
-        Your referral code:{" "}
-        <strong style={{ color: colors.content.primary, letterSpacing: "0.08em" }}>
-          {mg.render("referralCode")}
-        </strong>
+        {mg.t(messages.referral, {
+          referralCode: "referralCode",
+          code: (chunks) => (
+            <strong style={{ color: colors.content.primary, letterSpacing: "0.08em" }}>
+              {chunks}
+            </strong>
+          ),
+        })}
         <br />
-        Share it with a friend to earn free credits.
+        {mg.t(messages.referralHint)}
       </Text>
     </MjmlColumn>
   </BaseLayout>

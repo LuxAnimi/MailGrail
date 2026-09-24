@@ -17,6 +17,7 @@ import type {
   TextTemplateContext,
 } from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
+import { defineMessages } from "../../src/config/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
 
@@ -37,26 +38,42 @@ const paramsSchema = t.object({
 // #endregion doc:order-schema
 
 //------------------------------------------------------------------------------
+// Amounts go through `number, ::currency/USD` rather than a hardcoded "$", so
+// each locale writes them its own way: $1,234.50 in English, 1 234,50 $US in
+// French.
+const messages = defineMessages("order-confirmation", {
+  subject: "Your mailgrail order #{orderNumber} is confirmed",
+  heading: "Order confirmed.",
+  orderNumber: "Order <b>#{orderNumber}</b>",
+  amount: "{amount, number, ::currency/USD}",
+  cta: "View order",
+  text:
+    "Order #{orderNumber} confirmed. Total: {total, number, ::currency/USD}. " +
+    "View it at https://mailgrail.com/orders",
+});
+
+//------------------------------------------------------------------------------
 type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
 const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
-  `Your mailgrail order #${mg.render("orderNumber")} is confirmed`;
+  mg.t(messages.subject, { orderNumber: "orderNumber" });
 
 //------------------------------------------------------------------------------
 const textTemplate = (mg: TextTemplateContext<Params>): string =>
-  `Order #${mg.render("orderNumber")} confirmed. Total: $${mg.render(
-    "total",
-  )}. View it at https://mailgrail.com/orders`;
+  mg.t(messages.text, { orderNumber: "orderNumber", total: "total" });
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
-  <BaseLayout width={600}>
+  <BaseLayout mg={mg} width={600}>
     <MjmlColumn>
-      <Heading>Order confirmed.</Heading>
+      <Heading>{mg.t(messages.heading)}</Heading>
 
       <MainText>
-        Order <Strong>#{mg.render("orderNumber")}</Strong>
+        {mg.t(messages.orderNumber, {
+          orderNumber: "orderNumber",
+          b: (chunks) => <Strong>{chunks}</Strong>,
+        })}
       </MainText>
 
       <Text
@@ -98,7 +115,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
                     textAlign: "right",
                   }}
                 >
-                  ${item.render("price")}
+                  {item.t(messages.amount, { amount: "price" })}
                 </td>
               </tr>
             ))}
@@ -122,7 +139,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
                   textAlign: "right",
                 }}
               >
-                ${mg.render("total")}
+                {mg.t(messages.amount, { amount: "total" })}
               </td>
             </tr>
           </tbody>
@@ -134,7 +151,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
         target="_blank"
         rel="noreferrer"
       >
-        View Order
+        {mg.t(messages.cta)}
       </Button>
     </MjmlColumn>
   </BaseLayout>

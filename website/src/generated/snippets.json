@@ -1,21 +1,21 @@
 {
   "config-file": {
-    "code": "export default defineConfig({\n  sourceDir: \"emails-src\",\n  outputDir: \"emails-dist\",\n  typescript: true,\n  previewPort: 7777,\n});",
-    "endLine": 10,
+    "code": "export default defineConfig({\n  sourceDir: \"emails-src\",\n  outputDir: \"emails-dist\",\n  typescript: true,\n  previewPort: 7777,\n  // Optional: build every template in each of these languages. The first is\n  // the one the messages are written in.\n  locales: [\"en\", \"fr\", \"es\"],\n});",
+    "endLine": 13,
     "file": "example/mailgrail.config.ts",
-    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L10",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L13",
     "id": "config-file",
     "lang": "ts",
     "startLine": 5
   },
   "order-schema": {
     "code": "const paramsSchema = t.object({\n  orderNumber: t.string(),\n  items: t.array(                              // array of object\n    t.object({\n      name: t.string(),\n      quantity: t.number(),                    // number — item quantity\n      price: t.number(),                       // number — item unit price\n    }),\n  ),\n  couponCode: t.optional(t.string()),          // optional — not required\n  total: t.number(),                           // number — order total\n});",
-    "endLine": 36,
+    "endLine": 37,
     "file": "example/emails-src/OrderConfirmationEmail.tsx",
-    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/OrderConfirmationEmail.tsx#L25-L36",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/OrderConfirmationEmail.tsx#L26-L37",
     "id": "order-schema",
     "lang": "tsx",
-    "startLine": 25
+    "startLine": 26
   },
   "templates-index": {
     "code": "export const templates: TemplateDefinition<any>[] = [\n  WelcomeEmail,\n  OrderConfirmationEmail,\n  TeamInviteEmail,\n];",
@@ -27,21 +27,21 @@
     "startLine": 10
   },
   "welcome-body": {
-    "code": "<Heading>Welcome aboard.</Heading>\n\n<MainText>\n  Hey {mg.render(\"username\")}, your account is ready.\n  <br />\n  Signed in as {mg.render(\"email\")}.\n</MainText>\n\n{mg.when(\n  \"isPro\",\n  () => <Note accent>★ Pro plan — unlimited projects &amp; priority support</Note>,\n  () => (\n    <Note>\n      You are on the <Strong>{mg.render(\"plan\")}</Strong> plan.\n    </Note>\n  ),\n)}",
-    "endLine": 76,
+    "code": "<Heading>{mg.t(messages.heading)}</Heading>\n\n<MainText>\n  {mg.t(messages.greeting, { username: \"username\" })}\n  <br />\n  {mg.t(messages.signedInAs, { email: \"email\" })}\n</MainText>\n\n{mg.when(\n  \"isPro\",\n  () => <Note accent>{mg.t(messages.pro)}</Note>,\n  () => (\n    <Note>\n      {mg.t(messages.plan, {\n        plan: \"plan\",\n        b: (chunks) => <Strong>{chunks}</Strong>,\n      })}\n    </Note>\n  ),\n)}",
+    "endLine": 101,
     "file": "example/emails-src/WelcomeEmail.tsx",
-    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L60-L76",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L82-L101",
     "id": "welcome-body",
     "lang": "tsx",
-    "startLine": 60
+    "startLine": 82
   },
   "welcome-schema": {
     "code": "const paramsSchema = t.object({\n  username: t.string(),\n  email: t.string(),\n  isPro: t.boolean(),                          // boolean  — toggles the pro badge\n  referralCode: t.optional(t.string()),        // optional — not required, shown when present\n  plan: t.default(t.string(), \"free\"),         // defaulted — falls back to \"free\"\n});",
-    "endLine": 32,
+    "endLine": 51,
     "file": "example/emails-src/WelcomeEmail.tsx",
-    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L26-L32",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/emails-src/WelcomeEmail.tsx#L45-L51",
     "id": "welcome-schema",
     "lang": "tsx",
-    "startLine": 26
+    "startLine": 45
   }
 }

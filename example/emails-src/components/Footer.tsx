@@ -2,8 +2,15 @@ import { MjmlColumn, MjmlGroup, MjmlSection } from "@faire/mjml-react";
 import Text from "./Text";
 import { fontSize, colors, spacing } from "../theme";
 import { metadata } from "../Metadata";
+import { defineMessages } from "../../../src/config/index";
+import type { Translator } from "./types";
 
-export default function Footer() {
+const messages = defineMessages("footer", {
+  help: "Need help? <link>Contact us</link>.",
+  rights: "All rights reserved.",
+});
+
+export default function Footer({ mg }: { mg: Translator }) {
   return (
     <MjmlSection>
       <MjmlGroup>
@@ -16,16 +23,19 @@ export default function Footer() {
             paddingTop={spacing.s6}
           >
             <p>
-              Need help? Contact us at{" "}
-              <a
-                href={`mailto:${metadata.contact_email}`}
-                style={{ color: colors.accent.text }}
-              >
-                {metadata.contact_email}
-              </a>
+              {mg.t(messages.help, {
+                link: (chunks) => (
+                  <a
+                    href={`mailto:${metadata.contact_email}`}
+                    style={{ color: colors.accent.text }}
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })}
             </p>
             <p style={{ marginTop: "8px" }}>
-              © {new Date().getFullYear()} mailgrail. All rights reserved.
+              © {new Date().getFullYear()} mailgrail. {mg.t(messages.rights)}
             </p>
           </Text>
         </MjmlColumn>

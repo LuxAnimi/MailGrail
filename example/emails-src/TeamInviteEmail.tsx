@@ -17,6 +17,7 @@ import type {
   TextTemplateContext,
 } from "../../src/cli/types";
 import { t } from "../../src/dsl/index";
+import { defineMessages } from "../../src/config/index";
 import type { Infer } from "../../src/dsl/schemas";
 import { colors, fontSize, fontWeight, spacing } from "./theme";
 
@@ -33,34 +34,61 @@ const paramsSchema = t.object({
 });
 
 //------------------------------------------------------------------------------
+// `days` is a plural, so "1 day" and "7 days" both come out right -- and French
+// and Spanish get their own plural rules, not English's.
+const messages = defineMessages("team-invite", {
+  subject: "{name} invited you to join mailgrail",
+  heading: "You’re invited.",
+  invitedBy:
+    "{name} <muted>({email})</muted><line>wants you to join them on mailgrail.</line>",
+  admin: "★ You are being invited as an admin",
+  cta: "Accept invitation",
+  expires:
+    "This invitation expires in <b>{days, plural, one {# day} other {# days}}</b>.",
+  text:
+    "You’ve been invited by {name} ({email}). Accept at {url}. " +
+    "{days, plural, one {Expires in # day.} other {Expires in # days.}}",
+});
+
+//------------------------------------------------------------------------------
 type Params = Infer<typeof paramsSchema>;
 
 //------------------------------------------------------------------------------
 const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
-  `${mg.render("invitedBy.name")} invited you to join mailgrail`;
+  mg.t(messages.subject, { name: "invitedBy.name" });
 
 //------------------------------------------------------------------------------
 const textTemplate = (mg: TextTemplateContext<Params>): string =>
-  `You've been invited by ${mg.render("invitedBy.name")} (${mg.render(
-    "invitedBy.email",
-  )}). Accept at ${mg.render("inviteUrl")}. Expires in ${mg.render(
-    "expiresIn",
-  )} days.`;
+  mg.t(messages.text, {
+    name: "invitedBy.name",
+    email: "invitedBy.email",
+    url: "inviteUrl",
+    days: "expiresIn",
+  });
 
 //------------------------------------------------------------------------------
 const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
-  <BaseLayout width={600}>
+  <BaseLayout mg={mg} width={600}>
     <MjmlColumn>
-      <Heading>You're invited.</Heading>
+      <Heading>{mg.t(messages.heading)}</Heading>
 
+      {/* Paths inside `with` are relative to it, for `t` as for `render`. The
+          line break is a tag, so a translation can move it with the words. */}
       {mg.with("invitedBy", (sender) => (
         <MainText>
-          {sender.render("name")}{" "}
-          <span style={{ color: colors.content.tertiary }}>
-            ({sender.render("email")})
-          </span>
-          <br />
-          wants you to join them on mailgrail.
+          {sender.t(messages.invitedBy, {
+            name: "name",
+            email: "email",
+            muted: (chunks) => (
+              <span style={{ color: colors.content.tertiary }}>{chunks}</span>
+            ),
+            line: (chunks) => (
+              <>
+                <br />
+                {chunks}
+              </>
+            ),
+          })}
         </MainText>
       ))}
 
@@ -73,7 +101,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
           paddingTop={spacing.s5}
           paddingBottom={spacing.s2}
         >
-          ★ You are being invited as an admin
+          {mg.t(messages.admin)}
         </Text>
       ))}
 
@@ -95,7 +123,7 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
       </Text>
 
       <Button href={mg.render("inviteUrl")} target="_blank" rel="noreferrer">
-        Accept Invitation
+        {mg.t(messages.cta)}
       </Button>
 
       <Text
@@ -105,11 +133,10 @@ const htmlTemplate = (mg: HtmlTemplateContext<Params>): ReactElement => (
         paddingTop={spacing.s6}
         paddingBottom={spacing.s4}
       >
-        This invitation expires in{" "}
-        <Strong>
-          {mg.render("expiresIn")} days
-        </Strong>
-        .
+        {mg.t(messages.expires, {
+          days: "expiresIn",
+          b: (chunks) => <Strong>{chunks}</Strong>,
+        })}
       </Text>
     </MjmlColumn>
   </BaseLayout>
