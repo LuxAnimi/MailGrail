@@ -792,12 +792,13 @@ It asks a few questions:
   Language? › TypeScript
   Email source directory? › emails
   Build output directory? › emails-dist
+  Email languages? › en, fr, es
 ```
 
 Then it:
 - Adds `mailgrail`, `@faire/mjml-react`, `react`, `react-dom` and `ejs` to your `package.json`, matching the React major already there
-- Adds `preview-emails` and `build-emails` scripts to your `package.json` (plus `typecheck-emails` on a TypeScript project)
-- Creates `mailgrail.config.ts`
+- Adds `preview-emails` and `build-emails` scripts to your `package.json` (plus `typecheck-emails` on a TypeScript project, and `extract-emails` when you list languages)
+- Creates `mailgrail.config.ts`, with `locales` set when you list languages (leave the answer empty for a single-language project)
 - Scaffolds a starter template in `emails/`:
 
 ```

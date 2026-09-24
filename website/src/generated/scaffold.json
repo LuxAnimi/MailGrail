@@ -1,5 +1,6 @@
 {
   "defaults": {
+    "locales": [],
     "outputDir": "emails-dist",
     "projectDir": ".",
     "sourceDir": "emails-src",

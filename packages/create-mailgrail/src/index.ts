@@ -63,15 +63,35 @@ async function main() {
     ? "compile templates to EJS, with TypeScript types"
     : "compile templates to EJS";
 
+  const [sourceLocale, ...translated] = options.locales;
+
   const nextSteps = [
     `  ${run} preview-emails    — start the live preview server`,
     `  ${run} build-emails      — ${built}`,
     ...(options.typescript
       ? [`  ${run} typecheck-emails  — typecheck the templates`]
       : []),
+    ...(sourceLocale
+      ? [`  ${run} extract-emails    — update the translation catalogs`]
+      : []),
     "",
     `  Templates:  ${options.sourceDir}/`,
     `  Output:     ${options.outputDir}/`,
+    ...(sourceLocale
+      ? [
+          `  Catalogs:   ${options.sourceDir}/locales/`,
+          "",
+          ...(translated.length
+            ? [`  Translate ${translated.map((l) => `${l}.json`).join(", ")} there;`,
+               `  until then, those languages fall back to ${sourceLocale}.`]
+            : []),
+          // The starter text is English whatever the first locale is.
+          ...(sourceLocale.split("-")[0] !== "en"
+            ? [`  The starter template is written in English: rewrite its`,
+               `  messages in ${sourceLocale}, the language the config says they are in.`]
+            : []),
+        ]
+      : []),
     "",
     // The one that bites on a clean clone: the emitted .d.ts is an input to
     // tsc, so typechecking before a build fails on imports that are fine.

@@ -3,7 +3,8 @@ import type { ScaffoldOptions } from "./prompts.js";
 
 //------------------------------------------------------------------------------
 export function getTemplates(opts: ScaffoldOptions): Record<string, string> {
-  const { sourceDir, outputDir, typescript: ts } = opts;
+  const { sourceDir, outputDir, typescript: ts, locales } = opts;
+  const localized = locales.length > 0;
   const ext = ts ? "ts" : "js";
   const extx = ts ? "tsx" : "jsx";
 
@@ -14,7 +15,14 @@ export function getTemplates(opts: ScaffoldOptions): Record<string, string> {
 
 export default defineConfig({
   sourceDir: "${sourceDir}",
-  outputDir: "${outputDir}",
+  outputDir: "${outputDir}",${
+    localized
+      ? `
+  // Each template is built once per language. The first is the one the
+  // messages are written in, and what a missing translation falls back to.
+  locales: ${JSON.stringify(locales).replace(/,/g, ", ")},`
+      : ""
+  }
 });
 `;
 
@@ -28,102 +36,31 @@ import { WelcomeEmail } from "./WelcomeEmail.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const templates: TemplateDefinition<Schema<any>>[] = [WelcomeEmail];
 `
-    : `import { WelcomeEmail } from "./WelcomeEmail.js";
+    : `import { WelcomeEmail } from "./WelcomeEmail.jsx";
 
 // Add your templates here
 export const templates = [WelcomeEmail];
 `;
 
   // WelcomeEmail template
-  files[`${sourceDir}/WelcomeEmail.${extx}`] = ts
-    ? `import type { ReactElement } from "react";
-import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
-import {
-  t,
-  type TemplateDefinition,
-  type RenderTemplateContext,
-  type TextTemplateContext,
-} from "@luxanimi/mailgrail";
-import type { Infer } from "@luxanimi/mailgrail/dsl";
-import BaseLayout from "./components/BaseLayout.js";
+  //
+  // Relative imports say ".js" in TypeScript, which esbuild maps onto the .ts
+  // or .tsx file, but it never maps ".js" onto a .jsx file -- so the JavaScript
+  // variant names ".jsx" outright, or its build cannot find the template.
+  files[`${sourceDir}/WelcomeEmail.${extx}`] = welcomeEmail(ts, localized);
 
-const paramsSchema = t.object({
-  username: t.string(),
-  ctaUrl: t.string(),
-});
-
-type Params = Infer<typeof paramsSchema>;
-
-const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
-  <BaseLayout>
-    <MjmlColumn>
-      <MjmlText fontSize="24px" fontWeight="bold">
-        Welcome, {mg.render("username")}!
-      </MjmlText>
-      <MjmlText>
-        Thanks for signing up. Click below to get started.
-      </MjmlText>
-      <MjmlButton href={mg.render("ctaUrl")}>
-        Get Started
-      </MjmlButton>
-    </MjmlColumn>
-  </BaseLayout>
-);
-
-const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
-  \`Welcome, \${mg.render("username")}!\`;
-
-const textTemplate = (mg: TextTemplateContext<Params>): string =>
-  \`Welcome, \${mg.render("username")}! Get started: \${mg.render("ctaUrl")}\`;
-
-export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
-  name: "welcome-email",
-  sender: "hello@example.com",
-  params: paramsSchema,
-  htmlTemplate,
-  subjectTemplate,
-  textTemplate,
-};
-`
-    : `import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
-import { t } from "@luxanimi/mailgrail";
-import BaseLayout from "./components/BaseLayout.js";
-
-const paramsSchema = t.object({
-  username: t.string(),
-  ctaUrl: t.string(),
-});
-
-const htmlTemplate = (mg) => (
-  <BaseLayout>
-    <MjmlColumn>
-      <MjmlText fontSize="24px" fontWeight="bold">
-        Welcome, {mg.render("username")}!
-      </MjmlText>
-      <MjmlText>
-        Thanks for signing up. Click below to get started.
-      </MjmlText>
-      <MjmlButton href={mg.render("ctaUrl")}>
-        Get Started
-      </MjmlButton>
-    </MjmlColumn>
-  </BaseLayout>
-);
-
-const subjectTemplate = (mg) => \`Welcome, \${mg.render("username")}!\`;
-
-const textTemplate = (mg) =>
-  \`Welcome, \${mg.render("username")}! Get started: \${mg.render("ctaUrl")}\`;
-
-export const WelcomeEmail = {
-  name: "welcome-email",
-  sender: "hello@example.com",
-  params: paramsSchema,
-  htmlTemplate,
-  subjectTemplate,
-  textTemplate,
-};
-`;
+  // Translation catalogs -- localized projects only. What `mailgrail extract`
+  // would write: the source text for the first language, and an empty string,
+  // meaning "not translated yet", for each message in every other one.
+  if (localized) {
+    const [source, ...others] = locales;
+    files[`${sourceDir}/locales/${source}.json`] = catalog(WELCOME_MESSAGES);
+    for (const locale of others) {
+      files[`${sourceDir}/locales/${locale}.json`] = catalog(
+        Object.fromEntries(Object.keys(WELCOME_MESSAGES).map((id) => [id, ""])),
+      );
+    }
+  }
 
   // BaseLayout component
   files[`${sourceDir}/components/BaseLayout.${extx}`] = ts
@@ -277,4 +214,148 @@ export const spacing = {
   }
 
   return files;
+}
+
+//------------------------------------------------------------------------------
+// The starter template's text, by catalog id, when the project is localized.
+// It is English: a project whose first language is another one rewrites it,
+// which the scaffolder says in its next steps.
+//------------------------------------------------------------------------------
+const WELCOME_NAMESPACE = "welcome-email";
+
+const WELCOME_TEXT = {
+  subject: "Welcome, {username}!",
+  heading: "Welcome, {username}!",
+  body: "Thanks for signing up. Click below to get started.",
+  cta: "Get Started",
+  text: "Welcome, {username}! Get started: {ctaUrl}",
+};
+
+const WELCOME_MESSAGES: Record<string, string> = Object.fromEntries(
+  Object.entries(WELCOME_TEXT).map(([key, text]) => [`${WELCOME_NAMESPACE}.${key}`, text]),
+);
+
+// Keys sorted, two-space indent and a final newline: byte for byte what
+// `mailgrail extract` writes, so its first run changes nothing.
+function catalog(entries: Record<string, string>): string {
+  const sorted = Object.fromEntries(
+    Object.entries(entries).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
+  return JSON.stringify(sorted, null, 2) + "\n";
+}
+
+//------------------------------------------------------------------------------
+// The starter template, in TypeScript or JavaScript, with its text either
+// inline or in messages rendered through `mg.t`.
+//------------------------------------------------------------------------------
+function welcomeEmail(ts: boolean, localized: boolean): string {
+  const q = (text: string) => JSON.stringify(text);
+
+  // What differs between the two: where each piece of text comes from.
+  const text = localized
+    ? {
+        heading: `{mg.t(messages.heading, { username: "username" })}`,
+        body: `{mg.t(messages.body)}`,
+        cta: `{mg.t(messages.cta)}`,
+        subject: `mg.t(messages.subject, { username: "username" })`,
+        text: `mg.t(messages.text, { username: "username", ctaUrl: "ctaUrl" })`,
+      }
+    : {
+        heading: `Welcome, {mg.render("username")}!`,
+        body: `Thanks for signing up. Click below to get started.`,
+        cta: `Get Started`,
+        subject: `\`Welcome, \${mg.render("username")}!\``,
+        text: `\`Welcome, \${mg.render("username")}! Get started: \${mg.render("ctaUrl")}\``,
+      };
+
+  const messages = localized
+    ? `
+// The text, in the first of the config's locales. Translations live in
+// locales/<locale>.json; run \`mailgrail extract\` after changing these.
+const messages = defineMessages(${q(WELCOME_NAMESPACE)}, {
+${Object.entries(WELCOME_TEXT)
+  .map(([key, value]) => `  ${key}: ${q(value)},`)
+  .join("\n")}
+});
+`
+    : "";
+
+  const htmlBody = `  <BaseLayout>
+    <MjmlColumn>
+      <MjmlText fontSize="24px" fontWeight="bold">
+        ${text.heading}
+      </MjmlText>
+      <MjmlText>
+        ${text.body}
+      </MjmlText>
+      <MjmlButton href={mg.render("ctaUrl")}>
+        ${text.cta}
+      </MjmlButton>
+    </MjmlColumn>
+  </BaseLayout>`;
+
+  const definition = `  name: "welcome-email",
+  sender: "hello@example.com",
+  params: paramsSchema,
+  htmlTemplate,
+  subjectTemplate,
+  textTemplate,`;
+
+  if (ts) {
+    return `import type { ReactElement } from "react";
+import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
+import {
+  t,${localized ? "\n  defineMessages," : ""}
+  type TemplateDefinition,
+  type RenderTemplateContext,
+  type TextTemplateContext,
+} from "@luxanimi/mailgrail";
+import type { Infer } from "@luxanimi/mailgrail/dsl";
+import BaseLayout from "./components/BaseLayout.js";
+
+const paramsSchema = t.object({
+  username: t.string(),
+  ctaUrl: t.string(),
+});
+
+type Params = Infer<typeof paramsSchema>;
+${messages}
+const htmlTemplate = (mg: RenderTemplateContext<Params>): ReactElement => (
+${htmlBody}
+);
+
+const subjectTemplate = (mg: TextTemplateContext<Params>): string =>
+  ${text.subject};
+
+const textTemplate = (mg: TextTemplateContext<Params>): string =>
+  ${text.text};
+
+export const WelcomeEmail: TemplateDefinition<typeof paramsSchema> = {
+${definition}
+};
+`;
+  }
+
+  return `import { MjmlColumn, MjmlButton, MjmlText } from "@faire/mjml-react";
+import { t${localized ? ", defineMessages" : ""} } from "@luxanimi/mailgrail";
+import BaseLayout from "./components/BaseLayout.jsx";
+
+const paramsSchema = t.object({
+  username: t.string(),
+  ctaUrl: t.string(),
+});
+${messages}
+const htmlTemplate = (mg) => (
+${htmlBody}
+);
+
+const subjectTemplate = (mg) => ${text.subject};
+
+const textTemplate = (mg) =>
+  ${text.text};
+
+export const WelcomeEmail = {
+${definition}
+};
+`;
 }

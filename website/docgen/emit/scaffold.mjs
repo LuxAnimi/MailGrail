@@ -24,6 +24,8 @@ const DOCUMENTED = {
   sourceDir: "emails-src",
   outputDir: "emails-dist",
   typescript: true,
+  // Enter on the languages question: a single-language project.
+  locales: [],
 };
 
 const PKG = "packages/create-mailgrail";

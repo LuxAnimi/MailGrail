@@ -31,11 +31,14 @@ export function packageAdditions(
   ts: boolean,
   sourceDir: string,
   reactMajor: ReactMajor = 19,
+  localized = false,
 ): PackageAdditions {
   return {
     scripts: {
       "preview-emails": "mailgrail preview",
       "build-emails": "mailgrail build",
+      // Brings the translation catalogs in line with the messages in code.
+      ...(localized ? { "extract-emails": "mailgrail extract" } : {}),
       // mailgrail loads templates through esbuild, which strips types without
       // checking them, so this is the only thing that ever runs tsc over them.
       // It uses the tsconfig.json scaffolded into the source directory.
@@ -98,6 +101,7 @@ function updatePackageJson(
   projectDir: string,
   ts: boolean,
   sourceDir: string,
+  localized: boolean,
 ): void {
   const pkgPath = path.join(projectDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as PackageJson;
@@ -106,6 +110,7 @@ function updatePackageJson(
     ts,
     sourceDir,
     detectReactMajor(projectDir),
+    localized,
   );
 
   for (const section of ["scripts", "dependencies", "devDependencies"] as const) {
@@ -124,7 +129,12 @@ function updatePackageJson(
 export function scaffold(opts: ScaffoldOptions): void {
   const { projectDir } = opts;
 
-  updatePackageJson(projectDir, opts.typescript, opts.sourceDir);
+  updatePackageJson(
+    projectDir,
+    opts.typescript,
+    opts.sourceDir,
+    opts.locales.length > 0,
+  );
 
   const templates = getTemplates(opts);
 

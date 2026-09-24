@@ -8,7 +8,35 @@ export type ScaffoldOptions = {
   typescript: boolean;
   sourceDir: string;
   outputDir: string;
+  // BCP 47 tags, canonical, the first being the language the templates are
+  // written in. Empty means a single, unlocalized build.
+  locales: string[];
 };
+
+//------------------------------------------------------------------------------
+// "en, fr-ca es" -> ["en", "fr-CA", "es"]. Canonicalized as MailGrail does it,
+// so the config written is exactly what MailGrail will resolve it to.
+//------------------------------------------------------------------------------
+export function parseLocales(input: string): string[] | string {
+  const tags = input.split(/[\s,]+/).filter(Boolean);
+  const seen: string[] = [];
+
+  for (const tag of tags) {
+    let canonical: string | undefined;
+    try {
+      [canonical] = Intl.getCanonicalLocales(tag);
+    } catch {
+      // reported below
+    }
+    if (!canonical) {
+      return `"${tag}" is not a language tag (expected something like en, fr-CA or es).`;
+    }
+    if (seen.includes(canonical)) return `${canonical} is listed twice.`;
+    seen.push(canonical);
+  }
+
+  return seen;
+}
 
 //------------------------------------------------------------------------------
 export async function collectPrompts(): Promise<ScaffoldOptions | null> {
@@ -51,10 +79,24 @@ export async function collectPrompts(): Promise<ScaffoldOptions | null> {
   });
   if (isCancel(outputDir)) return null;
 
+  const locales = await text({
+    message:
+      "Email languages? Comma-separated, the first is the one you write in. " +
+      "Leave empty for a single language.",
+    placeholder: "en, fr, es",
+    defaultValue: "",
+    validate(value: string) {
+      const parsed = parseLocales(value ?? "");
+      if (typeof parsed === "string") return parsed;
+    },
+  });
+  if (isCancel(locales)) return null;
+
   return {
     projectDir: path.resolve(process.cwd(), projectDir as string),
     typescript: typescript as boolean,
     sourceDir: sourceDir as string,
     outputDir: outputDir as string,
+    locales: parseLocales(locales as string) as string[],
   };
 }

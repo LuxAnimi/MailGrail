@@ -21,14 +21,19 @@ It runs **inside an existing project** and will not create one: if there is no
   Language? › TypeScript
   Email source directory? › emails-src
   Build output directory? › emails-dist
+  Email languages? › en, fr, es
 ```
+
+Leave the languages empty for a single-language project. List them, the first
+being the one you write in, and the starter template is localized: its text is
+in messages, and a translation catalog is written for each language.
 
 ## What it does
 
 - Adds `@faire/mjml-react`, `react` and `ejs` to `dependencies`, and `@luxanimi/mailgrail`
   (plus `@types/react` and `typescript` on a TypeScript project) to `devDependencies`
 - Adds two scripts — `preview-emails` and `build-emails` — and, on a TypeScript
-  project, `typecheck-emails`
+  project, `typecheck-emails`; with languages, `extract-emails` too
 - Writes a `mailgrail.config.ts`
 - Scaffolds a starter template with a layout and a theme you can edit:
 
