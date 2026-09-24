@@ -1,5 +1,6 @@
 import { runPreview } from "./preview.js";
 import { runBuild } from "./build.js";
+import { runExtract } from "./extract.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -12,6 +13,9 @@ export async function run() {
 
     case "build":
       return runBuild(args);
+
+    case "extract":
+      return runExtract(args);
 
     case "-h":
     case "--help":
@@ -31,9 +35,11 @@ function printHelp() {
 Usage:
   mailgrail preview [options]
   mailgrail build [options]
+  mailgrail extract [--prune] [options]
 
 Commands:
   preview   Start email preview server
   build     Build email templates for production
+  extract   Update the translation catalogs from the source messages
 `);
 }

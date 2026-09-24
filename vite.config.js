@@ -5,6 +5,7 @@ import path from "path";
 //------------------------------------------------------------------------------
 import { MailgrailTemplatesPlugin } from "./src/plugins/template-loader";
 import { MailgrailConfigPlugin } from "./src/plugins/config-loader";
+import { MailgrailCatalogsPlugin } from "./src/plugins/catalog-loader";
 
 //------------------------------------------------------------------------------
 import { loadMailgrailConfig } from "./src/config/loadConfig";
@@ -23,6 +24,7 @@ export default defineConfig(async () => {
       react(),
       MailgrailConfigPlugin(mailgrailConfig),
       MailgrailTemplatesPlugin(mailgrailConfig.sourceDir),
+      MailgrailCatalogsPlugin(mailgrailConfig),
     ],
     resolve: {
       alias: {

@@ -8,6 +8,7 @@
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "./types.js";
 import type { AnySchema, ObjectSchema } from "../dsl/types.js";
+import type { Derivation } from "../i18n/icu.js";
 
 //------------------------------------------------------------------------------
 // Utilities
@@ -24,11 +25,65 @@ export const pascal = (str: string) =>
 // normalizes its input first: every declared key is present, defaults and
 // fallbacks are applied, and an absent optional becomes an empty string.
 //------------------------------------------------------------------------------
-export function emitNormalizer(schema: ObjectSchema<any>): string {
-  return `function normalizeParams(params) {
+//
+// A localized build also computes what its messages need per email -- a
+// plural's arm, a formatted date -- as derived fields next to the values they
+// come from; see i18n/icu.ts. `L` and `TZ` are the locale and time zone the
+// email is rendered in.
+//------------------------------------------------------------------------------
+export function emitNormalizer(
+  schema: ObjectSchema<any>,
+  derivations?: readonly Derivation[],
+): string {
+  if (derivations === undefined) {
+    return `function normalizeParams(params) {
   return ${normalizeExpr(schema, "params", 0)};
 }
 `;
+  }
+
+  const placed = new Set<string>();
+  const body = normalizeExpr(schema, "params", 0, { scope: "", derivations, placed });
+
+  // Every derivation is attached to an object the schema declares; one that is
+  // not would render as nothing, so it is a bug here rather than in a template.
+  const lost = derivations.filter((d) => !placed.has(d.id));
+  if (lost.length > 0) {
+    throw new Error(
+      `Internal error: no object in the schema holds ` +
+        lost.map((d) => `${d.id} (scope ${JSON.stringify(d.scope)})`).join(", "),
+    );
+  }
+
+  return `function normalizeParams(params, L, TZ) {
+  return ${body};
+}
+`;
+}
+
+//------------------------------------------------------------------------------
+type DeriveContext = {
+  scope: string;
+  derivations: readonly Derivation[];
+  placed: Set<string>;
+};
+
+function deriveCall(d: Derivation, holder: string): string {
+  const value =
+    holder + d.path.split(".").map((key) => `[${JSON.stringify(key)}]`).join("");
+  const json = (v: unknown) => JSON.stringify(v);
+
+  switch (d.kind) {
+    case "choice":
+      return d.spec.kind === "plural"
+        ? `__mgPlural(L, ${value}, ${json(d.spec.pluralType)}, ${d.spec.offset}, ${json(d.spec.exact)}, ${json(d.spec.categories)})`
+        : `__mgSelect(${value}, ${json(d.spec.keys)})`;
+    case "number":
+      return `__mgNumber(L, ${value}, ${json(d.options)})`;
+    case "date":
+    case "time":
+      return `__mgDate(L, TZ, ${value}, ${json(d.options)})`;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -47,20 +102,43 @@ function emptyFor(schema: AnySchema): string {
 }
 
 //------------------------------------------------------------------------------
-function normalizeExpr(schema: AnySchema, access: string, depth = 0): string {
+function normalizeExpr(
+  schema: AnySchema,
+  access: string,
+  depth = 0,
+  derive?: DeriveContext,
+): string {
   switch (schema.kind) {
     case "object": {
       const o = depth === 0 ? "o" : `o${depth}`;
       const entries = Object.entries(schema.shape).map(([key, child]) => {
         const prop = JSON.stringify(key);
-        return `${prop}: ${normalizeExpr(child as AnySchema, `${o}[${prop}]`, depth + 1)}`;
+        const childDerive = derive && {
+          ...derive,
+          scope: derive.scope === "" ? key : `${derive.scope}.${key}`,
+        };
+        return `${prop}: ${normalizeExpr(child as AnySchema, `${o}[${prop}]`, depth + 1, childDerive)}`;
       });
-      return `((${o}) => ({ ${entries.join(", ")} }))(${access} ?? {})`;
+
+      const own = derive?.derivations.filter((d) => d.scope === derive.scope) ?? [];
+      if (own.length === 0) {
+        return `((${o}) => ({ ${entries.join(", ")} }))(${access} ?? {})`;
+      }
+
+      // Derived from the normalized object, so a `default` has been applied
+      // and a missing nested object is already {}.
+      const n = depth === 0 ? "n" : `n${depth}`;
+      const assigns = own.map((d) => {
+        derive!.placed.add(d.id);
+        return `${n}[${JSON.stringify(d.id)}] = ${deriveCall(d, n)};`;
+      });
+      return `((${o}) => { const ${n} = { ${entries.join(", ")} }; ${assigns.join(" ")} return ${n}; })(${access} ?? {})`;
     }
 
     case "array": {
       const e = depth === 0 ? "e" : `e${depth}`;
-      return `(${access} ?? []).map((${e}) => ${normalizeExpr(schema.element, e, depth + 1)})`;
+      const elementDerive = derive && { ...derive, scope: `${derive.scope}[]` };
+      return `(${access} ?? []).map((${e}) => ${normalizeExpr(schema.element, e, depth + 1, elementDerive)})`;
     }
 
     case "optional": {
@@ -71,6 +149,7 @@ function normalizeExpr(schema: AnySchema, access: string, depth = 0): string {
         schema.inner,
         empty === '""' ? `(${access} ?? "")` : access,
         depth,
+        derive,
       );
     }
 
@@ -79,6 +158,7 @@ function normalizeExpr(schema: AnySchema, access: string, depth = 0): string {
         schema.inner,
         `(${access} ?? ${JSON.stringify(schema.value)})`,
         depth,
+        derive,
       );
 
     default:
@@ -184,7 +264,10 @@ export function planTemplateEntries(
 //------------------------------------------------------------------------------
 // Emit DTS
 //------------------------------------------------------------------------------
-export function emitDts(template: TemplateDefinition<any>): string {
+export function emitDts(
+  template: TemplateDefinition<any>,
+  locales: readonly string[] | null = null,
+): string {
   const typeName = `${pascal(template.name)}Params`;
   const fnName = `render${pascal(template.name)}`;
   const paramsType = emitObjectType(template.params);
@@ -197,7 +280,8 @@ export function emitDts(template: TemplateDefinition<any>): string {
       ? ""
       : `  sender: ${JSON.stringify(template.sender)};\n`;
 
-  return `
+  if (locales === null) {
+    return `
 export type ${typeName} = ${paramsType};
 
 export declare function ${fnName}(
@@ -209,6 +293,40 @@ ${sender}  html: string;
   text: string;
 };
 `.trimStart();
+  }
+
+  return `
+export type ${typeName} = ${paramsType};
+
+${emitLocaleType(locales)}
+
+export interface RenderOptions {
+  /**
+   * The locale to render in. Anything is accepted -- a user preference, an
+   * Accept-Language value -- and resolved to the closest built locale, falling
+   * back to the default. The result's \`locale\` says which one was used.
+   */
+  locale?: Locale | (string & {});
+  /** IANA time zone for dates, e.g. "America/Montreal". */
+  timeZone?: string;
+}
+
+export declare function ${fnName}(
+  params: ${typeName},
+  options?: RenderOptions
+): {
+  name: ${JSON.stringify(template.name)};
+  locale: Locale;
+  subject: string;
+${sender}  html: string;
+  text: string;
+};
+`.trimStart();
+}
+
+//------------------------------------------------------------------------------
+export function emitLocaleType(locales: readonly string[]): string {
+  return `export type Locale = ${locales.map((l) => JSON.stringify(l)).join(" | ")};`;
 }
 
 //------------------------------------------------------------------------------
@@ -256,6 +374,9 @@ export function emitValueType(schema: AnySchema, indent = ""): string {
 
     case "boolean":
       return "boolean";
+
+    case "date":
+      return "Date | string | number";
 
     case "array":
       return `${emitValueType(schema.element, indent)}[]`;

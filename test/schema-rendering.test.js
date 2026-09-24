@@ -1,6 +1,10 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createElement as h } from "react";
+import ejs from "ejs";
+import Handlebars from "handlebars";
+import Mustache from "mustache";
 
 import { createTemplateCompiler } from "../lib/src/cli/rendering/schema-rendering.js";
 
@@ -179,5 +183,54 @@ describe("prepareMjml", () => {
     const { c, flat } = build("handlebars", (mg) => mg.render("url"));
     const mjml = c.prepareMjml(`<mj-button href="${flat}">go</mj-button>`);
     assert.equal(c.substitute(mjml), `<mj-button href="{{url}}">go</mj-button>`);
+  });
+});
+
+//------------------------------------------------------------------------------
+// Static text is written by the template author -- or, once it is translated,
+// by whoever edits the catalog. A delimiter in it must print as itself rather
+// than be evaluated against the params when the email is sent.
+//------------------------------------------------------------------------------
+describe("delimiters in static HTML", () => {
+  const RUN = {
+    ejs: (tmpl, data) => ejs.render(tmpl, data),
+    handlebars: (tmpl, data) => Handlebars.compile(tmpl)(data),
+    mustache: (tmpl, data) => Mustache.render(tmpl, data),
+  };
+  const data = { name: "<b>", secret: "LEAK" };
+
+  for (const engine of ENGINES) {
+    test(`${engine}: text and attributes are not evaluated`, () => {
+      const html = compile(engine, (mg) =>
+        h(
+          "p",
+          { title: "{{secret}} {{{secret}}} <%= secret %>" },
+          "{{secret}} {{{secret}}} <%= secret %> ",
+          mg.render("name"),
+        ),
+      );
+      const out = RUN[engine](html, data);
+
+      assert.ok(!out.includes("LEAK"), out);
+      assert.ok(out.includes("&lt;b&gt;"), out);
+    });
+
+    test(`${engine}: a brace touching a value neither unescapes nor breaks it`, () => {
+      const html = compile(engine, (mg) =>
+        h("p", null, "{", mg.render("name"), "}"),
+      );
+
+      // The braces may come out as entities, which the mail client decodes.
+      const shown = RUN[engine](html, data)
+        .replace(/&#123;/g, "{")
+        .replace(/&#125;/g, "}");
+
+      assert.equal(shown, "<p>{&lt;b&gt;}</p>");
+    });
+  }
+
+  test("CSS braces are left alone", () => {
+    const css = ".a { color: red; }";
+    assert.equal(compile("handlebars", () => css), css);
   });
 });

@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 //------------------------------------------------------------------------------
 import type { Infer, Schema } from "../dsl/schemas.js";
+import type { MessageDescriptor } from "../i18n/messages.js";
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -192,6 +193,25 @@ type WithCap<T, R, D extends Depth, N> = [ScopeablePath<T, D>] extends [never]
     };
 
 //------------------------------------------------------------------------------
+// A message's arguments: each `{name}` it uses maps to a param path, relative
+// to the context like `render`'s, and each `<tag>` to a function wrapping the
+// tag's rendered content in markup.
+export type MessageArgs<T, D extends Depth, N> = {
+  [name: string]: RenderablePath<T, D> | ((chunks: N) => N);
+};
+
+type LocaleCap<T, D extends Depth, N> = {
+  /** Renders a message from defineMessages() in the locale being built. */
+  // Generic, like `render`, so the paths are only expanded when it is called;
+  // a plain parameter type would expand them for every nested context.
+  t: <A extends MessageArgs<T, D, N>>(message: MessageDescriptor, args?: A) => N;
+  /** The locale being built, e.g. "fr-CA"; "und" when the build is unlocalized. */
+  locale: string;
+  /** The locale's writing direction, for alignment and `direction` props. */
+  dir: "ltr" | "rtl";
+};
+
+//------------------------------------------------------------------------------
 type PrimitiveItemContext = {
   render: () => string;
 };
@@ -215,7 +235,8 @@ export type TemplateContext<
 > = RenderCap<T, R, D> &
   WhenCap<T, D, N> &
   EachCap<T, R, D, N> &
-  WithCap<T, R, D, N>;
+  WithCap<T, R, D, N> &
+  LocaleCap<T, D, N>;
 
 //------------------------------------------------------------------------------
 // `render` returns the placeholder string the engine substitutes later, so it

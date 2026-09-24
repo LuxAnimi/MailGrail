@@ -89,6 +89,7 @@
     "bench:render": "node website/scripts/bench-render.mjs"
   },
   "dependencies": {
+    "@formatjs/icu-messageformat-parser": "^3.5.20",
     "@vitejs/plugin-react": "^5.1.4",
     "esbuild": "^0.28.0",
     "mjml": "^5.2.2",

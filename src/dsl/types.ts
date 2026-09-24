@@ -3,6 +3,7 @@ import type {
   StringSchema,
   NumberSchema,
   BooleanSchema,
+  DateSchema,
   ArraySchema,
   ObjectSchema,
   OptionalSchema,
@@ -14,6 +15,7 @@ export type AnySchema =
   | StringSchema
   | NumberSchema
   | BooleanSchema
+  | DateSchema
   | ArraySchema<any>
   | ObjectSchema<any>
   | OptionalSchema<any>
@@ -24,6 +26,7 @@ export type {
   StringSchema,
   NumberSchema,
   BooleanSchema,
+  DateSchema,
   ArraySchema,
   ObjectSchema,
   OptionalSchema,

@@ -3,6 +3,10 @@ import { createElement, Fragment } from "react";
 
 //------------------------------------------------------------------------------
 import type { RenderTemplateContext, TextTemplateContext } from "../types.js";
+import type { MessageAst } from "../../i18n/catalog.js";
+import { messageAst, renderMessage } from "../../i18n/icu.js";
+import type { Derivations, IcuBackend } from "../../i18n/icu.js";
+import type { MessageDescriptor } from "../../i18n/messages.js";
 
 //------------------------------------------------------------------------------
 export type TemplatingEngine = "ejs" | "handlebars" | "mustache";
@@ -86,12 +90,26 @@ export type TemplateCompiler<T> = {
 };
 
 //------------------------------------------------------------------------------
+// What `mg.t` needs to render one locale. Absent, the build is unlocalized:
+// `mg.t` explains how to turn localization on, and `mg.locale` is "und".
+//------------------------------------------------------------------------------
+export interface CompilerI18n {
+  locale: string;
+  dir: "ltr" | "rtl";
+  /** This locale's messages, by id. */
+  messages: Map<string, MessageAst>;
+  /** Shared by every locale and part of one template. */
+  derivations: Derivations;
+}
+
+//------------------------------------------------------------------------------
 export function createTemplateCompiler<T>(opts: {
   engine: TemplatingEngine;
   rootVar?: string;
   unescaped?: boolean;
   guardArrays?: boolean; // guard array iteration as (expr || [])
   mode?: "html" | "text"; // html composes React nodes, text composes strings
+  i18n?: CompilerI18n;
 }): TemplateCompiler<T> {
   const engine = opts.engine;
   const rootVar = opts.rootVar ?? "";
@@ -252,7 +270,11 @@ export function createTemplateCompiler<T>(opts: {
   // Create a context whose "base" is either:
   // - EJS: JS expression string (e.g. "params.user")
   // - HB/Mustache: path string (e.g. "user") OR "" for current context
-  const make = (base: string): RenderTemplateContext<T> => {
+  //
+  // `scope` is the schema path of the object the context stands for ("",
+  // "items[]", "profile"). The engine does not need it; the derived fields a
+  // message adds do, since they are attached to that object.
+  const make = (base: string, scope: string): RenderTemplateContext<T> => {
     const isEjs = engine === "ejs";
 
     const exprOrPathFor = (path: string) => joinPath(base, path);
@@ -299,6 +321,7 @@ export function createTemplateCompiler<T>(opts: {
       const itemCtx = makeItemContext(
         isEjs ? itemVar : "",
         isEjs ? itemVar : undefined,
+        `${joinPath(scope, path)}[]`,
       );
 
       const parts = eachParts(arr, itemVar, idxVar);
@@ -310,18 +333,110 @@ export function createTemplateCompiler<T>(opts: {
 
       const scopeVar = next("scope");
       // HB/Mustache: #with sets the current context, so nested paths are relative
-      const scopedCtx = make(isEjs ? scopeVar : "");
+      const scopedCtx = make(isEjs ? scopeVar : "", joinPath(scope, path));
 
       const parts = withParts(obj, scopeVar);
       return combine(block(parts.open), render(scopedCtx), block(parts.close));
     };
 
+    ctx.locale = i18n?.locale ?? "und";
+    ctx.dir = i18n?.dir ?? "ltr";
+
+    ctx.t = (message: MessageDescriptor, args: Record<string, unknown> = {}) =>
+      translate(message, args, scope, exprOrPathFor, ctx.render);
+
     return ctx as RenderTemplateContext<T>;
   };
 
   //----------------------------------------------------------------------------
-  const makeItemContext = (base: string, ejsItemVar?: string): any => {
-    const objectCtx: any = make(base);
+  // mg.t: the locale's message, walked into the same tokens the other helpers
+  // emit. Literal text stays text -- React escapes it in HTML, escapeStatic
+  // guards it in a text body -- so a translation can never inject markup or
+  // engine syntax. Markup comes only from the tag functions the template
+  // passes, and values only from params.
+  //----------------------------------------------------------------------------
+  const i18n = opts.i18n;
+
+  const translate = (
+    message: MessageDescriptor,
+    args: Record<string, unknown>,
+    scope: string,
+    exprOrPathFor: (path: string) => string,
+    render: (path: string) => unknown,
+  ): any => {
+    if (!i18n) {
+      throw new Error(
+        `mg.t() needs \`locales\` in mailgrail.config.ts, e.g. ` +
+          `locales: ["en", "fr"]. Without it the build has no locale to ` +
+          `render the message in.`,
+      );
+    }
+
+    const ast = messageAst(message, i18n.messages);
+    const where = `mg.t(${JSON.stringify(message.id)}) in ${i18n.locale}`;
+
+    const argPath = (name: string): string => {
+      const path = args[name];
+      if (typeof path === "string" && path !== "") return path;
+
+      throw new Error(
+        `${where}: the message uses {${name}}, so mg.t() needs ` +
+          `${name}: "<param path>" in its arguments.`,
+      );
+    };
+
+    const derived = (id: string) =>
+      value(emitValue(exprOrPathFor(id), false));
+
+    const backend: IcuBackend<any> = {
+      text: (text) => text,
+      join: (nodes) => (nodes.length === 1 ? nodes[0] : combine(...nodes)),
+      value: (name) => render(argPath(name)),
+
+      format: (kind, name, options) =>
+        derived(i18n.derivations.add({ scope, path: argPath(name), kind, options })),
+
+      choose: (name, spec, arms) => {
+        const id = i18n.derivations.add({
+          scope,
+          path: argPath(name),
+          kind: "choice",
+          spec,
+        });
+        const pound = () => derived(`${id}.n`);
+
+        // One section per arm. The generated module sets exactly one arm key,
+        // so no engine needs an else -- which Mustache would not have.
+        return combine(
+          ...arms.flatMap((arm) => {
+            const parts = ifParts(exprOrPathFor(`${id}.${arm.key}`));
+            return [block(parts.open), arm.render(pound), block(parts.close)];
+          }),
+        );
+      },
+
+      tag: (name, children) => {
+        const fn = args[name];
+        if (typeof fn !== "function") {
+          throw new Error(
+            `${where}: the message has a <${name}> tag, so mg.t() needs ` +
+              `${name}: (chunks) => ... in its arguments.`,
+          );
+        }
+        return fn(children);
+      },
+    };
+
+    return renderMessage(ast, backend);
+  };
+
+  //----------------------------------------------------------------------------
+  const makeItemContext = (
+    base: string,
+    ejsItemVar: string | undefined,
+    scope: string,
+  ): any => {
+    const objectCtx: any = make(base, scope);
 
     const renderCurrent = () => {
       if (engine === "ejs") {
@@ -338,14 +453,14 @@ export function createTemplateCompiler<T>(opts: {
         const arrExpr = ejsItemVar ?? base;
         const innerItemVar = next("item");
         const innerIdxVar = next("i");
-        const innerCtx = makeItemContext(innerItemVar, innerItemVar);
+        const innerCtx = makeItemContext(innerItemVar, innerItemVar, `${scope}[]`);
         const parts = eachParts(arrExpr, innerItemVar, innerIdxVar);
         return combine(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
       }
 
       // HB: {{#each this}}, Mustache: {{#.}}
       const arrRef = engine === "handlebars" ? "this" : ".";
-      const innerCtx = makeItemContext("", undefined);
+      const innerCtx = makeItemContext("", undefined, `${scope}[]`);
       const parts = eachParts(arrRef, "", "");
       return combine(block(parts.open), renderFn(innerCtx, 0), block(parts.close));
     };
@@ -418,9 +533,8 @@ export function createTemplateCompiler<T>(opts: {
   };
 
   //----------------------------------------------------------------------------
-  // In HTML the text around the tokens came from React and MJML, so a stray
-  // delimiter in it is already escaped. A text template *is* the template, so a
-  // literal delimiter someone wrote would be read as engine syntax.
+  // A text template *is* the template, so a literal delimiter someone wrote
+  // would be read as engine syntax. (HTML has its own pass, escapeStaticHtml.)
   //----------------------------------------------------------------------------
   const escapeStatic = (text: string): string => {
     switch (engine) {
@@ -441,11 +555,49 @@ export function createTemplateCompiler<T>(opts: {
   };
 
   //----------------------------------------------------------------------------
-  const substituteHtml = (html: string): string =>
-    html.replace(TOKEN_RE, (token, index) => {
-      const syntax = fragments[Number(index)];
-      return syntax === undefined ? token : syntax;
-    });
+  // React escapes `<`, so a stray `<%` in HTML text or an attribute is already
+  // inert for EJS. It leaves braces alone, though, and Handlebars and Mustache
+  // would evaluate a `{{secret}}` written as plain text. Every `{` that opens a
+  // `{{` becomes an entity: the mail client decodes it, the engine never sees
+  // a delimiter. Only static text is touched -- the engine syntax is spliced in
+  // afterwards.
+  //
+  // A single brace touching a tag matters too: `{` + `{{name}}` reads as the
+  // triple-stache, which skips HTML escaping, and `{{name}}` + `}` is a
+  // Handlebars parse error. `{` is only rewritten where it opens `{{` or ends
+  // right before a tag, so CSS in <style> keeps its braces.
+  //----------------------------------------------------------------------------
+  const escapeStaticHtml = (
+    html: string,
+    afterTag: boolean,
+    beforeTag: boolean,
+  ): string => {
+    if (engine === "ejs") return html;
+
+    let out = html.replace(/\{(?=\{)/g, "&#123;");
+    if (beforeTag) out = out.replace(/\{$/, "&#123;");
+    if (afterTag) out = out.replace(/^\}/, "&#125;");
+    return out;
+  };
+
+  //----------------------------------------------------------------------------
+  const substituteHtml = (html: string): string => {
+    const re = new RegExp(TOKEN_RE.source, "g");
+
+    let out = "";
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = re.exec(html)) !== null) {
+      const syntax = fragments[Number(match[1])];
+      out +=
+        escapeStaticHtml(html.slice(cursor, match.index), cursor > 0, true) +
+        (syntax === undefined ? match[0] : syntax);
+      cursor = match.index + match[0].length;
+    }
+
+    return out + escapeStaticHtml(html.slice(cursor), cursor > 0, false);
+  };
 
   //----------------------------------------------------------------------------
   const substituteText = (text: string): string => {
@@ -481,7 +633,7 @@ export function createTemplateCompiler<T>(opts: {
   // - HB/Mustache: leave "" so paths are relative to the root context
   const rootBase = engine === "ejs" ? rootVar : "";
 
-  return { ctx: make(rootBase), prepareMjml, substitute };
+  return { ctx: make(rootBase, ""), prepareMjml, substitute };
 }
 
 //------------------------------------------------------------------------------
@@ -503,6 +655,7 @@ export function createTextTemplateCompiler<T>(opts: {
   engine: TemplatingEngine;
   rootVar?: string;
   guardArrays?: boolean;
+  i18n?: CompilerI18n;
 }): TextTemplateCompiler<T> {
   const { ctx, substitute } = createTemplateCompiler<T>({
     ...opts,

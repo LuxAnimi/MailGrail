@@ -36,3 +36,6 @@ packages/*/dist/
 # website
 website/.astro/
 website/dist/
+
+# test scratch output
+test/.tmp-*/

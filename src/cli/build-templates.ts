@@ -16,7 +16,10 @@ import {
   createTextTemplateCompiler,
   findLeakedTokens,
 } from "./rendering/schema-rendering.js";
-import type { TemplatingEngine } from "./rendering/schema-rendering.js";
+import type {
+  CompilerI18n,
+  TemplatingEngine,
+} from "./rendering/schema-rendering.js";
 import { guardContext } from "./rendering/context-guard.js";
 import { assertReactPair } from "./react-preflight.js";
 import { getLibraryDir } from "./utils.js";
@@ -24,6 +27,16 @@ import { emitDts, planTemplateEntries } from "./emit-types.js";
 import type { TemplateEntry } from "./emit-types.js";
 import { ENGINES, resolveEngine, resolveModuleFormat } from "./engines.js";
 import type { EngineSpec, ModuleFormat } from "./engines.js";
+import { loadCatalogs } from "../i18n/catalog-fs.js";
+import type { CatalogResult } from "../i18n/catalog.js";
+import { Derivations } from "../i18n/icu.js";
+import { textDirection } from "../i18n/locale.js";
+import { applyLocaleToMjml } from "../i18n/mjml.js";
+import {
+  assertNoMessageConflicts,
+  clearRegisteredMessages,
+  registeredMessages,
+} from "../i18n/messages.js";
 import {
   checkOutputPackageJson,
   emitIndexDts,
@@ -61,10 +74,20 @@ function assertEngineInstalled(
 }
 
 //------------------------------------------------------------------------------
+type CompiledParts = { html: string; text: string; subject: string };
+
+export interface BuildResult {
+  /** Things that did not stop the build but deserve a look. */
+  warnings: string[];
+  /** locale -> translated / total messages, when the build is localized. */
+  coverage: CatalogResult["coverage"] | null;
+}
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 export async function buildTemplates(
   config: MailgrailResolvedConfig,
-): Promise<string[]> {
+): Promise<BuildResult> {
   const engine = resolveEngine(config);
   const format = resolveModuleFormat(config);
   const spec = ENGINES[engine];
@@ -75,54 +98,99 @@ export async function buildTemplates(
   // and only one before esbuild hands them over.
   assertReactPair(config.baseDir, getLibraryDir());
 
+  clearRegisteredMessages();
   const templates = await loadTemplates(config.sourceDir);
+  assertNoMessageConflicts();
 
   // Names are planned before anything is compiled, so a name that cannot be an
   // identifier -- or that collides with another template's -- fails with the
-  // output directory untouched rather than half-written.
+  // output directory untouched rather than half-written. The catalogs are
+  // checked at the same point, for the same reason.
   const entries = planTemplateEntries(templates);
+  const warnings: string[] = [];
+
+  const localization = config.defaultLocale === null
+    ? null
+    : {
+        defaultLocale: config.defaultLocale,
+        catalogs: await loadCatalogs(config.localesDir, registeredMessages(), {
+          locales: config.locales,
+          defaultLocale: config.defaultLocale,
+          strict: config.strictLocales,
+        }),
+      };
+  if (localization) warnings.push(...localization.catalogs.warnings);
 
   const compiled: {
     template: TemplateDefinition<any>;
     entry: TemplateEntry;
-    html: string;
-    text: string;
-    subject: string;
+    /** One per locale, or a single "" entry when the build is unlocalized. */
+    parts: Map<string, CompiledParts>;
+    derivations: Derivations;
   }[] = [];
 
   for (const [index, template] of templates.entries()) {
-    compiled.push({
-      template,
-      entry: entries[index]!,
-      html: await compileHtml(template, engine),
-      text: compileTextPart(template, engine, "textTemplate"),
-      subject: compileTextPart(template, engine, "subjectTemplate"),
-    });
+    const derivations = new Derivations();
+    const parts = new Map<string, CompiledParts>();
+
+    if (!localization) {
+      parts.set("", await compileParts(template, engine, undefined, warnings));
+    } else {
+      for (const locale of config.locales) {
+        const i18n: CompilerI18n = {
+          locale,
+          dir: textDirection(locale),
+          messages: localization.catalogs.messages.get(locale)!,
+          derivations,
+        };
+        parts.set(locale, await compileParts(template, engine, i18n, warnings));
+      }
+    }
+
+    compiled.push({ template, entry: entries[index]!, parts, derivations });
   }
 
   await ensureDir(config.outputDir);
-  const warnings = await reconcileOutputPackageJson(config, format);
+  warnings.push(...(await reconcileOutputPackageJson(config, format)));
 
-  for (const { template, entry, html, text, subject } of compiled) {
+  for (const { template, entry, parts, derivations } of compiled) {
     // The template artifact is written for readability/debugging; the emitted
     // module inlines the same string so it runs under plain Node with no
     // bundler or text loader involved.
-    await fs.writeFile(
-      path.join(config.outputDir, `${entry.file}.${spec.ext}`),
-      html,
-      "utf8",
-    );
+    for (const [locale, { html }] of parts) {
+      const suffix = locale === "" ? "" : `.${locale}`;
+      await fs.writeFile(
+        path.join(config.outputDir, `${entry.file}${suffix}.${spec.ext}`),
+        html,
+        "utf8",
+      );
+    }
+
+    const module = localization
+      ? emitTemplateModule({
+          template,
+          entry,
+          spec,
+          format,
+          localized: {
+            parts,
+            defaultLocale: localization.defaultLocale,
+            timeZone: config.timeZone,
+            derivations: derivations.list,
+          },
+        })
+      : emitTemplateModule({ template, entry, spec, format, ...parts.get("")! });
 
     await fs.writeFile(
       path.join(config.outputDir, `${entry.file}.js`),
-      emitTemplateModule({ template, entry, spec, format, html, text, subject }),
+      module,
       "utf8",
     );
 
     if (config.typescript) {
       await fs.writeFile(
         path.join(config.outputDir, `${entry.file}.d.ts`),
-        emitDts(template),
+        emitDts(template, localization ? config.locales : null),
         "utf8",
       );
     }
@@ -130,19 +198,33 @@ export async function buildTemplates(
 
   await fs.writeFile(
     path.join(config.outputDir, "index.js"),
-    emitIndexJs(entries, format),
+    emitIndexJs(entries, format, localization ? config.locales : null, localization?.defaultLocale),
     "utf8",
   );
 
   if (config.typescript) {
     await fs.writeFile(
       path.join(config.outputDir, "index.d.ts"),
-      emitIndexDts(entries),
+      emitIndexDts(entries, localization ? config.locales : null),
       "utf8",
     );
   }
 
-  return warnings;
+  return { warnings, coverage: localization?.catalogs.coverage ?? null };
+}
+
+//------------------------------------------------------------------------------
+async function compileParts(
+  template: TemplateDefinition<any>,
+  engine: TemplatingEngine,
+  i18n: CompilerI18n | undefined,
+  warnings: string[],
+): Promise<CompiledParts> {
+  return {
+    html: await compileHtml(template, engine, i18n, warnings),
+    text: compileTextPart(template, engine, "textTemplate", i18n),
+    subject: compileTextPart(template, engine, "subjectTemplate", i18n),
+  };
 }
 
 //------------------------------------------------------------------------------
@@ -218,8 +300,18 @@ async function findEntryPoint(dir: string): Promise<string> {
   );
 }
 
-async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
-  const tmpFile = path.join(dir, ".mailgrail.codegen.mjs");
+let loadCount = 0;
+
+export async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
+  // Unique per load, like the config loader's: two loads at once (tests, a
+  // build racing an extract) would otherwise write and delete each other's
+  // bundle, and a fresh URL is also what makes Node evaluate it again --
+  // defineMessages() registers as a side effect, and the registry was cleared
+  // before this call.
+  const tmpFile = path.join(
+    dir,
+    `.mailgrail.codegen-${process.pid}-${Date.now()}-${++loadCount}.mjs`,
+  );
   const entryPoint = await findEntryPoint(dir);
 
   try {
@@ -264,9 +356,12 @@ async function loadTemplates(dir: string): Promise<TemplateDefinition<any>[]> {
 async function compileHtml(
   template: TemplateDefinition<any>,
   engine: TemplatingEngine,
+  i18n: CompilerI18n | undefined,
+  warnings: string[],
 ): Promise<string> {
   const { ctx, prepareMjml, substitute } = createTemplateCompiler<any>({
     engine,
+    i18n,
   });
 
   // The template emits opaque tokens rather than engine syntax, so that React
@@ -275,7 +370,12 @@ async function compileHtml(
   const doc = template.htmlTemplate(
     guardContext(ctx, { template: template.name, part: "htmlTemplate" }),
   );
-  const mjml = prepareMjml(renderToMjml(doc));
+  let mjml = prepareMjml(renderToMjml(doc));
+  if (i18n) {
+    const applied = applyLocaleToMjml(mjml, i18n);
+    mjml = applied.mjml;
+    if (applied.warning) warnings.push(`${template.name} (${i18n.locale}): ${applied.warning}`);
+  }
 
   const { html, errors } = await mjml2html(mjml, { minify: false });
 
@@ -327,8 +427,9 @@ function compileTextPart(
   template: TemplateDefinition<any>,
   engine: TemplatingEngine,
   part: "subjectTemplate" | "textTemplate",
+  i18n: CompilerI18n | undefined,
 ): string {
-  const { ctx, substitute } = createTextTemplateCompiler<any>({ engine });
+  const { ctx, substitute } = createTextTemplateCompiler<any>({ engine, i18n });
 
   const out = template[part](
     guardContext(ctx, { template: template.name, part }),
@@ -340,8 +441,21 @@ function compileTextPart(
     );
   }
 
+  // A subject is a mail header, which a line break would end. Whatever the
+  // transport does with one, it is never what the template meant, and in a
+  // translation it is easy to paste in without seeing it.
+  // eslint-disable-next-line no-control-regex
+  if (part === "subjectTemplate" && /[\u0000-\u001F\u007F]/.test(out)) {
+    throw new Error(
+      `${template.name}: subjectTemplate${i18n ? ` (${i18n.locale})` : ""} ` +
+        `contains a line break or another control character. A subject is ` +
+        `a single header line: ${JSON.stringify(out)}`,
+    );
+  }
+
   return assertNoLeakedTokens(substitute(out), template.name, part);
 }
+
 
 //------------------------------------------------------------------------------
 // The emitters live in ./emit-types.js -- pure schema -> source transforms with

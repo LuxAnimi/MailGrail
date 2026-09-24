@@ -578,7 +578,11 @@ renderOptionsEmail({ username: "a" }).sender;
       // "smoke-fixture".
       assert.match(await index.text(), /<title>smoke-fixture · MailGrail<\/title>/);
 
-      for (const id of ["virtual:mailgrailconfig", "virtual:mailgrailtemplates"]) {
+      for (const id of [
+        "virtual:mailgrailconfig",
+        "virtual:mailgrailtemplates",
+        "virtual:mailgrailcatalogs",
+      ]) {
         const res = await get(`http://localhost:${port}/@id/${id}`);
         assert.ok(res && res.status === 200, `${id} did not resolve`);
       }

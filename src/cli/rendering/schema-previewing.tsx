@@ -1,7 +1,37 @@
 import type { ReactNode } from "react";
+import { createElement, Fragment } from "react";
 
 //------------------------------------------------------------------------------
 import type { PreviewTemplateContext, TextTemplateContext } from "../types.js";
+import type { MessageAst } from "../../i18n/catalog.js";
+import { messageAst, renderMessage } from "../../i18n/icu.js";
+import type { IcuBackend } from "../../i18n/icu.js";
+import type { MessageDescriptor } from "../../i18n/messages.js";
+import { pseudoLocalize } from "../../i18n/pseudo.js";
+import {
+  __mgDate,
+  __mgNumber,
+  __mgPlural,
+  __mgSelect,
+} from "../../i18n/runtime.js";
+
+//------------------------------------------------------------------------------
+// What the preview renders messages with. The formatting locale and the text
+// can differ: the pseudo-locale formats as the default locale but rewrites
+// every literal, so an untranslated string stands out.
+//------------------------------------------------------------------------------
+export interface PreviewI18n {
+  /** Exposed as mg.locale and used for plurals and formatting. */
+  locale: string;
+  dir: "ltr" | "rtl";
+  timeZone: string;
+  /** This locale's messages; undefined falls back to each message's source. */
+  messages: Map<string, MessageAst> | undefined;
+  /** Ids shown in the default locale's text, marked in the HTML preview. */
+  fallbacks?: Set<string>;
+  /** Rewrite literals as pseudo-text. */
+  pseudo?: boolean;
+}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -50,12 +80,30 @@ type Kit<N> = {
   one: (node: unknown) => N;
   /** A list of results, as one node. */
   list: (nodes: unknown[]) => N;
+  /** Pieces of one message, as one node. */
+  join: (nodes: N[]) => N;
+  /** Marks a message whose translation is missing, where that can be shown. */
+  flag: (node: N, title: string) => N;
 };
 
 const NODE_KIT: Kit<ReactNode> = {
   none: null,
   one: (node) => node as ReactNode,
   list: (nodes) => nodes as ReactNode,
+  // As arguments rather than an array, so React does not ask for keys.
+  join: (nodes) => createElement(Fragment, null, ...nodes),
+  flag: (node, title) =>
+    createElement(
+      "span",
+      {
+        title,
+        style: {
+          background: "rgba(255, 196, 0, 0.35)",
+          outline: "1px dashed rgba(200, 140, 0, 0.9)",
+        },
+      },
+      node,
+    ),
 };
 
 const TEXT_KIT: Kit<string> = {
@@ -69,10 +117,17 @@ const TEXT_KIT: Kit<string> = {
     );
   },
   list: (nodes) => nodes.map((node) => TEXT_KIT.one(node)).join(""),
+  join: (nodes) => nodes.map((node) => TEXT_KIT.one(node)).join(""),
+  // Plain text has nowhere to show a mark; the HTML preview carries it.
+  flag: (node) => node,
 };
 
 //------------------------------------------------------------------------------
-function makePreviewCore<N>(params: unknown, kit: Kit<N>): any {
+function makePreviewCore<N>(
+  params: unknown,
+  kit: Kit<N>,
+  i18n: PreviewI18n | undefined,
+): any {
   const mg: any = {};
 
   mg.render = (path: string) => {
@@ -137,7 +192,7 @@ function makePreviewCore<N>(params: unknown, kit: Kit<N>): any {
         }
 
         if (isPlainObject(elem)) {
-          return render(makePreviewCore(elem, kit), index);
+          return render(makePreviewCore(elem, kit, i18n), index);
         }
 
         // fallback
@@ -167,7 +222,7 @@ function makePreviewCore<N>(params: unknown, kit: Kit<N>): any {
         return r({ render: () => toRenderableString(inner) }, i);
       }
       if (isPlainObject(inner)) {
-        return r(makePreviewCore(inner, kit), i);
+        return r(makePreviewCore(inner, kit, i18n), i);
       }
       return r({}, i);
     }
@@ -179,8 +234,83 @@ function makePreviewCore<N>(params: unknown, kit: Kit<N>): any {
     // renders the block, so scope to an empty object rather than hiding it --
     // otherwise the preview omits markup that will ship.
     return kit.one(
-      render(makePreviewCore(isPlainObject(value) ? value : {}, kit)),
+      render(makePreviewCore(isPlainObject(value) ? value : {}, kit, i18n)),
     );
+  };
+
+  mg.locale = i18n?.locale ?? "und";
+  mg.dir = i18n?.dir ?? "ltr";
+
+  //----------------------------------------------------------------------------
+  // The same walk the build does (i18n/icu.ts), evaluated here and now with the
+  // runtime helpers the generated module embeds -- so a plural picks the same
+  // arm and a date reads the same in the preview as in the email.
+  mg.t = (message: MessageDescriptor, args: Record<string, unknown> = {}) => {
+    if (!i18n) {
+      throw new Error(
+        `mg.t() needs \`locales\` in mailgrail.config.ts, e.g. ` +
+          `locales: ["en", "fr"].`,
+      );
+    }
+
+    const ast = messageAst(message, i18n.messages);
+    const where = `mg.t(${JSON.stringify(message.id)}) in ${i18n.locale}`;
+
+    const argPath = (name: string): string => {
+      const path = args[name];
+      if (typeof path === "string" && path !== "") return path;
+      throw new Error(
+        `${where}: the message uses {${name}}, so mg.t() needs ` +
+          `${name}: "<param path>" in its arguments.`,
+      );
+    };
+    const raw = (name: string) => getPath(params as any, argPath(name));
+    const placeholder = (name: string) =>
+      `<${argPath(name).split(".").pop() ?? name}>`;
+    const isEmpty = (v: unknown) => v === "" || v === undefined || v === null;
+
+    const backend: IcuBackend<N> = {
+      text: (text) => (i18n.pseudo ? pseudoLocalize(text) : text) as N,
+      join: kit.join,
+      value: (name) => mg.render(argPath(name)),
+
+      format: (kind, name, options) => {
+        const v = raw(name);
+        if (isEmpty(v)) return placeholder(name) as N;
+        return (
+          kind === "number"
+            ? __mgNumber(i18n.locale, v, options)
+            : __mgDate(i18n.locale, i18n.timeZone, v, options)
+        ) as N;
+      },
+
+      choose: (name, spec, arms) => {
+        const v = raw(name);
+        const picked: Record<string, unknown> =
+          spec.kind === "plural"
+            ? __mgPlural(i18n.locale, v, spec.pluralType, spec.offset, spec.exact, spec.categories)
+            : __mgSelect(v, spec.keys);
+        const arm = arms.find((a) => picked[a.key] === true);
+        return arm ? arm.render(() => String(picked["n"] ?? "") as N) : kit.none;
+      },
+
+      tag: (name, children) => {
+        const fn = args[name];
+        if (typeof fn !== "function") {
+          throw new Error(
+            `${where}: the message has a <${name}> tag, so mg.t() needs ` +
+              `${name}: (chunks) => ... in its arguments.`,
+          );
+        }
+        return fn(children);
+      },
+    };
+
+    const out = renderMessage(ast, backend);
+
+    return i18n.fallbacks?.has(message.id)
+      ? kit.flag(out, `No ${i18n.locale} translation yet: ${message.id}`)
+      : out;
   };
 
   return mg;
@@ -189,11 +319,15 @@ function makePreviewCore<N>(params: unknown, kit: Kit<N>): any {
 //------------------------------------------------------------------------------
 export function makeTemplatePreviewContext<T>(
   params: T,
+  i18n?: PreviewI18n,
 ): PreviewTemplateContext<T> {
-  return makePreviewCore(params, NODE_KIT) as PreviewTemplateContext<T>;
+  return makePreviewCore(params, NODE_KIT, i18n) as PreviewTemplateContext<T>;
 }
 
 //------------------------------------------------------------------------------
-export function makeTextPreviewContext<T>(params: T): TextTemplateContext<T> {
-  return makePreviewCore(params, TEXT_KIT) as TextTemplateContext<T>;
+export function makeTextPreviewContext<T>(
+  params: T,
+  i18n?: PreviewI18n,
+): TextTemplateContext<T> {
+  return makePreviewCore(params, TEXT_KIT, i18n) as TextTemplateContext<T>;
 }

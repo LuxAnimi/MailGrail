@@ -7,8 +7,12 @@
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "./types.js";
 import type { EngineSpec, ModuleFormat } from "./engines.js";
-import { emitNormalizer } from "./emit-types.js";
+import { emitLocaleType, emitNormalizer } from "./emit-types.js";
 import type { TemplateEntry } from "./emit-types.js";
+import type { Derivation } from "../i18n/icu.js";
+import { __mgResolveLocale, RUNTIME_SOURCE } from "../i18n/runtime.js";
+
+const RESOLVE_LOCALE_SOURCE = __mgResolveLocale;
 
 //------------------------------------------------------------------------------
 const importEngine = (spec: EngineSpec, format: ModuleFormat): string =>
@@ -32,15 +36,27 @@ const prologue = (format: ModuleFormat): string =>
   format === "cjs" ? `"use strict";\n\n` : "";
 
 //------------------------------------------------------------------------------
-export function emitTemplateModule(args: {
-  template: TemplateDefinition<any>;
-  entry: TemplateEntry;
-  spec: EngineSpec;
-  format: ModuleFormat;
-  html: string;
-  text: string;
-  subject: string;
-}): string {
+export type LocalizedParts = {
+  /** locale -> its compiled templates. */
+  parts: Map<string, { html: string; text: string; subject: string }>;
+  defaultLocale: string;
+  timeZone: string;
+  derivations: readonly Derivation[];
+};
+
+export function emitTemplateModule(
+  args: {
+    template: TemplateDefinition<any>;
+    entry: TemplateEntry;
+    spec: EngineSpec;
+    format: ModuleFormat;
+  } & (
+    | { html: string; text: string; subject: string; localized?: undefined }
+    | { localized: LocalizedParts }
+  ),
+): string {
+  if (args.localized) return emitLocalizedModule({ ...args, localized: args.localized });
+
   const { template, entry, spec, format, html, text, subject } = args;
 
   // Left out, rather than emitted as `sender: undefined`, when the template has
@@ -88,6 +104,96 @@ ${moduleExport}`;
 }
 
 //------------------------------------------------------------------------------
+// A localized template: every locale's templates, and the runtime helpers its
+// messages need (see i18n/runtime.ts), inlined like everything else so the
+// module still runs with no MailGrail and no i18n library installed.
+//------------------------------------------------------------------------------
+function emitLocalizedModule(args: {
+  template: TemplateDefinition<any>;
+  entry: TemplateEntry;
+  spec: EngineSpec;
+  format: ModuleFormat;
+  localized: LocalizedParts;
+}): string {
+  const { template, entry, spec, format, localized } = args;
+
+  const sender =
+    template.sender === undefined
+      ? ""
+      : `    sender: ${JSON.stringify(template.sender)},\n`;
+
+  const declaration = format === "cjs" ? "function " : "export function ";
+  const moduleExport =
+    format === "cjs" ? `\n${exportNames([entry.fnName], format)}\n` : "";
+
+  const table = [...localized.parts]
+    .map(
+      ([locale, { html, text, subject }]) =>
+        `  ${JSON.stringify(locale)}: {\n` +
+        `    html: ${JSON.stringify(html)},\n` +
+        `    text: ${JSON.stringify(text)},\n` +
+        `    subject: ${JSON.stringify(subject)},\n` +
+        `  },`,
+    )
+    .join("\n");
+
+  // Only the locales emails are actually sent in get prepared, each the first
+  // time one is -- compiling every language up front would make importing the
+  // module cost more the more languages it supports.
+  return `${prologue(format)}${importEngine(spec, format)}
+
+const TEMPLATES = {
+${table}
+};
+
+const LOCALES = ${JSON.stringify([...localized.parts.keys()])};
+const DEFAULT_LOCALE = ${JSON.stringify(localized.defaultLocale)};
+const DEFAULT_TIME_ZONE = ${JSON.stringify(localized.timeZone)};
+
+${RUNTIME_SOURCE}
+
+const prepared = new Map();
+
+function prepare(locale) {
+  let render = prepared.get(locale);
+  if (render) return render;
+
+  const htmlTemplate = TEMPLATES[locale].html;
+  const textTemplate = TEMPLATES[locale].text;
+  const subjectTemplate = TEMPLATES[locale].subject;
+
+  ${spec.precompile("renderHtml", "htmlTemplate")}
+  ${spec.precompileText("renderText", "textTemplate")}
+  ${spec.precompileText("renderSubject", "subjectTemplate")}
+
+  render = (params) => ({
+    subject: ${spec.render("renderSubject", "subjectTemplate")},
+    text: ${spec.render("renderText", "textTemplate")},
+    html: ${spec.render("renderHtml", "htmlTemplate")},
+  });
+  prepared.set(locale, render);
+  return render;
+}
+
+${emitNormalizer(template.params, localized.derivations)}
+${declaration}${entry.fnName}(input, options) {
+  const locale = __mgResolveLocale(options?.locale, LOCALES, DEFAULT_LOCALE);
+  const params = normalizeParams(input, locale, options?.timeZone ?? DEFAULT_TIME_ZONE);
+  const out = prepare(locale)(params);
+
+  return {
+    name: ${JSON.stringify(template.name)},
+    locale,
+${sender}    // A subject is one header line; a line break in a param would end it.
+    subject: out.subject.replace(/[\\r\\n]+/g, " "),
+    text: out.text,
+    html: out.html,
+  };
+}
+${moduleExport}`;
+}
+
+//------------------------------------------------------------------------------
 // The index exists so a backend does not have to hand-write the mapping from a
 // template name to its render function -- the naming rule is MailGrail's, and
 // restating it in application code is exactly the sort of thing that goes stale
@@ -96,6 +202,8 @@ ${moduleExport}`;
 export function emitIndexJs(
   entries: TemplateEntry[],
   format: ModuleFormat,
+  locales: readonly string[] | null = null,
+  defaultLocale?: string,
 ): string {
   const imports = entries
     .map((entry) =>
@@ -111,6 +219,24 @@ export function emitIndexJs(
 
   const templates = `Object.freeze({\n${map}\n})`;
 
+  const localeExports =
+    locales === null
+      ? ""
+      : `
+const locales = Object.freeze(${JSON.stringify(locales)});
+const defaultLocale = ${JSON.stringify(defaultLocale)};
+
+// What every render function does with its \`locale\` option, for callers
+// that want to know the outcome up front -- to store it, or to pick a sender.
+${String(RESOLVE_LOCALE_SOURCE)}
+
+function resolveLocale(requested) {
+  return __mgResolveLocale(requested, locales, defaultLocale);
+}
+
+${exportNames(["locales", "defaultLocale", "resolveLocale"], format)}
+`;
+
   return `${prologue(format)}${imports}
 
 ${exportNames(
@@ -123,14 +249,17 @@ ${
     ? `exports.templates = ${templates};`
     : `export const templates = ${templates};`
 }
-`;
+${localeExports}`;
 }
 
 //------------------------------------------------------------------------------
 // One declaration file for both formats: TypeScript reads the module kind from
 // the package `type` beside it, which is what `outputPackageJson` writes.
 //------------------------------------------------------------------------------
-export function emitIndexDts(entries: TemplateEntry[]): string {
+export function emitIndexDts(
+  entries: TemplateEntry[],
+  locales: readonly string[] | null = null,
+): string {
   const imports = entries
     .map(
       (entry) =>
@@ -155,7 +284,18 @@ ${map}
 };
 
 export type TemplateName = keyof typeof templates;
-`;
+${
+  locales === null
+    ? ""
+    : `
+${emitLocaleType(locales)}
+
+export declare const locales: readonly Locale[];
+export declare const defaultLocale: Locale;
+/** The built locale a render call would use for \`requested\`. */
+export declare function resolveLocale(requested: string | undefined): Locale;
+`
+}`;
 }
 
 //------------------------------------------------------------------------------

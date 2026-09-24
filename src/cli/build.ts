@@ -29,9 +29,17 @@ export async function runBuild(argv: string[]) {
 
   // Awaited so failures reach the CLI's error handler instead of surfacing as
   // an unhandled rejection, and so the command does not report before it is done.
-  const warnings = await buildTemplates(config);
+  const { warnings, coverage } = await buildTemplates(config);
 
   console.log("Done.");
+
+  if (coverage) {
+    console.log("\nTranslations:");
+    for (const [locale, { translated, total }] of coverage) {
+      const mark = translated === total ? "" : `  (${total - translated} missing)`;
+      console.log(`  ${locale.padEnd(10)} ${translated}/${total}${mark}`);
+    }
+  }
 
   // After "Done.", because none of these stopped the build: they are things
   // about the output directory that only its owner can settle.

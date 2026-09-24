@@ -14,3 +14,15 @@ declare module "virtual:mailgrailtemplates" {
   import type { Schema } from "@/dsl/schemas";
   export const templates: TemplateDefinition<Schema<any>>[];
 }
+
+declare module "virtual:mailgrailcatalogs" {
+  /** Empty when the project is not localized. */
+  export const locales: string[];
+  export const defaultLocale: string | null;
+  export const timeZone: string;
+  export const strict: boolean;
+  /** locale -> the catalog's JSON, or null when the file does not exist. */
+  export const catalogs: Record<string, unknown>;
+  /** Catalog files that could not be parsed. */
+  export const errors: string[];
+}

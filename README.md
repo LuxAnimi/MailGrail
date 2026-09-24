@@ -173,6 +173,117 @@ Options:
 |---|---|---|
 | `--configPath <path>` | `./mailgrail.config.ts` | Path to your config file |
 
+### `mailgrail extract`
+
+Brings the translation catalogs in line with the messages in your templates
+(see [Localization](#localization)). It writes `<localesDir>/<defaultLocale>.json`
+as the source catalog for translators, and adds each new message to every
+other locale's file as `""`. Existing translations are never changed, and
+messages that no longer exist are kept unless you pass `--prune`.
+
+```sh
+mailgrail extract [--prune]
+```
+
+---
+
+## Localization
+
+Every template is built **once per locale**. Translated text is baked into
+each locale's template at build time. Values that are only known when an
+email is sent, like plural forms and formatted numbers and dates, are computed
+by the generated module with the built-in `Intl` APIs. The output still has no
+runtime dependency beyond your templating engine.
+
+**1. List your locales:**
+
+```ts
+export default defineConfig({
+  sourceDir: "emails-src",
+  outputDir: "emails-dist",
+  locales: ["en", "fr", "ar"], // the first is the default unless defaultLocale says otherwise
+});
+```
+
+**2. Write the default locale's messages in code**, in
+[ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/),
+and render them with `mg.t`:
+
+```tsx
+import { defineMessages } from "@luxanimi/mailgrail";
+
+const m = defineMessages("order", {
+  greeting: "Hi {name},",
+  items: "{count, plural, one {You ordered # item.} other {You ordered # items.}}",
+  total: "Total: {total, number, ::currency/EUR}, due {due, date, long}",
+  help: "Questions? <link>Contact us</link>.",
+});
+
+// Each {argument} maps to a param path, and each <tag> to a function that
+// wraps the translated text in your markup.
+<MjmlText>{mg.t(m.greeting, { name: "name" })}</MjmlText>
+<MjmlText>{mg.t(m.items, { count: "count" })}</MjmlText>
+<MjmlText>{mg.t(m.help, { link: (chunks) => <a href="mailto:help@example.com">{chunks}</a> })}</MjmlText>
+```
+
+`mg.t` works in `subjectTemplate` and `textTemplate` too, and inside `each` and
+`with`, where paths are relative as they are for `mg.render`. `mg.locale` and
+`mg.dir` (`"ltr"` / `"rtl"`) give you the locale being built, e.g. for alignment.
+
+**3. Translate.** Run `mailgrail extract`, then fill in `emails-src/locales/fr.json`:
+
+```json
+{
+  "order.greeting": "Bonjour {name},",
+  "order.items": "{count, plural, one {Vous avez commandé # article.} many {Vous avez commandé # d’articles.} other {Vous avez commandé # articles.}}"
+}
+```
+
+**4. Render in a locale:**
+
+```ts
+renderOrder(params, { locale: user.locale, timeZone: "America/Montreal" });
+// → { name, locale: "fr", subject, html, text }
+```
+
+`locale` accepts any tag, or an `Accept-Language` value. It resolves to the
+closest built locale (`fr-CA` → `fr`), falls back to the default, and never
+throws. The result's `locale` says which one was used.
+
+### What the build checks
+
+| Problem | Result |
+|---|---|
+| A message that is not valid ICU | error |
+| A translation using an `{argument}` or `<tag>` its source message does not have | error |
+| `mg.t` missing an argument or tag function the message needs | error |
+| A missing translation, or a missing catalog file | warning; the default locale's text is used. An error with `strictLocales: true` |
+| A plural missing a category the locale needs (Polish needs `few` and `many`, Arabic all six) | warning, or an error with `strictLocales` |
+| Stale keys, invisible or bidi control characters in a translation | warning |
+
+### Encoding and email safety
+
+- **Translations are text, never HTML.** They are escaped like any literal
+  text in your template. Markup comes only from the tag functions you pass to
+  `mg.t`, so a translator cannot inject HTML or templating-engine syntax.
+  Literal `<`, `{` or `'` in ICU need quoting (`'{'`), as in any ICU tool.
+- **`<html lang dir>`** is set per locale, which matters for screen readers
+  and right-to-left layout. A `lang` or `dir` you set on `<Mjml>` yourself wins.
+- **Subjects stay one header line.** A line break in a subject message fails the
+  build, and a line break in a param is collapsed to a space when rendering.
+- Catalogs are normalized to Unicode NFC. Non-breaking spaces (French
+  typography) and ZWJ/ZWNJ (Persian, Indic scripts) are kept.
+- Output is UTF-8. Encoding a non-ASCII subject for the mail header
+  (RFC 2047) is your mail transport's job; Nodemailer does it for you.
+
+### In the preview
+
+A locale picker appears next to the viewport buttons. Messages with no
+translation yet are highlighted, and the catalogs are checked as you edit
+them. The **`en-XA` pseudo-locale** accents and lengthens every translated
+string: any plain text left over was never passed through `mg.t`, and the
+extra length shows where a layout will break in a longer language.
+
 ---
 
 ## DSL reference
@@ -199,6 +310,17 @@ invoiceTotal: t.number()
 isAdmin: t.boolean()
 // → isAdmin: boolean
 ```
+
+### `t.date()`
+
+```ts
+dueAt: t.date()
+// → dueAt: Date | string | number   (a Date, an ISO string or epoch ms)
+```
+
+Meant for `{dueAt, date}` and `{dueAt, time}` in a [message](#localization),
+which format it for the locale in the render call's `timeZone` (default:
+`timeZone` in the config, or `"UTC"`).
 
 ### `t.object(shape)`
 
@@ -521,6 +643,11 @@ export default defineConfig({
 | `hideAppName` | `boolean` | `false` | Hide the project name in the preview UI |
 | `hideAppDescription` | `boolean` | `false` | Hide the description in the preview UI |
 | `hideAppLogo` | `boolean` | `false` | Hide the logo in the preview UI |
+| `locales` | `string[]` | — | BCP 47 tags to build. Unset: one unlocalized build, as before. See [Localization](#localization) |
+| `defaultLocale` | `string` | `locales[0]` | The locale whose text is written in code, and the fallback |
+| `localesDir` | `string` | `"<sourceDir>/locales"` | Where the `<locale>.json` catalogs live |
+| `strictLocales` | `boolean` | `false` | Fail the build on missing translations instead of warning |
+| `timeZone` | `string` | `"UTC"` | Default IANA time zone for formatting dates; can be overridden per render |
 
 ---
 

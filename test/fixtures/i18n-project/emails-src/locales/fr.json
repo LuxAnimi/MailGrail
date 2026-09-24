@@ -1,0 +1,9 @@
+{
+  "order.cta": "Suivre ma commande",
+  "order.greeting": "Bonjour {name},",
+  "order.help": "Des questions ? <link>Écrivez-nous</link>.",
+  "order.items": "{count, plural, one {Vous avez commandé # article.} many {Vous avez commandé # d’articles.} other {Vous avez commandé # articles.}}",
+  "order.line": "{title} × {qty}",
+  "order.subject": "Commande {ref} confirmée",
+  "order.total": "Total : {total, number, ::currency/EUR}"
+}

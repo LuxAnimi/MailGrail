@@ -8,6 +8,8 @@ export function defineConfig(
 }
 
 export { t } from "../dsl/index.js";
+export { defineMessages } from "../i18n/messages.js";
+export type { MessageDescriptor } from "../i18n/messages.js";
 export type { Infer, Schema } from "../dsl/schemas.js";
 export type {
   TemplateDefinition,

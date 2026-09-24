@@ -6,6 +6,7 @@ import { Content } from "@/preview-app/components/Content";
 
 //------------------------------------------------------------------------------
 import { useTemplates } from "./TemplateLoader";
+import { usePreviewLocales } from "./i18n";
 
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types.ts";
@@ -16,6 +17,7 @@ import type { Schema } from "@/dsl/schemas";
 export default function App() {
   //----------------------------------------------------------------------------
   const templates = useTemplates();
+  const locales = usePreviewLocales(templates);
 
   //----------------------------------------------------------------------------
   // State
@@ -46,7 +48,7 @@ export default function App() {
         selectedTemplate={selectedTemplate}
         onTemplateSelected={setSelectedTemplate}
       />
-      <Content selectedTemplate={selectedTemplate} />
+      <Content selectedTemplate={selectedTemplate} locales={locales} />
     </div>
   );
 }

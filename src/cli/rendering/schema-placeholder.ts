@@ -40,6 +40,10 @@ export function makePlaceholderData<S extends Schema<any>>(
         return "" as any;
       }
 
+      case "date": {
+        return "";
+      }
+
       case "boolean": {
         return false;
       }

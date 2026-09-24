@@ -16,6 +16,9 @@ import {
   makeTextPreviewContext,
 } from "@/cli/rendering/schema-previewing";
 import { guardContext } from "@/cli/rendering/context-guard";
+import type { PreviewI18n } from "@/cli/rendering/schema-previewing";
+import { applyLocaleToMjml } from "@/i18n/mjml";
+import type { PreviewLocales } from "@/preview-app/i18n";
 import { makePlaceholderData } from "@/cli/rendering/schema-placeholder";
 import { ParamsForm } from "@/preview-app/components/ParamsForm";
 
@@ -40,12 +43,15 @@ const VIEWPORTS: ViewportPreset[] = [
 //------------------------------------------------------------------------------
 export const Content = ({
   selectedTemplate,
+  locales,
 }: {
   selectedTemplate?: TemplateDefinition<Schema<any>>;
+  locales: PreviewLocales | null;
 }) => {
   //----------------------------------------------------------------------------
   // State
   const [mode] = useState<PreviewMode>(PreviewMode.html);
+  const [localeChoice, setLocaleChoice] = useState<string>();
   const [paramsCollapsed, setParamsCollapsed] = useState(false);
   const [viewport, setViewport] = useState<ViewportPreset>(VIEWPORTS[0]);
   const [paramOverrides, setParamOverrides] = useState<
@@ -61,6 +67,13 @@ export const Content = ({
     }
     return makePlaceholderData(selectedTemplate.params);
   }, [selectedTemplate, paramOverrides]);
+
+  // A locale dropped from the config falls back to the default.
+  const i18n = useMemo<PreviewI18n | undefined>(() => {
+    if (!locales) return undefined;
+    const known = locales.options.some((o) => o.value === localeChoice);
+    return locales.resolve(known && localeChoice ? localeChoice : locales.defaultLocale);
+  }, [locales, localeChoice]);
 
   //----------------------------------------------------------------------------
   // Handlers
@@ -83,12 +96,15 @@ export const Content = ({
             template={selectedTemplate}
             params={params}
             viewport={viewport}
+            i18n={i18n}
           />
         );
       case PreviewMode.text:
-        return <TemplatePreviewText template={selectedTemplate} params={params} />;
+        return (
+          <TemplatePreviewText template={selectedTemplate} params={params} i18n={i18n} />
+        );
     }
-  }, [mode, selectedTemplate, params, viewport]);
+  }, [mode, selectedTemplate, params, viewport, i18n]);
 
   //----------------------------------------------------------------------------
   // Render
@@ -114,6 +130,7 @@ export const Content = ({
                         <TemplatePreviewSubject
                           template={selectedTemplate}
                           params={params}
+                          i18n={i18n}
                         />
                       </span>
                     </div>
@@ -128,6 +145,20 @@ export const Content = ({
                 </div>
 
                 <div className="header-controls">
+                  {locales && (
+                    <select
+                      className="locale-picker"
+                      title="Locale"
+                      value={localeChoice ?? locales.defaultLocale}
+                      onChange={(e) => setLocaleChoice(e.target.value)}
+                    >
+                      {locales.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <div className="viewport-picker">
                     {VIEWPORTS.map((vp) => (
                       <button
@@ -155,6 +186,7 @@ export const Content = ({
                   </button>
                 </div>
               </div>
+              {locales && <TranslationNotices locales={locales} />}
             </div>
             {preview}
           </div>
@@ -185,10 +217,11 @@ function renderTextPart(
   template: TemplateDefinition<Schema<any>>,
   part: "subjectTemplate" | "textTemplate",
   params: any,
+  i18n: PreviewI18n | undefined,
 ): string {
   try {
     return template[part](
-      guardContext(makeTextPreviewContext(params), {
+      guardContext(makeTextPreviewContext(params, i18n), {
         template: template.name,
         part,
       }),
@@ -203,13 +236,15 @@ function renderTextPart(
 const TemplatePreviewSubject = ({
   template,
   params,
+  i18n,
 }: {
   template: TemplateDefinition<Schema<any>>;
   params: any;
+  i18n: PreviewI18n | undefined;
 }) =>
   useMemo(
-    () => renderTextPart(template, "subjectTemplate", params),
-    [template, params],
+    () => renderTextPart(template, "subjectTemplate", params, i18n),
+    [template, params, i18n],
   );
 
 //------------------------------------------------------------------------------
@@ -217,15 +252,17 @@ const TemplatePreviewSubject = ({
 const TemplatePreviewText = ({
   template,
   params,
+  i18n,
 }: {
   template: TemplateDefinition<Schema<any>>;
   params: any;
+  i18n: PreviewI18n | undefined;
 }) => {
   //----------------------------------------------------------------------------
   // Memos
   const textRender = useMemo(
-    () => renderTextPart(template, "textTemplate", params),
-    [template, params],
+    () => renderTextPart(template, "textTemplate", params, i18n),
+    [template, params, i18n],
   );
 
   //----------------------------------------------------------------------------
@@ -246,32 +283,90 @@ const TemplatePreviewHTML = ({
   template,
   params,
   viewport,
+  i18n,
 }: {
   template: TemplateDefinition<Schema<any>>;
   params: any;
   viewport: ViewportPreset;
+  i18n: PreviewI18n | undefined;
 }) => {
   //----------------------------------------------------------------------------
   // State
   const [html, setHtml] = useState<string>();
 
   //----------------------------------------------------------------------------
+  // `lang` and `dir` go on the document as the build puts them, so an RTL
+  // locale previews right to left.
+  //
+  // A template that throws -- a message missing an argument, say -- shows the
+  // error in the pane rather than the last good render.
+  const prepared = useMemo((): { mjml: string } | { error: string } => {
+    try {
+      const doc = template.htmlTemplate(makeTemplatePreviewContext(params, i18n));
+      const mjml = renderToStaticMarkup(doc);
+      return { mjml: i18n ? applyLocaleToMjml(mjml, i18n).mjml : mjml };
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) };
+    }
+  }, [template, params, i18n]);
+
   useEffect(() => {
-    const doc = template.htmlTemplate(makeTemplatePreviewContext(params));
-    mjml2html(renderToStaticMarkup(doc)).then((result) => {
+    if ("error" in prepared) return;
+    mjml2html(prepared.mjml).then((result) => {
       setHtml(result.html);
     });
-  }, [template, params]);
+  }, [prepared]);
+
+  const srcDoc =
+    "error" in prepared
+      ? `<pre style="white-space: pre-wrap; font-family: monospace">${escapeHtml(prepared.error)}</pre>`
+      : html;
 
   //----------------------------------------------------------------------------
   return (
     <div className={`templatePreview${viewport.width !== null ? " templatePreview--viewport" : ""}`}>
       <iframe
         title="Email preview"
-        srcDoc={html}
+        srcDoc={srcDoc}
         sandbox=""
         style={viewport.width !== null ? { width: viewport.width } : undefined}
       />
     </div>
+  );
+};
+
+//------------------------------------------------------------------------------
+const escapeHtml = (text: string): string =>
+  text.replace(
+    /[&<>"]/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char] ?? char,
+  );
+
+//------------------------------------------------------------------------------
+// What the build would say about the catalogs, said here too. Errors mean a
+// translation is not used at all; warnings are gaps the build lets through --
+// unless strictLocales is on, which the label says.
+//------------------------------------------------------------------------------
+const TranslationNotices = ({ locales }: { locales: PreviewLocales }) => {
+  const { errors, warnings, strict } = locales;
+  if (errors.length === 0 && warnings.length === 0) return null;
+
+  return (
+    <details className={`translation-notices${errors.length > 0 ? " has-errors" : ""}`}>
+      <summary>
+        {errors.length > 0 &&
+          `${errors.length} translation error${errors.length === 1 ? "" : "s"}`}
+        {errors.length > 0 && warnings.length > 0 && " · "}
+        {warnings.length > 0 &&
+          `${warnings.length} translation warning${warnings.length === 1 ? "" : "s"}` +
+            (strict ? " (errors with strictLocales)" : "")}
+      </summary>
+      <ul>
+        {[...errors, ...warnings].map((problem, i) => (
+          <li key={i}>{problem}</li>
+        ))}
+      </ul>
+    </details>
   );
 };

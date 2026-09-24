@@ -1,0 +1,8 @@
+{
+  "order.cta": "تتبع طلبك",
+  "order.greeting": "مرحبًا {name}،",
+  "order.help": "أسئلة؟ <link>اتصل بنا</link>.",
+  "order.items": "{count, plural, zero {لم تطلب أي عنصر.} one {طلبت عنصرًا واحدًا.} two {طلبت عنصرين.} few {طلبت # عناصر.} many {طلبت # عنصرًا.} other {طلبت # عنصر.}}",
+  "order.subject": "تم تأكيد الطلب {ref}",
+  "order.total": "المجموع: {total, number, ::currency/EUR}"
+}

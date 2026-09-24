@@ -11,6 +11,7 @@ import { watchMailgrailConfig } from "../config/watchConfig.js";
 //------------------------------------------------------------------------------
 import { MailgrailTemplatesPlugin } from "../plugins/template-loader.js";
 import { MailgrailConfigPlugin } from "../plugins/config-loader.js";
+import { MailgrailCatalogsPlugin } from "../plugins/catalog-loader.js";
 import { getLibraryDir } from "./utils.js";
 import { assertReactPair } from "./react-preflight.js";
 import type { MailgrailResolvedConfig } from "../config/types.js";
@@ -54,6 +55,7 @@ export async function previewTemplates(config: MailgrailResolvedConfig) {
       react(),
       MailgrailConfigPlugin(config),
       MailgrailTemplatesPlugin(config.sourceDir),
+      MailgrailCatalogsPlugin(config),
     ],
     assetsInclude: ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.svg"],
     optimizeDeps: {
@@ -62,7 +64,11 @@ export async function previewTemplates(config: MailgrailResolvedConfig) {
       // pre-bundle -- which cannot resolve the virtual modules our plugins
       // provide. Skipping the scan leaves them to the plugins at request time.
       entries: [],
-      exclude: ["virtual:mailgrailconfig", "virtual:mailgrailtemplates"],
+      exclude: [
+        "virtual:mailgrailconfig",
+        "virtual:mailgrailtemplates",
+        "virtual:mailgrailcatalogs",
+      ],
       // Vite skips dependency discovery for importers inside node_modules,
       // which the preview app is. Without this the browser would be served
       // React's raw CommonJS and fail; listing it here prebundles it once and

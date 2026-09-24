@@ -50,6 +50,10 @@ const SchemaField = ({
   switch (schema.kind) {
     case "string":
       return <StringField value={value} onChange={onChange} label={label} />;
+    case "date":
+      // Typed as text: an ISO string is what most callers pass, and a native
+      // date picker would drop the time and the zone.
+      return <StringField value={value} onChange={onChange} label={label} />;
     case "number":
       return (
         <NumberField

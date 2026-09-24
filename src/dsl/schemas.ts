@@ -46,6 +46,22 @@ export const boolean = (): BooleanSchema => ({
 });
 
 //------------------------------------------------------------------------------
+// Date
+/**
+ * A point in time: a Date, an ISO 8601 string or epoch milliseconds. Meant for
+ * `{name, date}` / `{name, time}` in a message, which formats it per locale
+ * and time zone; `mg.render` prints it as it was passed.
+ */
+export interface DateSchema extends Schema<Date | string | number> {
+  kind: "date";
+}
+
+//------------------------------------------------------------------------------
+export const date = (): DateSchema => ({
+  kind: "date",
+});
+
+//------------------------------------------------------------------------------
 // Array
 export interface ArraySchema<S extends Schema<any>> extends Schema<Infer<S>[]> {
   kind: "array";
@@ -69,12 +85,25 @@ export interface ObjectSchema<Shape extends Record<string, Schema<any>>>
 }
 
 //------------------------------------------------------------------------------
+// The generated module adds fields of its own next to the params -- derived
+// values for messages (`__mg_d1`) and a Mustache whitespace guard -- so a
+// param may not be named like one.
+const RESERVED_KEY = /^__m(g|ailgrail)/;
+
 export const object = <Shape extends Record<string, Schema<any>>>(
   shape: Shape,
-): ObjectSchema<Shape> => ({
-  kind: "object",
-  shape,
-});
+): ObjectSchema<Shape> => {
+  for (const key of Object.keys(shape)) {
+    if (RESERVED_KEY.test(key)) {
+      throw new Error(
+        `t.object: the key ${JSON.stringify(key)} is reserved -- names ` +
+          `starting with "__mg" are used by the generated modules.`,
+      );
+    }
+  }
+
+  return { kind: "object", shape };
+};
 
 //------------------------------------------------------------------------------
 // Optional

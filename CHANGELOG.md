@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Localization. List `locales` in the config and each template is built once
+  per locale. Messages are written in ICU MessageFormat with
+  `defineMessages()` and rendered with `mg.t()`: arguments, rich-text tags,
+  plural and select, and number/date/time formatting. Plurals and formatting are
+  computed per email with the built-in `Intl` APIs, so the output still needs
+  nothing but the templating engine. Render functions take
+  `{ locale, timeZone }`, resolve any tag or `Accept-Language` value to the
+  closest built locale, and never throw
+- `mailgrail extract` keeps `<localesDir>/<locale>.json` catalogs in line with
+  the source messages
+- Catalog validation at build time: ICU syntax, arguments and tags a
+  translation cannot have, plural categories each locale needs, stale keys and
+  invisible characters. Missing translations warn and fall back to the default
+  locale, or fail the build with `strictLocales`
+- `<html lang dir>` is set per locale; `mg.locale` and `mg.dir` are available
+  to templates
+- `t.date()`
+- Preview: a locale picker, highlighting for untranslated messages, catalog
+  hot reload, and an `en-XA` pseudo-locale
+
+### Fixed
+
+- With Handlebars or Mustache, a literal `{{name}}` in a template's static HTML
+  (text or attribute) was evaluated against the params, and a `{` placed right
+  before a value turned it into an unescaped triple-stache. Static braces next to
+  delimiters are now written as HTML entities
+
+### Changed
+
+- A line break or other control character in a rendered subject fails the build
+- Param keys starting with `__mg` are reserved
+
 ## [0.2.0] - 2026-09-17
 
 ### Breaking
