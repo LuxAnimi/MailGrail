@@ -149,4 +149,15 @@ export const configDocs: ConfigDoc[] = [
       "`{ timeZone }`. The build fails on a zone the running Node does not " +
       "know, rather than letting the first email that formats a date throw.",
   },
+  {
+    id: "previewDevices",
+    type: "PreviewDevice[]",
+    summary: "The devices the preview can frame an email at.",
+    description:
+      "Each is `{ type, width, label? }`, where `type` is `\"desktop\"`, " +
+      "`\"tablet\"` or `\"mobile\"`. A desktop fills the preview and takes no " +
+      "`width`; the others are framed at their `width` in pixels. `label` " +
+      "defaults to the type's name. Unset, the preview offers a desktop, a " +
+      "768px tablet and a 375px phone.",
+  },
 ];

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import mjml2html from "mjml-browser";
 import { DeviceDesktopIcon, DeviceMobileIcon, NoteIcon, type Icon } from "@primer/octicons-react";
+import config from "virtual:mailgrailconfig";
 
 //------------------------------------------------------------------------------
 import { PreviewMode } from "@/preview-app/enums";
@@ -25,19 +26,21 @@ import { ParamsForm } from "@/preview-app/components/ParamsForm";
 //------------------------------------------------------------------------------
 import type { TemplateDefinition } from "@/cli/types";
 import type { Schema } from "@/dsl/schemas";
+import type { PreviewDeviceType, ResolvedPreviewDevice } from "@/config/types";
 
 //------------------------------------------------------------------------------
-type ViewportPreset = {
-  id: string;
-  label: string;
-  width: number | null;
-  icon: Icon;
-};
+// Octicons has no tablet; a phone on its side reads as one.
+const DeviceTabletIcon: Icon = (props) => (
+  <span className="device-icon--tablet">
+    <DeviceMobileIcon {...props} />
+  </span>
+);
 
-const VIEWPORTS: ViewportPreset[] = [
-  { id: "desktop", label: "Desktop", width: null, icon: DeviceDesktopIcon },
-  { id: "mobile", label: "Mobile", width: 375, icon: DeviceMobileIcon },
-];
+const DEVICE_ICONS: Record<PreviewDeviceType, Icon> = {
+  desktop: DeviceDesktopIcon,
+  tablet: DeviceTabletIcon,
+  mobile: DeviceMobileIcon,
+};
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -53,13 +56,16 @@ export const Content = ({
   const [mode] = useState<PreviewMode>(PreviewMode.html);
   const [localeChoice, setLocaleChoice] = useState<string>();
   const [paramsCollapsed, setParamsCollapsed] = useState(true);
-  const [viewport, setViewport] = useState<ViewportPreset>(VIEWPORTS[0]);
+  const [deviceIndex, setDeviceIndex] = useState(0);
   const [paramOverrides, setParamOverrides] = useState<
     { templateName: string; params: any } | undefined
   >(undefined);
 
   //----------------------------------------------------------------------------
   // Memos
+  const devices = config.previewDevices;
+  const device = devices[deviceIndex] ?? devices[0]!;
+
   const params = useMemo(() => {
     if (!selectedTemplate) return undefined;
     if (paramOverrides?.templateName === selectedTemplate.name) {
@@ -95,7 +101,7 @@ export const Content = ({
           <TemplatePreviewHTML
             template={selectedTemplate}
             params={params}
-            viewport={viewport}
+            device={device}
             i18n={i18n}
           />
         );
@@ -104,7 +110,7 @@ export const Content = ({
           <TemplatePreviewText template={selectedTemplate} params={params} i18n={i18n} />
         );
     }
-  }, [mode, selectedTemplate, params, viewport, i18n]);
+  }, [mode, selectedTemplate, params, device, i18n]);
 
   //----------------------------------------------------------------------------
   // Render
@@ -159,22 +165,27 @@ export const Content = ({
                       ))}
                     </select>
                   )}
-                  <div className="viewport-picker">
-                    {VIEWPORTS.map((vp) => (
-                      <button
-                        key={vp.id}
-                        type="button"
-                        className={`viewport-btn${viewport.id === vp.id ? " active" : ""}`}
-                        onClick={() => setViewport(vp)}
-                      >
-                        <vp.icon size={14} />
-                        {vp.label}
-                        {vp.width !== null && (
-                          <span className="viewport-width">{vp.width}px</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  {devices.length > 1 && (
+                    <div className="viewport-picker">
+                      {devices.map((d, i) => {
+                        const DeviceIcon = DEVICE_ICONS[d.type];
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            className={`viewport-btn${d === device ? " active" : ""}`}
+                            onClick={() => setDeviceIndex(i)}
+                          >
+                            <DeviceIcon size={14} />
+                            {d.label}
+                            {d.width !== null && (
+                              <span className="viewport-width">{d.width}px</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <button
                     type="button"
                     className={`populate-btn${paramsCollapsed ? "" : " active"}`}
@@ -282,12 +293,12 @@ const TemplatePreviewText = ({
 const TemplatePreviewHTML = ({
   template,
   params,
-  viewport,
+  device,
   i18n,
 }: {
   template: TemplateDefinition<Schema<any>>;
   params: any;
-  viewport: ViewportPreset;
+  device: ResolvedPreviewDevice;
   i18n: PreviewI18n | undefined;
 }) => {
   //----------------------------------------------------------------------------
@@ -352,14 +363,14 @@ const TemplatePreviewHTML = ({
   // allow-same-origin is what lets this page write into the frame. Scripts in
   // the email still cannot run: allow-scripts stays off.
   return (
-    <div className={`templatePreview${viewport.width !== null ? " templatePreview--viewport" : ""}`}>
+    <div className={`templatePreview${device.width !== null ? " templatePreview--viewport" : ""}`}>
       <iframe
         ref={iframeRef}
         title="Email preview"
         srcDoc={BLANK_DOCUMENT}
         sandbox="allow-same-origin"
         onLoad={writeMarkup}
-        style={viewport.width !== null ? { width: viewport.width } : undefined}
+        style={device.width !== null ? { width: device.width } : undefined}
       />
     </div>
   );

@@ -650,6 +650,7 @@ export default defineConfig({
 | `localesDir` | `string` | `"<sourceDir>/locales"` | Where the `<locale>.json` catalogs live |
 | `strictLocales` | `boolean` | `false` | Fail the build on missing translations instead of warning |
 | `timeZone` | `string` | `"UTC"` | Default IANA time zone for formatting dates; can be overridden per render |
+| `previewDevices` | `PreviewDevice[]` | desktop, 768px tablet, 375px mobile | Devices in the preview's picker, each `{ type: "desktop" \| "tablet" \| "mobile", width?, label? }`. A desktop fills the preview and takes no `width`; the others require one, in pixels |
 
 ---
 

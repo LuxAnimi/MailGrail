@@ -16,6 +16,22 @@ export interface MailgrailConfig {
   localesDir: string; // path relative to your project's folder, default is <sourceDir>/locales
   strictLocales: boolean; // incomplete translations fail the build, default is false
   timeZone: string; // IANA zone dates are formatted in, default is "UTC"
+  previewDevices: PreviewDevice[]; // preview's device picker, default is desktop, tablet and mobile
+}
+
+//------------------------------------------------------------------------------
+// A size the preview can frame an email at. A desktop takes all the room the
+// preview has, so it has no width; the others are framed at theirs.
+export type PreviewDeviceType = "desktop" | "tablet" | "mobile";
+
+export type PreviewDevice =
+  | { type: "desktop"; label?: string }
+  | { type: "tablet" | "mobile"; width: number; label?: string };
+
+export interface ResolvedPreviewDevice {
+  type: PreviewDeviceType;
+  label: string;
+  width: number | null; // null for a desktop
 }
 
 //------------------------------------------------------------------------------
@@ -29,10 +45,14 @@ export interface ProjectInfo {
 // With no `locales`, localization is off: `locales` is empty and
 // `defaultLocale` null, and the build emits exactly what it did before.
 export interface MailgrailResolvedConfig
-  extends Omit<MailgrailConfig, "defaultLocale" | "appName" | "appDescription"> {
+  extends Omit<
+    MailgrailConfig,
+    "defaultLocale" | "appName" | "appDescription" | "previewDevices"
+  > {
   baseDir: string;
   configPath: string;
   defaultLocale: string | null;
   appName: string | null;
   appDescription: string | null;
+  previewDevices: ResolvedPreviewDevice[];
 }

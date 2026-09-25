@@ -32,8 +32,9 @@ Templates that set a `category` are grouped under collapsible headings, in the
 order each category first appears; the rest are listed above the groups. Which
 groups are collapsed is remembered across reloads.
 
-The header shows the resolved `subject` and `sender`, a desktop/mobile toggle
-that reframes the preview at 375px, and a **Populate** control for switching
+The header shows the resolved `subject` and `sender`, a device picker that
+reframes the preview at a phone or tablet width (see
+[Target devices](#target-devices)), and a **Populate** control for switching
 between placeholder data and values you type yourself.
 
 ## Placeholder data
@@ -95,6 +96,27 @@ export default defineConfig({
 ```
 
 The sidebar footer links to this documentation.
+
+## Target devices
+
+The device picker in the header frames the email at a device's width. By
+default it offers a desktop, a 768px tablet and a 375px phone. List your own
+to match the clients your audience actually reads on:
+
+```ts title="mailgrail.config.ts"
+export default defineConfig({
+  previewDevices: [
+    { type: "desktop" },
+    { type: "mobile", width: 320, label: "Small phone" },
+    { type: "mobile", width: 414, label: "Large phone" },
+  ],
+});
+```
+
+A device's `type` is `"desktop"`, `"tablet"` or `"mobile"`. A desktop is
+unconstrained: it fills the whole preview area, so it takes no `width`. The
+others need a `width` in pixels. `label` defaults to the type's name. With a
+single device, the picker is hidden.
 
 ## What the preview does not do
 

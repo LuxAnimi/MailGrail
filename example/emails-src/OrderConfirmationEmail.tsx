@@ -42,7 +42,7 @@ const paramsSchema = t.object({
 // each locale writes them its own way: $1,234.50 in English, 1 234,50 $US in
 // French.
 const messages = defineMessages("order-confirmation", {
-  subject: "Your mailgrail order #{orderNumber} is confirmed",
+  subject: "Your MailGrail order #{orderNumber} is confirmed",
   heading: "Order confirmed.",
   orderNumber: "Order <b>#{orderNumber}</b>",
   amount: "{amount, number, ::currency/USD}",

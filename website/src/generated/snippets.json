@@ -1,9 +1,9 @@
 {
   "config-file": {
-    "code": "export default defineConfig({\n  sourceDir: \"emails-src\",\n  outputDir: \"emails-dist\",\n  typescript: true,\n  previewPort: 7777,\n  // Optional: build every template in each of these languages. The first is\n  // the one the messages are written in.\n  locales: [\"en\", \"fr\", \"es\"],\n});",
-    "endLine": 13,
+    "code": "export default defineConfig({\n  sourceDir: \"emails-src\",\n  outputDir: \"emails-dist\",\n  typescript: true,\n  previewPort: 7777,\n  // The title in the preview's sidebar. Defaults to package.json's name.\n  appName: \"MailGrail\",\n  // Optional: build every template in each of these languages. The first is\n  // the one the messages are written in.\n  locales: [\"en\", \"fr\", \"es\"],\n});",
+    "endLine": 15,
     "file": "example/mailgrail.config.ts",
-    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L13",
+    "href": "https://github.com/LuxAnimi/MailGrail/blob/main/example/mailgrail.config.ts#L5-L15",
     "id": "config-file",
     "lang": "ts",
     "startLine": 5

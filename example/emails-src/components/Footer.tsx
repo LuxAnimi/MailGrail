@@ -1,4 +1,4 @@
-import { MjmlColumn, MjmlGroup, MjmlSection } from "@faire/mjml-react";
+import { MjmlColumn, MjmlGroup, MjmlImage, MjmlSection } from "@faire/mjml-react";
 import Text from "./Text";
 import { fontSize, colors, spacing } from "../theme";
 import { metadata } from "../Metadata";
@@ -15,12 +15,20 @@ export default function Footer({ mg }: { mg: Translator }) {
     <MjmlSection>
       <MjmlGroup>
         <MjmlColumn width="100%">
+          <MjmlImage
+            src={metadata.logo_light_url}
+            alt="MailGrail"
+            width={32}
+            height={32}
+            align="center"
+            paddingTop={spacing.s6}
+          />
           <Text
             color={colors.content.tertiary}
             fontSize={fontSize.xs}
             align="center"
             paddingBottom={spacing.s8}
-            paddingTop={spacing.s6}
+            paddingTop={spacing.s3}
           >
             <p>
               {mg.t(messages.help, {
@@ -35,7 +43,7 @@ export default function Footer({ mg }: { mg: Translator }) {
               })}
             </p>
             <p style={{ marginTop: "8px" }}>
-              © {new Date().getFullYear()} mailgrail. {mg.t(messages.rights)}
+              © {new Date().getFullYear()} MailGrail. {mg.t(messages.rights)}
             </p>
           </Text>
         </MjmlColumn>

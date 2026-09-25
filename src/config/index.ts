@@ -1,4 +1,5 @@
 import type { MailgrailConfig } from "./types.js";
+export type { PreviewDevice, PreviewDeviceType } from "./types.js";
 
 //------------------------------------------------------------------------------
 export function defineConfig(

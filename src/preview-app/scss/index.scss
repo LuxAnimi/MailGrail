@@ -369,6 +369,11 @@
                 &.active .viewport-width {
                     color: #999;
                 }
+
+                .device-icon--tablet {
+                    display: inline-flex;
+                    transform: rotate(90deg);
+                }
             }
         }
     }
@@ -402,6 +407,10 @@
         &.templatePreview--viewport {
             background: #e4e4e4;
             overflow-y: auto;
+            // A device wider than the pane scrolls rather than being clipped.
+            overflow-x: auto;
+            // `safe` keeps an overflowing frame's left edge reachable.
+            justify-content: safe center;
             padding: 1.5rem 0;
 
             iframe {

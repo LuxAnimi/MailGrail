@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `previewDevices` config option sets the devices in the preview's picker.
+  Each has a `type` (`desktop`, `tablet` or `mobile`), a `width` in pixels
+  (a desktop has none and fills the preview) and an optional `label`
+
+### Changed
+
+- The preview offers a 768px tablet by default, between desktop and mobile
+
 ## [0.3.1] - 2026-09-24
 
 ### Added

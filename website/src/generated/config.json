@@ -111,6 +111,29 @@
       "id": "timeZone",
       "summary": "The IANA time zone dates are formatted in.",
       "type": "string"
+    },
+    {
+      "default": [
+        {
+          "label": "Desktop",
+          "type": "desktop",
+          "width": null
+        },
+        {
+          "label": "Tablet",
+          "type": "tablet",
+          "width": 768
+        },
+        {
+          "label": "Mobile",
+          "type": "mobile",
+          "width": 375
+        }
+      ],
+      "description": "Each is `{ type, width, label? }`, where `type` is `\"desktop\"`, `\"tablet\"` or `\"mobile\"`. A desktop fills the preview and takes no `width`; the others are framed at their `width` in pixels. `label` defaults to the type's name. Unset, the preview offers a desktop, a 768px tablet and a 375px phone.",
+      "id": "previewDevices",
+      "summary": "The devices the preview can frame an email at.",
+      "type": "PreviewDevice[]"
     }
   ]
 }

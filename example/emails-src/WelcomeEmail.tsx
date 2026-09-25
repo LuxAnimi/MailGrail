@@ -26,13 +26,13 @@ import { colors, fontSize, spacing } from "./theme";
 // The English text. French and Spanish are in ./locales/<locale>.json, kept in
 // line with these by `mailgrail extract`.
 const messages = defineMessages("welcome", {
-  subject: "Welcome to mailgrail, {username}!",
+  subject: "Welcome to MailGrail, {username}!",
   heading: "Welcome aboard.",
   greeting: "Hey {username}, your account is ready.",
   signedInAs: "Signed in as {email}.",
   pro: "★ Pro plan — unlimited projects & priority support",
   plan: "You are on the <b>{plan}</b> plan.",
-  cta: "Open mailgrail",
+  cta: "Open MailGrail",
   referral: "Your referral code: <code>{referralCode}</code>",
   referralHint: "Share it with a friend to earn free credits.",
   textWelcome: "Welcome, {username}!",

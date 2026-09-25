@@ -37,10 +37,10 @@ const paramsSchema = t.object({
 // `days` is a plural, so "1 day" and "7 days" both come out right -- and French
 // and Spanish get their own plural rules, not English's.
 const messages = defineMessages("team-invite", {
-  subject: "{name} invited you to join mailgrail",
+  subject: "{name} invited you to join MailGrail",
   heading: "You’re invited.",
   invitedBy:
-    "{name} <muted>({email})</muted><line>wants you to join them on mailgrail.</line>",
+    "{name} <muted>({email})</muted><line>wants you to join them on MailGrail.</line>",
   admin: "★ You are being invited as an admin",
   cta: "Accept invitation",
   expires:
