@@ -1,6 +1,6 @@
 {
   "name": "@luxanimi/mailgrail",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Type-safe email templates using React and MJML. Preview in a browser, compile to a portable EJS, Handlebars or Mustache template your backend renders on its own.",
   "author": {
     "name": "LuxAnimi",

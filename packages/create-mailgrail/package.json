@@ -1,6 +1,6 @@
 {
   "name": "@luxanimi/create-mailgrail",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Scaffold MailGrail email templates into an existing project",
   "author": {
     "name": "LuxAnimi",

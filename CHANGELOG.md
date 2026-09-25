@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-24
+
 ### Added
 
 - `previewDevices` config option sets the devices in the preview's picker.
@@ -16,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The preview offers a 768px tablet by default, between desktop and mobile
+- The device picker is hidden when only one device is configured
+- The example templates show the MailGrail logo in their header and footer
+
+### Fixed
+
+- A preview device wider than the pane scrolls horizontally instead of being
+  clipped
 
 ## [0.3.1] - 2026-09-24
 
@@ -238,7 +247,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Infer<S>` — extract the TypeScript type from a schema (also available from `"mailgrail/dsl"`)
 - `Schema` — base schema interface (also available from `"mailgrail/dsl"`)
 
-[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/LuxAnimi/MailGrail/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LuxAnimi/MailGrail/compare/v0.1.1...v0.2.0
